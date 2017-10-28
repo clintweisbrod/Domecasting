@@ -11,27 +11,27 @@ import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public class TCPPassThruThread extends Thread
+import com.spitzinc.domecasting.TCPConnectionHandlerThread;
+
+public class TCPPassThruThread extends TCPConnectionHandlerThread
 {
 	final static int kSNHeaderFieldLength = 10;
 	final static int kSNHeaderLength = 120;
 	final static int kSNHeaderReplyPortPosition = 50;
 	
-	private AtomicBoolean stopped;
 	private boolean outboundConnectionFailed;
-	private Socket inboundSocket = null;
 	private Socket outboundSocket = null;
 	private TCPNode outboundNode;
-	private TCPConnectionListenerThread owner = null;
 	private byte[] replyPortBytes = null;
 
 	protected InputStream in;
 	protected OutputStream out;
 	
-	public TCPPassThruThread(TCPConnectionListenerThread owner, Socket inboundSocket, TCPNode outboundNode)
+	public TCPPassThruThread(ClientSideConnectionListenerThread owner, Socket inboundSocket, TCPNode outboundNode)
 	{
+		super(owner, inboundSocket);
+		
 		this.owner = owner;
-		this.inboundSocket = inboundSocket;
 		this.outboundNode = outboundNode;
 
 		// Build a byte buffer to replace the contents of the replyPort field in a SN TCP message header
@@ -50,14 +50,6 @@ public class TCPPassThruThread extends Thread
 		this.setName(this.getClass().getSimpleName() + "_" + inboundSocket.getLocalPort() + "->" + outboundNode.port);
 		this.stopped = new AtomicBoolean(false);
 		
-	}
-	
-	public boolean getStopped() {
-		return stopped.get();
-	}
-	
-	public void setStopped() {
-		stopped.set(true);
 	}
 	
 	public void run()

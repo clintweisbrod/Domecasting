@@ -1,4 +1,4 @@
-package com.spitzinc.domecasting.client;
+package com.spitzinc.domecasting;
 
 import java.io.IOException;
 import java.net.ServerSocket;
@@ -10,24 +10,26 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.net.ServerSocketFactory;
 
-public class TCPConnectionListenerThread extends Thread
+//import com.spitzinc.domecasting.client.TCPPassThruThread;
+
+public abstract class TCPConnectionListenerThread extends Thread
 {
-	private static final int kMaxConnectionThreads = 5; 
+	private static final int kMaxConnectionThreads = 5;
+	
+	abstract protected void handleSocketConnection(Socket clientSocket);
+	
 	protected AtomicBoolean stopped;
 	protected ServerSocket serverSocket;
-	protected TCPNode outboundNode;
-	protected ArrayList<TCPPassThruThread> connectionHandlerThreads;
+	protected ArrayList<TCPConnectionHandlerThread> connectionHandlerThreads;
 	
-	public TCPConnectionListenerThread(int inboundPort, TCPNode outBoundNode) throws IOException
+	public TCPConnectionListenerThread(int inPortToListenOn) throws IOException
 	{
-		this.outboundNode = outBoundNode;
-		
 		// Create thread pool
-		this.connectionHandlerThreads = new ArrayList<TCPPassThruThread>();
+		this.connectionHandlerThreads = new ArrayList<TCPConnectionHandlerThread>();
+						
+		serverSocket = ServerSocketFactory.getDefault().createServerSocket(inPortToListenOn, 10);
 				
-		serverSocket = ServerSocketFactory.getDefault().createServerSocket(inboundPort, 10);
-		
-		this.setName(this.getClass().getSimpleName() + "_port" + inboundPort);
+		this.setName(this.getClass().getSimpleName() + "_port" + inPortToListenOn);
 		this.stopped = new AtomicBoolean(false);
 	}
 	
@@ -67,14 +69,14 @@ public class TCPConnectionListenerThread extends Thread
 		}
 		
 		// Stop any threads that may still be running
-		for (TCPPassThruThread thread : connectionHandlerThreads)
+		for (TCPConnectionHandlerThread thread : connectionHandlerThreads)
 			thread.setStopped();
 		
 		// Clear the list of threads
 		connectionHandlerThreads.clear();
 	}
 	
-	public void threadDying(TCPPassThruThread thread) {
+	public void threadDying(TCPConnectionHandlerThread thread) {
 		connectionHandlerThreads.remove(thread);
 	}
 	
@@ -112,12 +114,7 @@ public class TCPConnectionListenerThread extends Thread
 				if (clientSocket != null)
 				{
 					if (connectionHandlerThreads.size() < kMaxConnectionThreads)
-					{
-						// Launch a new thread to handle connection
-						TCPPassThruThread thread = new TCPPassThruThread(this, clientSocket, outboundNode);
-						connectionHandlerThreads.add(thread);
-						thread.start();
-					}
+						handleSocketConnection(clientSocket);
 					else
 						System.out.println(this.getName() + ": Maximum of " + kMaxConnectionThreads + " connections reached.");
 				}
