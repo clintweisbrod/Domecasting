@@ -1,8 +1,11 @@
 package com.spitzinc.domecasting;
 
+import java.awt.Dimension;
+import java.awt.Toolkit;
 import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
 
+import javax.swing.JFrame;
 import javax.swing.UIManager;
 import javax.swing.UnsupportedLookAndFeelException;
 
@@ -36,6 +39,16 @@ public abstract class ApplicationBase implements WindowListener
 		}
     	
     	createUIElements();
+	}
+	
+	public void positionFrame(JFrame frame)
+	{
+		// Center application on screen
+		Dimension prefSize = frame.getPreferredSize();
+		Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
+		int x = (screenSize.width - prefSize.width) / 2;
+        int y = (screenSize.height - prefSize.height) / 2;
+        frame.setLocation(x, y);
 	}
 	
 	@Override

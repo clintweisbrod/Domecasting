@@ -2,7 +2,6 @@ package com.spitzinc.domecasting.server;
 
 import java.awt.BorderLayout;
 import java.awt.Dimension;
-import java.awt.Window.Type;
 
 import javax.swing.JFrame;
 import javax.swing.JPanel;
@@ -31,6 +30,9 @@ public class AppFrame extends JFrame
 		contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
 		contentPane.setLayout(new BorderLayout(0, 0));
 		setContentPane(contentPane);
+		
+		theApp.positionFrame(this);
+		setResizable(false);
 	}
 
 }

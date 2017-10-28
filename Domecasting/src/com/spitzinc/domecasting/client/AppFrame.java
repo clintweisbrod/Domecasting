@@ -1,7 +1,6 @@
 package com.spitzinc.domecasting.client;
 
 import java.awt.Dimension;
-import java.awt.Toolkit;
 
 import javax.swing.JFrame;
 import javax.swing.border.EmptyBorder;
@@ -52,17 +51,7 @@ public class AppFrame extends JFrame
 		tabbedPane.addTab("Presenter", presenterPanel);
 		setContentPane(tabbedPane);
 		
-		positionFrame();
+		theApp.positionFrame(this);
 		setResizable(false);
-	}
-	
-	private void positionFrame()
-	{
-		// Center application on screen
-		Dimension prefSize = getPreferredSize();
-		Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
-		int x = (screenSize.width - prefSize.width) / 2;
-        int y = (screenSize.height - prefSize.height) / 2;
-        setLocation(x, y);
 	}
 }
