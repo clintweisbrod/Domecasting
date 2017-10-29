@@ -148,6 +148,8 @@ public class TCPPassThruThread extends TCPConnectionHandlerThread
 		try
 		{
 			count = in.read(buffer);
+			if (count == -1)
+				stopped.set(true);
 			System.out.println(this.getName() + ": Read " + count + " bytes from inbound socket.");
 		}
 		catch (IOException e) {
@@ -156,20 +158,11 @@ public class TCPPassThruThread extends TCPConnectionHandlerThread
 		}
 
 		// Write data to outbound socket
-		if (!stopped.get() && (count > 0))
+		if (!stopped.get())
 		{
-			try
-			{
-				out.write(buffer, 0, count);
-				System.out.println(this.getName() + ": Wrote " + count + " bytes to outbound socket.");
-			}
-			catch (IOException e) {
+			if (!writeOutputStream(out, buffer, 0, count))
 				stopped.set(true);
-				System.out.println(this.getName() + ": Failed writing outbound socket.");
-			}
 		}
-		else
-			stopped.set(true);
 	}
 	
 	/**
@@ -189,26 +182,9 @@ public class TCPPassThruThread extends TCPConnectionHandlerThread
 	private void modifyReplyPortPassThru(byte[] buffer)
 	{	
 		// Read the SN header from the inbound socket
-		int totalBytesRead = 0;
-		try
-		{
-			while (totalBytesRead < kSNHeaderLength)
-			{
-				int bytesRead = in.read(buffer, totalBytesRead, kSNHeaderLength - totalBytesRead);
-				if (bytesRead == -1)
-				{
-					stopped.set(true);
-					break;
-				}
-				System.out.println(this.getName() + ": Read " + bytesRead + " bytes from inbound socket.");
-				totalBytesRead += bytesRead;
-			}
-		}
-		catch (IOException e) {
+		if (!readInputStream(in, buffer, 0, kSNHeaderLength))
 			stopped.set(true);
-			System.out.println(this.getName() + ": Failed reading inbound socket.");
-		}
-
+			
 		// Get total length of incoming message and modify the replyToPort
 		int messageLength = 0;
 		if (!stopped.get())
@@ -226,8 +202,8 @@ public class TCPPassThruThread extends TCPConnectionHandlerThread
 			// Write the header to the outbound socket
 			try
 			{
-				out.write(buffer, 0, totalBytesRead);
-				System.out.println(this.getName() + ": Wrote " + totalBytesRead + " bytes to outbound socket.");
+				out.write(buffer, 0, kSNHeaderLength);
+				System.out.println(this.getName() + ": Wrote " + kSNHeaderLength + " bytes to outbound socket.");
 			}
 			catch (IOException e) {
 				stopped.set(true);
@@ -241,41 +217,17 @@ public class TCPPassThruThread extends TCPConnectionHandlerThread
 		{
 			// Read as much of the message as our buffer will hold
 			int bytesToRead = Math.min(bytesLeftToReceive, buffer.length);
-			totalBytesRead = 0;
-			try
+			if (!readInputStream(in, buffer, 0, bytesToRead))
 			{
-				while (totalBytesRead < bytesToRead)
-				{
-					int bytesRead = in.read(buffer, 0, bytesToRead);
-					if (bytesRead == -1)
-					{
-						stopped.set(true);
-						break;
-					}
-					System.out.println(this.getName() + ": Read " + bytesRead + " bytes from inbound socket.");
-					totalBytesRead += bytesRead;
-				}
-			}
-			catch (IOException e) {
 				stopped.set(true);
-				System.out.println(this.getName() + ": Failed reading inbound socket.");
+				break;
 			}
 
 			// Write the buffer
-			if (!stopped.get() && (totalBytesRead > 0))
-			{
-				try
-				{
-					out.write(buffer, 0, totalBytesRead);
-					System.out.println(this.getName() + ": Wrote " + totalBytesRead + " bytes to outbound socket.");
-				}
-				catch (IOException e) {
-					stopped.set(true);
-					System.out.println(this.getName() + ": Failed writing outbound socket.");
-				}
-			}
+			if (!writeOutputStream(out, buffer, 0, bytesToRead))
+				stopped.set(true);
 
-			bytesLeftToReceive -= totalBytesRead;
+			bytesLeftToReceive -= bytesToRead;
 		}
 	}
 }
