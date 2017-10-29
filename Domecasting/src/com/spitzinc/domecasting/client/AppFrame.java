@@ -22,14 +22,14 @@ public class AppFrame extends JFrame
 	{
 		setType(Type.UTILITY);
 		theApp.appFrame = this;
-		
+
 		setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);	// Application WindowListener handles close
-		
+
 		setPreferredSize(inPreferredSize);
-		
+
 		hostPanel = new HostPanel();
 		presenterPanel = new PresenterPanel();
-		
+
 		tabbedPane = new JTabbedPane();
 		tabbedPane.addChangeListener(new ChangeListener() {
 			public void stateChanged(ChangeEvent arg0)
@@ -50,7 +50,7 @@ public class AppFrame extends JFrame
 		tabbedPane.addTab("Host", hostPanel);
 		tabbedPane.addTab("Presenter", presenterPanel);
 		setContentPane(tabbedPane);
-		
+
 		theApp.positionFrame(this);
 		setResizable(false);
 	}
