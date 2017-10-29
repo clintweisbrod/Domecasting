@@ -13,17 +13,18 @@ import javax.net.ServerSocketFactory;
 //import com.spitzinc.domecasting.client.TCPPassThruThread;
 
 public abstract class TCPConnectionListenerThread extends Thread
-{
-	private static final int kMaxConnectionThreads = 5;
-	
+{	
 	abstract protected void handleSocketConnection(Socket clientSocket);
 	
 	protected AtomicBoolean stopped;
+	protected int maxConnections;
 	protected ServerSocket serverSocket;
 	protected ArrayList<TCPConnectionHandlerThread> connectionHandlerThreads;
 	
-	public TCPConnectionListenerThread(int inPortToListenOn) throws IOException
+	public TCPConnectionListenerThread(int inPortToListenOn, int maxConnections) throws IOException
 	{
+		this.maxConnections = maxConnections;
+
 		// Create thread pool
 		this.connectionHandlerThreads = new ArrayList<TCPConnectionHandlerThread>();
 						
@@ -113,10 +114,10 @@ public abstract class TCPConnectionListenerThread extends Thread
 				
 				if (clientSocket != null)
 				{
-					if (connectionHandlerThreads.size() < kMaxConnectionThreads)
+					if (connectionHandlerThreads.size() < maxConnections)
 						handleSocketConnection(clientSocket);
 					else
-						System.out.println(this.getName() + ": Maximum of " + kMaxConnectionThreads + " connections reached.");
+						System.out.println(this.getName() + ": Maximum of " + maxConnections + " connections reached.");
 				}
 			}
 		}
