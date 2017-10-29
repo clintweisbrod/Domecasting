@@ -7,11 +7,13 @@ import com.spitzinc.domecasting.TCPConnectionListenerThread;
 
 public class ClientSideConnectionListenerThread extends TCPConnectionListenerThread
 {
+	private static final int kMaxConnectionThreads = 5;
+	
 	protected TCPNode outboundNode;
 	
 	public ClientSideConnectionListenerThread(int inboundPort, TCPNode outBoundNode) throws IOException
 	{
-		super(inboundPort);
+		super(inboundPort, kMaxConnectionThreads);
 		
 		this.outboundNode = outBoundNode;
 	}
