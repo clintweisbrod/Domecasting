@@ -10,8 +10,6 @@ import com.spitzinc.domecasting.TCPConnectionListenerThread;
 
 public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThread
 {
-	public static final int kSecurityCodeLength = 10;
-	public static final String kSecurityCode = "1234567890";
 	protected InputStream in;
 	protected String presentationID;
 	protected char presentationMode;
@@ -25,15 +23,15 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 	{
 		// When a domecast client connects to a domecast server, the agreed upon protocol
 		// is that the client will send:
-		// - A 10-character security code that will change everyday. If the code is
+		// - A 20-character security code that will change everyday. If the code is
 		//   incorrect, the connection will be refused by this server.
-		// - The variable length (up 10 32 chars) presentation ID.
+		// - The variable length (up to 32 chars) presentation ID.
 		// - A tilde (~) character to delimit the presentation ID.
 		// - Either a 'H' or an 'P' character to indicate host or presenter respectively.
 		// For example, a host instance of the domecaster client wishing to host a 
 		// presentation using security code 1234567890 and presentation ID of "MercuryRising",
 		// will send the following (less the quotes):
-		// "1234567890MercuryRising~H"
+		// "12345678901234567890MercuryRising~H"
 		// This allows us to maintain a map of threads for all connections to the server
 		// and ensure that we can "pair" host and presenter threads of the same
 		// presentation ID.
@@ -46,15 +44,17 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 
 		// Allocate byte buffer to handle initial handshake communication
 		boolean headerIsValid = false;
-		byte[] buffer = new byte[64];		
+		byte[] buffer = new byte[1024];		
 		try
 		{
 			// Read off kSecurityCodeLength bytes. This is the security code.
 			if (!readInputStream(in, buffer, 0, kSecurityCodeLength))
 				throw new ParseException("Unable to read security code", 0);
 			
-			String securityCode = new String(buffer, 0, kSecurityCodeLength);
-			if (!securityCode.equals(kSecurityCode))
+			// Verify the sent security code matches what we expect
+			String securityCode = new String(buffer, 0, TCPConnectionHandlerThread.kSecurityCodeLength);
+			String expectedSecurityCode = TCPConnectionHandlerThread.getDailySecurityCode();
+			if (!securityCode.equals(expectedSecurityCode))
 				throw new ParseException("Incorrect security code sent by client.", 0);
 		
 			// Read off one character at a time until a tilde is found, then one more.

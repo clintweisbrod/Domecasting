@@ -8,6 +8,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 public class TCPConnectionHandlerThread extends Thread
 {
+	public static final int kSecurityCodeLength = 20;
+	
 	protected AtomicBoolean stopped;
 	protected Socket inboundSocket;
 	protected TCPConnectionListenerThread owner;
@@ -81,10 +83,13 @@ public class TCPConnectionHandlerThread extends Thread
 	 */
 	public static String getDailySecurityCode()
 	{
+		String result = null;
 		long currentUTCMilliseconds = System.currentTimeMillis();
 		long currentUTCDays = currentUTCMilliseconds / (86400 * 1000) + 1324354657;
 		long securityCode = currentUTCDays * currentUTCDays * currentUTCDays;
-		String result = Long.toString(securityCode);
-		return result.substring(result.length() - 10);
+		result = Long.toString(securityCode);
+		while (kSecurityCodeLength > result.length())
+			result = result.concat(result);
+		return result.substring(result.length() - kSecurityCodeLength);
 	}
 }
