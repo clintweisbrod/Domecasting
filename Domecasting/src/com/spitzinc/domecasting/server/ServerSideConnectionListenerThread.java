@@ -6,10 +6,12 @@ import java.net.Socket;
 import com.spitzinc.domecasting.TCPConnectionListenerThread;
 
 public class ServerSideConnectionListenerThread extends TCPConnectionListenerThread
-{	
+{
+	private static final int kMaxConnectionThreads = 10;
+	
 	public ServerSideConnectionListenerThread(int port) throws IOException
 	{
-		super(port);
+		super(port, kMaxConnectionThreads);
 	}
 
 	@Override
