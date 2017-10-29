@@ -82,7 +82,7 @@ public class TCPConnectionHandlerThread extends Thread
 	public static String getDailySecurityCode()
 	{
 		long currentUTCMilliseconds = System.currentTimeMillis();
-		long currentUTCDays = currentUTCMilliseconds / (86400 * 1000);
+		long currentUTCDays = currentUTCMilliseconds / (86400 * 1000) + 1324354657;
 		long securityCode = currentUTCDays * currentUTCDays * currentUTCDays;
 		String result = Long.toString(securityCode);
 		return result.substring(result.length() - 10);
