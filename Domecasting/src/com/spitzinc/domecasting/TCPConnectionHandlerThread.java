@@ -1,5 +1,8 @@
 package com.spitzinc.domecasting;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.Socket;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -22,5 +25,54 @@ public class TCPConnectionHandlerThread extends Thread
 	public void setStopped() {
 		stopped.set(true);
 	}
-
+	
+	public boolean readInputStream(InputStream is, byte[] buffer, int offset, int len)
+	{
+		int bytesLeftToRead = len;
+		int totalBytesRead = 0;
+		try
+		{
+			while (bytesLeftToRead > 0)
+			{
+				int bytesRead = is.read(buffer, offset + totalBytesRead, bytesLeftToRead);
+				if (bytesRead == -1)
+					break;
+				System.out.println(this.getName() + ": Read " + bytesRead + " bytes from socket.");
+				bytesLeftToRead -= bytesRead;
+				totalBytesRead += bytesRead;
+			}
+			
+		} catch (IOException e) {
+			System.out.println(this.getName() + ": IOException reading InputStream.");
+			e.printStackTrace();
+		} catch (IndexOutOfBoundsException e) {
+			System.out.println(this.getName() + ": IndexOutOfBoundsException reading InputStream" +
+					". buffer.length=" + buffer.length +
+					", offset=" + offset +
+					", len=" + len +
+					", totalBytesRead=" + totalBytesRead +
+					", bytesLeftToRead=" + bytesLeftToRead +
+					".");
+			e.printStackTrace();
+		}
+		
+		return (bytesLeftToRead == 0);
+	}
+	
+	public boolean writeOutputStream(OutputStream os, byte[] buffer, int offset, int len)
+	{
+		boolean result = true;
+		
+		try
+		{
+			os.write(buffer, offset, len);
+			System.out.println(this.getName() + ": Wrote " + len + " bytes to socket.");
+		}
+		catch (IOException e) {
+			result = false;
+			System.out.println(this.getName() + ": Failed writing outbound socket.");
+		}
+		
+		return result;
+	}
 }
