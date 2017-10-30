@@ -3,6 +3,7 @@ package com.spitzinc.domecasting.server;
 import java.awt.Dimension;
 import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
+import java.io.IOException;
 
 import javax.swing.SwingUtilities;
 
@@ -23,10 +24,20 @@ public class ServerApplication extends ApplicationBase implements WindowListener
 	}
 	
 	public ServerAppFrame appFrame;
+	private ServerSideConnectionListenerThread connectionListenerThread;
 	
 	public ServerApplication()
 	{
 		System.out.println("Starting instance of " + this.getClass().getSimpleName());
+		
+		// Start up thread to listen for incoming connections on port 80
+		try {
+			connectionListenerThread = new ServerSideConnectionListenerThread(80);
+			connectionListenerThread.start();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 	
 	protected void createUIElements()

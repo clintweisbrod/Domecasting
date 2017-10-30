@@ -36,7 +36,7 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 		// and ensure that we can "pair" host and presenter threads of the same
 		// presentation ID.
 		try {
-			in = inboundSocket.getInputStream();
+			in = socket.getInputStream();
 		} catch (IOException e) {
 			e.printStackTrace();
 			return;
@@ -120,7 +120,7 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 		System.out.println(this.getName() + ": Closing socket.");
 		try
 		{
-			inboundSocket.close();
+			socket.close();
 		}
 		catch (IOException e) {
 		}

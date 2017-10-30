@@ -28,6 +28,9 @@ public class ClientApplication extends ApplicationBase implements WindowListener
 	public ClientApplication()
 	{
 		System.out.println("Starting instance of " + this.getClass().getSimpleName());
+		
+		// Start up in host mode
+		startHostThreads();
 	}
 	
 	protected void createUIElements()
@@ -57,6 +60,10 @@ public class ClientApplication extends ApplicationBase implements WindowListener
 	public void startHostThreads()
 	{
 		stopPresenterThreads();
+		
+		// Create thread to connect to server
+		ServerConnectionThread serverConnectionThread = new ServerConnectionThread();
+		serverConnectionThread.start();
 	}
 	
 	public void startPresenterThreads()

@@ -3,7 +3,12 @@ package com.spitzinc.domecasting;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.net.SocketAddress;
+import java.net.SocketTimeoutException;
+import java.net.UnknownHostException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class TCPConnectionHandlerThread extends Thread
@@ -11,13 +16,13 @@ public class TCPConnectionHandlerThread extends Thread
 	public static final int kSecurityCodeLength = 20;
 	
 	protected AtomicBoolean stopped;
-	protected Socket inboundSocket;
+	protected Socket socket;
 	protected TCPConnectionListenerThread owner;
 	
-	public TCPConnectionHandlerThread(TCPConnectionListenerThread owner, Socket inboundSocket)
+	public TCPConnectionHandlerThread(TCPConnectionListenerThread owner, Socket socket)
 	{
 		this.owner = owner;
-		this.inboundSocket = inboundSocket;
+		this.socket = socket;
 	}
 	
 	public boolean getStopped() {
@@ -26,6 +31,34 @@ public class TCPConnectionHandlerThread extends Thread
 	
 	public void setStopped() {
 		stopped.set(true);
+	}
+	
+	public Socket connectToHost(String hostName, int port)
+	{
+		Socket result = null;
+		
+		// Attempt to connect to outbound host
+		try
+		{
+			final int kConnectionTimeoutMS = 1000;
+			InetAddress addr = InetAddress.getByName(hostName);
+			SocketAddress sockaddr = new InetSocketAddress(addr, port);
+	
+			result = new Socket();
+			result.setKeepAlive(true);
+			result.connect(sockaddr, kConnectionTimeoutMS);
+		}
+		catch (UnknownHostException e) {
+			System.out.println(this.getName() + ": Unknown host: " + hostName);
+		}
+		catch (SocketTimeoutException e) {
+			System.out.println(this.getName() + ": Connect timeout.");
+		}
+		catch (IOException e) {
+			System.out.println(this.getName() + ": Connect failed.");
+		}
+		
+		return result;
 	}
 	
 	public boolean readInputStream(InputStream is, byte[] buffer, int offset, int len)

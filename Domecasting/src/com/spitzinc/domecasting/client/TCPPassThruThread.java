@@ -3,12 +3,7 @@ package com.spitzinc.domecasting.client;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
 import java.net.Socket;
-import java.net.SocketAddress;
-import java.net.SocketTimeoutException;
-import java.net.UnknownHostException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.spitzinc.domecasting.TCPConnectionHandlerThread;
@@ -19,8 +14,7 @@ public class TCPPassThruThread extends TCPConnectionHandlerThread
 	final static int kSNHeaderLength = 120;
 	final static int kSNHeaderReplyPortPosition = 50;
 	
-	private boolean outboundConnectionFailed;
-	private Socket outboundSocket = null;
+	protected Socket outboundSocket = null;
 	private TCPNode outboundNode;
 	private byte[] replyPortBytes = null;
 
@@ -55,39 +49,15 @@ public class TCPPassThruThread extends TCPConnectionHandlerThread
 	public void run()
 	{
 		// Attempt to connect to outbound host
-		try
+		System.out.println(this.getName() + ": Attempting to establish outbound connection.");
+		outboundSocket = connectToHost(outboundNode.hostname, outboundNode.port);
+		if (outboundSocket != null)
 		{
-			final int kConnectionTimeoutMS = 1000;
-			InetAddress addr = InetAddress.getByName(outboundNode.hostname);
-			SocketAddress sockaddr = new InetSocketAddress(addr, outboundNode.port);
-
-			outboundConnectionFailed = false;
-			outboundSocket = new Socket();
-			outboundSocket.setKeepAlive(true);
-			System.out.println(this.getName() + ": Attempting to establish outbound connection.");
-			outboundSocket.connect(sockaddr, kConnectionTimeoutMS);
-
 			System.out.println(this.getName() + ": Outbound connection established.");
-		}
-		catch (UnknownHostException e) {
-			outboundConnectionFailed = true;
-			System.out.println(this.getName() + ": Unknown host: " + outboundNode.hostname);
-		}
-		catch (SocketTimeoutException e) {
-			outboundConnectionFailed = true;
-			System.out.println(this.getName() + ": Connect timeout.");
-		}
-		catch (IOException e) {
-			outboundConnectionFailed = true;
-			System.out.println(this.getName() + ": Connect failed.");
-		}
 
-		// Don't proceed unless outbound connection was established
-		if (!outboundConnectionFailed)
-		{
 			try
 			{
-				in = inboundSocket.getInputStream();
+				in = socket.getInputStream();
 				out = outboundSocket.getOutputStream();
 			}
 			catch (IOException e) {
@@ -129,7 +99,7 @@ public class TCPPassThruThread extends TCPConnectionHandlerThread
 		System.out.println(this.getName() + ": Closing sockets.");
 		try
 		{
-			inboundSocket.close();
+			socket.close();
 			outboundSocket.close();
 		}
 		catch (IOException e) {

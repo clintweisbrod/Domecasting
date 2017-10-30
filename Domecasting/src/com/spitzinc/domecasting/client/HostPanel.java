@@ -43,6 +43,7 @@ public class HostPanel extends JPanel {
 		textField.setColumns(20);
 		
 		JButton btnGetPresentationAssets = new JButton("Get Presentation Assets...");
+		btnGetPresentationAssets.setEnabled(false);
 		GridBagConstraints gbc_btnGetPresentationAssets = new GridBagConstraints();
 		gbc_btnGetPresentationAssets.gridwidth = 2;
 		gbc_btnGetPresentationAssets.insets = new Insets(0, 0, 5, 5);
@@ -51,6 +52,7 @@ public class HostPanel extends JPanel {
 		add(btnGetPresentationAssets, gbc_btnGetPresentationAssets);
 		
 		JButton btnWaitForPresentation = new JButton("Wait for remote presenter to begin");
+		btnWaitForPresentation.setEnabled(false);
 		GridBagConstraints gbc_btnWaitForPresentation = new GridBagConstraints();
 		gbc_btnWaitForPresentation.gridwidth = 2;
 		gbc_btnWaitForPresentation.insets = new Insets(0, 0, 0, 5);
