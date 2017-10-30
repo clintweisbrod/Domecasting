@@ -7,9 +7,9 @@ import java.awt.event.WindowListener;
 import javax.swing.SwingUtilities;
 
 import com.spitzinc.domecasting.ApplicationBase;
-import com.spitzinc.domecasting.server.AppFrame;
+import com.spitzinc.domecasting.server.ServerAppFrame;
 
-public class Application extends ApplicationBase implements WindowListener
+public class ServerApplication extends ApplicationBase implements WindowListener
 {
 	private static final int kAppDefaultWidth = 400;
 	private static final int kAppDefaultHeight = 200;
@@ -18,15 +18,20 @@ public class Application extends ApplicationBase implements WindowListener
 	
 	private static ApplicationBase createSingleInstance() {
 		if (singleInstance == null)
-			singleInstance = new Application();
+			singleInstance = new ServerApplication();
 		return singleInstance; // could be null. only we should be able to create our own
 	}
 	
-	public AppFrame appFrame;
+	public ServerAppFrame appFrame;
+	
+	public ServerApplication()
+	{
+		System.out.println("Starting instance of " + this.getClass().getSimpleName());
+	}
 	
 	protected void createUIElements()
 	{
-		appFrame = new AppFrame(this, kPreferredFrameSize);
+		appFrame = new ServerAppFrame(this, kPreferredFrameSize);
 		appFrame.setTitle(kApplicationWindowTitle);
 		appFrame.addWindowListener(this);
 		appFrame.pack();
@@ -46,7 +51,7 @@ public class Application extends ApplicationBase implements WindowListener
 		SwingUtilities.invokeLater(new Runnable() {
 			public void run()
 			{
-				Application.createSingleInstance();
+				ServerApplication.createSingleInstance();
 			}
 		});
 	}
