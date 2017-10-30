@@ -8,7 +8,7 @@ import javax.swing.JTabbedPane;
 import javax.swing.event.ChangeListener;
 import javax.swing.event.ChangeEvent;
 
-public class AppFrame extends JFrame
+public class ClientAppFrame extends JFrame
 {
 	private static final long serialVersionUID = 1L;
 	private JTabbedPane tabbedPane;
@@ -18,7 +18,7 @@ public class AppFrame extends JFrame
 	/**
 	 * Create the frame.
 	 */
-	public AppFrame(Application theApp, Dimension inPreferredSize)
+	public ClientAppFrame(ClientApplication theApp, Dimension inPreferredSize)
 	{
 		setType(Type.UTILITY);
 		theApp.appFrame = this;
