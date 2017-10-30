@@ -60,7 +60,8 @@ public class Application extends ApplicationBase implements WindowListener
 		
 		try
 		{
-			snPassThru = new SNTCPPassThruServer(56895, 56898);
+			final int kPFPrefs_DomeServer_TCPPort = 56895;
+			snPassThru = new SNTCPPassThruServer(kPFPrefs_DomeServer_TCPPort, 56898);
 			snPassThru.start();
 		} catch (IOException e) {
 			// TODO Auto-generated catch block

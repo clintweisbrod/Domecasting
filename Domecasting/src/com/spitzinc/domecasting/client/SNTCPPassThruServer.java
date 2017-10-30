@@ -9,8 +9,12 @@ public class SNTCPPassThruServer
 
 	public SNTCPPassThruServer(int sendListenerPort, int recvListenerPort) throws IOException
 	{
-		sendListenerThread = new ClientSideConnectionListenerThread(sendListenerPort, new TCPNode("localhost", 56897, recvListenerPort));
-		recvListenerThread = new ClientSideConnectionListenerThread(recvListenerPort, new TCPNode("localhost", 56896));
+		// TODO: Add UI for this value
+		final int kRBPrefs_DomeServer_TCPPort = 56897;	// For typical two-machine setup, this should be the usual 56895.
+														// For testing on a single machine, needs to be 56897.
+		final int kPFPrefs_DomeServer_TCPReplyPort = 56896;
+		sendListenerThread = new ClientSideConnectionListenerThread(sendListenerPort, new TCPNode("localhost", kRBPrefs_DomeServer_TCPPort, recvListenerPort));
+		recvListenerThread = new ClientSideConnectionListenerThread(recvListenerPort, new TCPNode("localhost", kPFPrefs_DomeServer_TCPReplyPort));
 	}
 
 	public void start()
