@@ -9,25 +9,30 @@ import javax.swing.*;
 
 import com.spitzinc.domecasting.ApplicationBase;
 
-public class Application extends ApplicationBase implements WindowListener
+public class ClientApplication extends ApplicationBase implements WindowListener
 {	
 	private static final int kAppDefaultWidth = 400;
 	private static final int kAppDefaultHeight = 200;
 	private static final Dimension kPreferredFrameSize = new Dimension(kAppDefaultWidth, kAppDefaultHeight);
 	private static final String kApplicationWindowTitle = "Spitz Dome Casting Client";
 	
-	public AppFrame appFrame;
-	private SNTCPPassThruServer snPassThru = null;
-	
 	private static ApplicationBase createSingleInstance() {
 		if (singleInstance == null)
-			singleInstance = new Application();
+			singleInstance = new ClientApplication();
 		return singleInstance; // could be null. only we should be able to create our own
+	}
+	
+	public ClientAppFrame appFrame;
+	private SNTCPPassThruServer snPassThru = null;
+	
+	public ClientApplication()
+	{
+		System.out.println("Starting instance of " + this.getClass().getSimpleName());
 	}
 	
 	protected void createUIElements()
 	{
-		appFrame = new AppFrame(this, kPreferredFrameSize);
+		appFrame = new ClientAppFrame(this, kPreferredFrameSize);
 		appFrame.setTitle(kApplicationWindowTitle);
 		appFrame.addWindowListener(this);
 		appFrame.pack();
@@ -83,7 +88,7 @@ public class Application extends ApplicationBase implements WindowListener
 		SwingUtilities.invokeLater(new Runnable() {
 			public void run()
 			{
-				Application.createSingleInstance();
+				ClientApplication.createSingleInstance();
 			}
 		});
 	}
