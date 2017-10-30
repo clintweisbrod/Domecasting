@@ -7,9 +7,9 @@ import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.border.EmptyBorder;
 
-import com.spitzinc.domecasting.server.Application;
+import com.spitzinc.domecasting.server.ServerApplication;
 
-public class AppFrame extends JFrame
+public class ServerAppFrame extends JFrame
 {
 	private static final long serialVersionUID = 1L;
 	private JPanel contentPane;
@@ -17,7 +17,7 @@ public class AppFrame extends JFrame
 	/**
 	 * Create the frame.
 	 */
-	public AppFrame(Application theApp, Dimension inPreferredSize)
+	public ServerAppFrame(ServerApplication theApp, Dimension inPreferredSize)
 	{
 		setType(Type.UTILITY);
 		theApp.appFrame = this;
