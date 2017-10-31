@@ -25,6 +25,7 @@ public class TCPConnectionHandlerThread extends Thread
 		this.socket = socket;
 		
 		this.setName(this.getClass().getSimpleName());
+		this.stopped = new AtomicBoolean(false);
 	}
 	
 	public boolean getStopped() {

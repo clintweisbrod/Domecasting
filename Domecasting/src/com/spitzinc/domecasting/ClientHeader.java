@@ -2,12 +2,25 @@ package com.spitzinc.domecasting;
 
 public class ClientHeader
 {
+	private static final int kFieldLength_MessageLength = 10;
+	private static final int kFieldLength_MessageSource = 5;
+	private static final int kFieldLength_MessageDestination = 5;
+	private static final int kFieldLength_MessageType = 5;
+	
+	public static final int kHdrByteCount = kFieldLength_MessageLength + kFieldLength_MessageSource +
+											kFieldLength_MessageDestination + kFieldLength_MessageType;
+	
+	private static final int kFieldPos_MessageLength = 0;
+	private static final int kFieldPos_MessageSource = kFieldPos_MessageLength + kFieldLength_MessageLength;
+	private static final int kFieldPos_MessageDestination = kFieldPos_MessageSource + kFieldLength_MessageSource;
+	private static final int kFieldPos_MessageType = kFieldPos_MessageDestination + kFieldLength_MessageDestination;
+	
 	public int messageLen;
 	public String messageSource;
 	public String messageDestination;
 	public String messageType;
 	
-	public boolean parseHeader(byte[] headerBuf)
+	public boolean parseHeaderBuffer(byte[] headerBuf)
 	{
 		// Every header sent to the server must be a fixed length of 25 bytes.
 		// 0-9: String representation of length of entire message. Right-padded.
@@ -16,7 +29,7 @@ public class ClientHeader
 		// 20-24: Message type: "COMM", "INFO", "FILE". Right-padded.
 		
 		// message length
-		String hdrField = new String(headerBuf, 0, 10).trim();
+		String hdrField = new String(headerBuf, kFieldPos_MessageLength, kFieldLength_MessageLength).trim();
 		try {
 			messageLen = Integer.parseInt(hdrField);
 		} catch (NumberFormatException e) {
@@ -26,16 +39,44 @@ public class ClientHeader
 		}
 		
 		// message source
-		messageSource = new String(headerBuf, 10, 5).trim();
+		messageSource = new String(headerBuf, kFieldPos_MessageSource, kFieldLength_MessageSource).trim();
 		
 		// message destination
-		messageDestination = new String(headerBuf, 15, 5).trim();
+		messageDestination = new String(headerBuf, kFieldPos_MessageDestination, kFieldLength_MessageDestination).trim();
 		
 		// message type
-		messageType = new String(headerBuf, 20, 5).trim();
+		messageType = new String(headerBuf, kFieldPos_MessageType, kFieldLength_MessageType).trim();
+		
+		return true;
+	}
+	
+	public boolean buildHeaderBuffer(byte[] headerBuf)
+	{
+		if (headerBuf.length < kHdrByteCount)
+			return false;
+		if (messageSource.length() > kFieldLength_MessageSource)
+			return false;
+		if (messageDestination.length() > kFieldLength_MessageDestination)
+			return false;
+		if (messageType.length() > kFieldLength_MessageType)
+			return false;
+		
+		// Initialize buffer contents to all spaces
+		for (int i = 0; i < kHdrByteCount; i++)
+			headerBuf[i] = ' ';
+		
+		// message length
+		String hdrField = Integer.toUnsignedString(messageLen);
+		System.arraycopy(hdrField.getBytes(), 0, headerBuf, 0, hdrField.length());
+		
+		// message source
+		System.arraycopy(messageSource.getBytes(), 0, headerBuf, kFieldPos_MessageSource, messageSource.length());
+		
+		// message destination
+		System.arraycopy(messageDestination.getBytes(), 0, headerBuf, kFieldPos_MessageDestination, messageDestination.length());
 		
 		// message type
-		messageType = new String(headerBuf, 20, 5).trim();
+		System.arraycopy(messageType.getBytes(), 0, headerBuf, kFieldPos_MessageType, messageType.length());
 		
 		return true;
 	}

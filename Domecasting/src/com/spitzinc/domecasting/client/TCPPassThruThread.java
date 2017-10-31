@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.spitzinc.domecasting.TCPConnectionHandlerThread;
 
@@ -41,9 +40,7 @@ public class TCPPassThruThread extends TCPConnectionHandlerThread
 			replyPortBytes = replyPortStr.getBytes();
 		}
 
-		this.setName(this.getClass().getSimpleName() + "_" + inboundSocket.getLocalPort() + "->" + outboundNode.port);
-		this.stopped = new AtomicBoolean(false);
-		
+		this.setName(this.getClass().getSimpleName() + "_" + inboundSocket.getLocalPort() + "->" + outboundNode.port);	
 	}
 	
 	public void run()

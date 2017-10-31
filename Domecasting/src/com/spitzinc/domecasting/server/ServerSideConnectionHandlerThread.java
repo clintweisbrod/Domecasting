@@ -25,13 +25,13 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 	private void beginHandlingClientCommands()
 	{
 		// This is the "main loop" of server connection.
-		byte[] hdrBuffer = new byte[50];
+		byte[] hdrBuffer = new byte[ClientHeader.kHdrByteCount];
 		ClientHeader hdr = new ClientHeader();
 		while (!stopped.get())
 		{
-			if (!readInputStream(in, hdrBuffer, 0, 50))
+			if (!readInputStream(in, hdrBuffer, 0, ClientHeader.kHdrByteCount))
 				break;
-			if (!hdr.parseHeader(hdrBuffer))
+			if (!hdr.parseHeaderBuffer(hdrBuffer))
 				break;
 			
 			// Now look at hdr contents to decide what to do.
