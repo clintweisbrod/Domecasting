@@ -2,21 +2,42 @@ package com.spitzinc.domecasting.server;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.Socket;
 import java.text.ParseException;
 
+import com.spitzinc.domecasting.ClientHeader;
 import com.spitzinc.domecasting.TCPConnectionHandlerThread;
 import com.spitzinc.domecasting.TCPConnectionListenerThread;
 
 public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThread
 {
 	protected InputStream in;
+	protected OutputStream out;
 	protected String presentationID;
-	protected char presentationMode;
+	protected byte presentationMode;
 	
 	public ServerSideConnectionHandlerThread(TCPConnectionListenerThread owner, Socket inboundSocket)
 	{
 		super(owner, inboundSocket);
+	}
+	
+	private void beginHandlingClientCommands()
+	{
+		// This is the "main loop" of server connection.
+		byte[] hdrBuffer = new byte[50];
+		ClientHeader hdr = new ClientHeader();
+		while (!stopped.get())
+		{
+			if (!readInputStream(in, hdrBuffer, 0, 50))
+				break;
+			if (!hdr.parseHeader(hdrBuffer))
+				break;
+			
+			// Now look at hdr contents to decide what to do.
+			
+			
+		}
 	}
 	
 	public void run()
@@ -25,26 +46,18 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 		// is that the client will send:
 		// - A 20-character security code that will change everyday. If the code is
 		//   incorrect, the connection will be refused by this server.
-		// - The variable length (up to 32 chars) presentation ID.
-		// - A tilde (~) character to delimit the presentation ID.
-		// - Either a 'H' or an 'P' character to indicate host or presenter respectively.
-		// For example, a host instance of the domecaster client wishing to host a 
-		// presentation using security code 1234567890 and presentation ID of "MercuryRising",
-		// will send the following (less the quotes):
-		// "12345678901234567890MercuryRising~H"
-		// This allows us to maintain a map of threads for all connections to the server
-		// and ensure that we can "pair" host and presenter threads of the same
-		// presentation ID.
+		// - One additional character that should be either a 'H' or 'P' to indicate the
+		//   the client is a host or presenter, respectively.
 		try {
 			in = socket.getInputStream();
+			out = socket.getOutputStream();
 		} catch (IOException e) {
 			e.printStackTrace();
 			return;
 		}
 
 		// Allocate byte buffer to handle initial handshake communication
-		boolean headerIsValid = false;
-		byte[] buffer = new byte[1024];		
+		byte[] buffer = new byte[kSecurityCodeLength];		
 		try
 		{
 			// Read off kSecurityCodeLength bytes. This is the security code.
@@ -56,56 +69,20 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 			String expectedSecurityCode = TCPConnectionHandlerThread.getDailySecurityCode();
 			if (!securityCode.equals(expectedSecurityCode))
 				throw new ParseException("Incorrect security code sent by client.", 0);
-		
-			// Read off one character at a time until a tilde is found, then one more.
-			int headerLen = 0;
-			boolean clientInfoFound = false;
-			try
-			{
-				final int kMaxClientHeaderChars = 32;
-				for (int i = 0; i < kMaxClientHeaderChars; i++)
-				{
-					int bytesRead = in.read(buffer, i, 1);
-					if (bytesRead == -1)
-						break;
-					if (buffer[i] == '~')
-					{
-						i++;
-						bytesRead = in.read(buffer, i, 1);
-						if (bytesRead == -1)
-							break;
-						if ((buffer[i] == 'H') || (buffer[i] == 'P'))
-						{
-							clientInfoFound = true;
-							headerLen = i + 1;
-						}
-						break;
-					}
-				}
-			} catch (IOException e) {
-				throw new ParseException("IOException while reading client info.", 0);
-			}
 			
-			if (!clientInfoFound || (headerLen <= 3))
-				throw new ParseException("Unexpected client info received.", 0);
+			if (!readInputStream(in, buffer, 0, 1))
+				throw new ParseException("Unable to read security code.", 0);
 			
-			presentationID = new String(buffer, 0, headerLen);
-			presentationMode = presentationID.charAt(headerLen - 1);
-			presentationID = presentationID.substring(0, headerLen - 2);
+			presentationMode = buffer[0];
+			if ((presentationMode != 'H') && (presentationMode != 'P'))
+				throw new ParseException("Invalid presentation mode sent.", 0);
 			
-			headerIsValid = true;
+			beginHandlingClientCommands();
 		}
 		catch (ParseException e) {
 			System.out.println(this.getName() + e.getMessage());
 		}
-		
-		// Are we good to go?
-		if (headerIsValid)
-		{
-			
-		}
-		
-		
+
 		// Close stream
 		System.out.println(this.getName() + ": Shutting down connection stream.");
 		try

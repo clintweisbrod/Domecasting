@@ -23,6 +23,8 @@ public class TCPConnectionHandlerThread extends Thread
 	{
 		this.owner = owner;
 		this.socket = socket;
+		
+		this.setName(this.getClass().getSimpleName());
 	}
 	
 	public boolean getStopped() {

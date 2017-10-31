@@ -8,6 +8,11 @@ import com.spitzinc.domecasting.TCPConnectionHandlerThread;
 
 public class ServerConnectionThread extends TCPConnectionHandlerThread
 {
+	public static final char kHostID = 'H';
+	public static final char kPresenterID = 'P';
+	
+	public enum ClientConnectionType {HOST, PRESENTER};
+	
 	protected InputStream in;
 	protected OutputStream out;
 	

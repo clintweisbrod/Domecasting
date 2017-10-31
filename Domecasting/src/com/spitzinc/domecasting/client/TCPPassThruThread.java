@@ -161,7 +161,14 @@ public class TCPPassThruThread extends TCPConnectionHandlerThread
 		{
 			// Get the total length of the message that we are receiving.
 			String messageLengthStr = new String(buffer, 0, kSNHeaderFieldLength).trim();
-			messageLength = Integer.parseInt(messageLengthStr);
+			try {
+				messageLength = Integer.parseInt(messageLengthStr);
+			} catch (NumberFormatException e) {
+				System.out.println(this.getName() + ": messageLengthStr: " + messageLengthStr + ".");
+				e.printStackTrace();
+				stopped.set(true);
+				return;
+			}
 			System.out.println(this.getName() + ": Parsed messageLength = " + messageLength);
 
 			// Change the buffer so that the return port is set to outboundNode.replyPort
