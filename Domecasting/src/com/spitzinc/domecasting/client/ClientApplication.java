@@ -10,7 +10,10 @@ import javax.swing.*;
 import com.spitzinc.domecasting.ApplicationBase;
 
 public class ClientApplication extends ApplicationBase implements WindowListener
-{	
+{
+	private static final String kDomecastingServerHostname = "localhost";
+	private static final int kDomecastingServerPort = 80;
+	
 	private static final int kAppDefaultWidth = 400;
 	private static final int kAppDefaultHeight = 200;
 	private static final Dimension kPreferredFrameSize = new Dimension(kAppDefaultWidth, kAppDefaultHeight);
@@ -62,7 +65,9 @@ public class ClientApplication extends ApplicationBase implements WindowListener
 		stopPresenterThreads();
 		
 		// Create thread to connect to server
-		ServerConnectionThread serverConnectionThread = new ServerConnectionThread();
+		ServerConnectionThread serverConnectionThread = new ServerConnectionThread(kDomecastingServerHostname,
+																				   kDomecastingServerPort,
+																				   ServerConnectionThread.ClientConnectionType.HOST);
 		serverConnectionThread.start();
 	}
 	

@@ -15,7 +15,7 @@ public class ClientHeader
 	private static final int kFieldPos_MessageDestination = kFieldPos_MessageSource + kFieldLength_MessageSource;
 	private static final int kFieldPos_MessageType = kFieldPos_MessageDestination + kFieldLength_MessageDestination;
 	
-	public int messageLen;
+	public int messageLen;	// This is interpreted as the number of bytes to receive AFTER the header
 	public String messageSource;
 	public String messageDestination;
 	public String messageType;
@@ -24,7 +24,7 @@ public class ClientHeader
 	{
 		// Every header sent to the server must be a fixed length of 25 bytes.
 		// 0-9: String representation of length of entire message. Right-padded.
-		// 10-14: Source of message. ex. "DCC", "SNPF", "SNRB", "ATM4", "TLEPF", "TLERB". Right-padded.
+		// 10-14: Source of message. ex. "DCC", "DCS", "SNPF", "SNRB", "ATM4", "TLEPF", "TLERB". Right-padded.
 		// 15-19: Destination for message. Same possibilities as 10-19.
 		// 20-24: Message type: "COMM", "INFO", "FILE". Right-padded.
 		
