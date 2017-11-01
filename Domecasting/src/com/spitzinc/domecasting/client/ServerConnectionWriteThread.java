@@ -7,7 +7,7 @@ import java.io.OutputStream;
 import com.spitzinc.domecasting.ClientHeader;
 import com.spitzinc.domecasting.TCPConnectionHandlerThread;
 
-public class ServerConnectionThread extends TCPConnectionHandlerThread
+public class ServerConnectionWriteThread extends TCPConnectionHandlerThread
 {
 	public static final byte kHostID = 'H';
 	public static final byte kPresenterID = 'P';
@@ -23,7 +23,7 @@ public class ServerConnectionThread extends TCPConnectionHandlerThread
 	public ClientConnectionType clientType;
 	protected byte[] hdrBuffer;
 	
-	public ServerConnectionThread(String hostName, int port, ClientConnectionType clientType)
+	public ServerConnectionWriteThread(String hostName, int port, ClientConnectionType clientType)
 	{
 		super(null, null);
 		

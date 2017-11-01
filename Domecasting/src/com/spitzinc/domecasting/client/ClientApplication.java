@@ -65,9 +65,9 @@ public class ClientApplication extends ApplicationBase implements WindowListener
 		stopPresenterThreads();
 		
 		// Create thread to connect to server
-		ServerConnectionThread serverConnectionThread = new ServerConnectionThread(kDomecastingServerHostname,
+		ServerConnectionWriteThread serverConnectionThread = new ServerConnectionWriteThread(kDomecastingServerHostname,
 																				   kDomecastingServerPort,
-																				   ServerConnectionThread.ClientConnectionType.HOST);
+																				   ServerConnectionWriteThread.ClientConnectionType.HOST);
 		serverConnectionThread.start();
 	}
 	
