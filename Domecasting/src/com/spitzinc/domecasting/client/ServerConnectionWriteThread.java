@@ -17,7 +17,6 @@ public class ServerConnectionWriteThread extends TCPConnectionHandlerThread
 	protected String hostName;
 	protected int port;
 	
-	protected InputStream in;
 	protected OutputStream out;
 	protected ClientHeader hdr;
 	public ClientConnectionType clientType;
@@ -59,8 +58,12 @@ public class ServerConnectionWriteThread extends TCPConnectionHandlerThread
 	
 	protected void handleCommunication()
 	{
-		// Write header
-		writeHeader(12345, "SNPF", "SNRB", "COMM");
+		// When we get here, we've established a connection with the server.
+		// This thread will negotiate sending all outbound comm to the server.
+		// But we also need to receive inbound comm from the server. As Ethernet
+		// is a full-duplex networking technology, we can have a second thread happily
+		// negotiating the receipt of inbound data on the same socket without any need
+		// for thread synchronization. Very sweet! We therefore launch that thread here.
 		
 		// Loop here until the domecast is done
 //		while (!stopped.get())
@@ -77,14 +80,13 @@ public class ServerConnectionWriteThread extends TCPConnectionHandlerThread
 		{
 			try
 			{
-				in = socket.getInputStream();
 				out = socket.getOutputStream();
 			}
 			catch (IOException e) {
 				e.printStackTrace();
 			}
 			
-			if ((in != null) && (out != null))
+			if (out != null)
 			{
 				try {
 					// Write security code
@@ -106,7 +108,6 @@ public class ServerConnectionWriteThread extends TCPConnectionHandlerThread
 
 				// Begin shutting down
 				try {
-					in.close();
 					out.close();
 				} catch (IOException e) {
 					// TODO Auto-generated catch block
