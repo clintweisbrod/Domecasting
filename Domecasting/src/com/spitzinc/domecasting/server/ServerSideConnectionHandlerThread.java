@@ -15,7 +15,6 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 	protected InputStream in;
 	protected OutputStream out;
 	protected String presentationID;
-	protected byte presentationMode;
 	
 	public ServerSideConnectionHandlerThread(TCPConnectionListenerThread owner, Socket inboundSocket)
 	{
@@ -29,6 +28,7 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 		ClientHeader hdr = new ClientHeader();
 		while (!stopped.get())
 		{
+			// Read and parse the header
 			if (!readInputStream(in, hdrBuffer, 0, ClientHeader.kHdrByteCount))
 				break;
 			if (!hdr.parseHeaderBuffer(hdrBuffer))
@@ -70,13 +70,17 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 			if (!securityCode.equals(expectedSecurityCode))
 				throw new ParseException("Incorrect security code sent by client.", 0);
 			
+			// Read off the 1-byte client connection type and validate it
 			if (!readInputStream(in, buffer, 0, 1))
-				throw new ParseException("Unable to read security code.", 0);
+				throw new ParseException("Unable to read client connection type.", 0);
+			if ((buffer[0] != kHostID) && (buffer[0] != kPresenterID))
+				throw new ParseException("Invalid client type sent.", 0);
+			if (buffer[0] == kHostID)
+				clientType = ClientConnectionType.HOST;
+			else
+				clientType = ClientConnectionType.PRESENTER;
 			
-			presentationMode = buffer[0];
-			if ((presentationMode != 'H') && (presentationMode != 'P'))
-				throw new ParseException("Invalid presentation mode sent.", 0);
-			
+			// We can now begin negotiating the client connection
 			beginHandlingClientCommands();
 		}
 		catch (ParseException e) {

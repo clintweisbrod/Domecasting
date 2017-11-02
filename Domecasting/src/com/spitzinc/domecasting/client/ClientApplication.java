@@ -27,13 +27,17 @@ public class ClientApplication extends ApplicationBase implements WindowListener
 	
 	public ClientAppFrame appFrame;
 	private SNTCPPassThruServer snPassThru = null;
+	private ServerConnectionWriteThread serverConnectionThread;
 	
 	public ClientApplication()
 	{
 		System.out.println("Starting instance of " + this.getClass().getSimpleName());
 		
-		// Start up in host mode
-		startHostThreads();
+		// Start thread to establish connection with server
+		serverConnectionThread = new ServerConnectionWriteThread(kDomecastingServerHostname,
+																 kDomecastingServerPort,
+																 ServerConnectionWriteThread.ClientConnectionType.HOST);
+		serverConnectionThread.start();
 	}
 	
 	protected void createUIElements()
@@ -63,12 +67,6 @@ public class ClientApplication extends ApplicationBase implements WindowListener
 	public void startHostThreads()
 	{
 		stopPresenterThreads();
-		
-		// Create thread to connect to server
-		ServerConnectionWriteThread serverConnectionThread = new ServerConnectionWriteThread(kDomecastingServerHostname,
-																				   kDomecastingServerPort,
-																				   ServerConnectionWriteThread.ClientConnectionType.HOST);
-		serverConnectionThread.start();
 	}
 	
 	public void startPresenterThreads()
@@ -85,10 +83,25 @@ public class ClientApplication extends ApplicationBase implements WindowListener
 			e.printStackTrace();
 		}
 	}
+	
+	public void setPresentationID(String presentationID)
+	{
+		serverConnectionThread.sendPresentationID(presentationID);
+	}
 
 	@Override
 	public void windowClosing(WindowEvent arg0)
 	{
+		// Force the server connection thread to finish
+		serverConnectionThread.setStopped();
+		serverConnectionThread.interrupt();
+		try {
+			serverConnectionThread.join();
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
 		stopPresenterThreads();
 		stopHostThreads();
 		System.exit(0);

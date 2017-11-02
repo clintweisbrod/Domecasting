@@ -14,7 +14,12 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class TCPConnectionHandlerThread extends Thread
 {
 	public static final int kSecurityCodeLength = 20;
+	public static final byte kHostID = 'H';
+	public static final byte kPresenterID = 'P';
 	
+	public enum ClientConnectionType {HOST, PRESENTER};
+	
+	public ClientConnectionType clientType;
 	protected AtomicBoolean stopped;
 	protected Socket socket;
 	protected TCPConnectionListenerThread owner;
@@ -52,12 +57,15 @@ public class TCPConnectionHandlerThread extends Thread
 			result.connect(sockaddr, kConnectionTimeoutMS);
 		}
 		catch (UnknownHostException e) {
+			result = null;
 			System.out.println(this.getName() + ": Unknown host: " + hostName);
 		}
 		catch (SocketTimeoutException e) {
+			result = null;
 			System.out.println(this.getName() + ": Connect timeout.");
 		}
 		catch (IOException e) {
+			result = null;
 			System.out.println(this.getName() + ": Connect failed.");
 		}
 		
