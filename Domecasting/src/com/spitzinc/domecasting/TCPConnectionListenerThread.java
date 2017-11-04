@@ -10,8 +10,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.net.ServerSocketFactory;
 
-//import com.spitzinc.domecasting.client.TCPPassThruThread;
-
 public abstract class TCPConnectionListenerThread extends Thread
 {	
 	abstract protected void handleSocketConnection(Socket clientSocket);
