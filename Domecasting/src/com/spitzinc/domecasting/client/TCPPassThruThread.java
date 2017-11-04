@@ -12,10 +12,12 @@ public class TCPPassThruThread extends TCPConnectionHandlerThread
 	final static int kSNHeaderFieldLength = 10;
 	final static int kSNHeaderLength = 120;
 	final static int kSNHeaderReplyPortPosition = 50;
+	final static int kSNHeaderClientAppNamePosition = 60;
 	
 	protected Socket outboundSocket = null;
 	private TCPNode outboundNode;
 	private byte[] replyPortBytes = null;
+	private String clientAppName = null;
 
 	protected InputStream in;
 	protected OutputStream out;
@@ -67,15 +69,13 @@ public class TCPPassThruThread extends TCPConnectionHandlerThread
 				byte[] buffer = new byte[16*1024];
 
 				// Begin reading data from inbound stream and writing it to outbound stream
-				if (outboundNode.replyPort == -1)
+				boolean needToModifyReplyPort = (outboundNode.replyPort != -1);
+				while (!stopped.get())
 				{
-					while (!stopped.get())
+					if (!needToModifyReplyPort && (clientAppName != null))
 						simplePassThru(buffer);
-				}
-				else
-				{
-					while (!stopped.get())
-						modifyReplyPortPassThru(buffer);
+					else
+						starryNightPassThru(buffer, needToModifyReplyPort);
 				}
 			}
 
@@ -146,7 +146,7 @@ public class TCPPassThruThread extends TCPConnectionHandlerThread
 	 * screwing with the TCP communication details in SN Preflight and Renderbox, ATM-4, SN Intercept, TLE, etc. 
 	 * @param buffer
 	 */
-	private void modifyReplyPortPassThru(byte[] buffer)
+	private void starryNightPassThru(byte[] buffer, boolean modifyReplyPort)
 	{	
 		// Read the SN header from the inbound socket
 		if (!readInputStream(in, buffer, 0, kSNHeaderLength))
@@ -168,10 +168,17 @@ public class TCPPassThruThread extends TCPConnectionHandlerThread
 			}
 			System.out.println(this.getName() + ": Parsed messageLength = " + messageLength);
 
-			// Change the buffer so that the return port is set to outboundNode.replyPort
-			// The return port digits start at pos 50 in the buffer.
-			if (replyPortBytes != null)
-				System.arraycopy(replyPortBytes, 0, buffer, kSNHeaderReplyPortPosition, replyPortBytes.length);
+			if (modifyReplyPort)
+			{
+				// Change the buffer so that the return port is set to outboundNode.replyPort
+				// The return port digits start at pos 50 in the buffer.
+				if (replyPortBytes != null)
+					System.arraycopy(replyPortBytes, 0, buffer, kSNHeaderReplyPortPosition, replyPortBytes.length);
+			}
+			
+			// Obtain the clientAppName from the header
+			if (clientAppName == null)
+				clientAppName = new String(buffer, kSNHeaderClientAppNamePosition, kSNHeaderFieldLength).trim();
 
 			// Write the header to the outbound socket
 			try
