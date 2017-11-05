@@ -22,7 +22,7 @@ public class ClientSideConnectionListenerThread extends TCPConnectionListenerThr
 	protected void handleSocketConnection(Socket clientSocket)
 	{
 		// Launch a new thread to handle connection
-		TCPPassThruThread thread = new TCPPassThruThread(this, clientSocket, outboundNode);
+		SNTCPPassThruThread thread = new SNTCPPassThruThread(this, clientSocket, outboundNode);
 		connectionHandlerThreads.add(thread);
 		thread.start();
 	}
