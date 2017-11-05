@@ -38,6 +38,18 @@ public class ClientApplication extends ApplicationBase implements WindowListener
 																 kDomecastingServerPort,
 																 ServerConnectionWriteThread.ClientConnectionType.HOST);
 		serverConnectionThread.start();
+		
+		// Start threads to handle pass-thru of local SN comm. Both presenter and host modes
+		// of the client require these connections to be established.
+		try
+		{
+			final int kPFPrefs_DomeServer_TCPPort = 56895;
+			snPassThru = new SNTCPPassThruServer(kPFPrefs_DomeServer_TCPPort, 56898);
+			snPassThru.start();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 	
 	protected void createUIElements()
@@ -48,40 +60,6 @@ public class ClientApplication extends ApplicationBase implements WindowListener
 		appFrame.pack();
 		appFrame.setResizable(false);
 		appFrame.setVisible(true);
-	}
-	
-	private void stopHostThreads()
-	{
-		
-	}
-	
-	private void stopPresenterThreads()
-	{
-		if (snPassThru != null)
-		{
-			snPassThru.stop();
-			snPassThru = null;
-		}
-	}
-	
-	public void startHostThreads()
-	{
-		stopPresenterThreads();
-	}
-	
-	public void startPresenterThreads()
-	{
-		stopHostThreads();
-		
-		try
-		{
-			final int kPFPrefs_DomeServer_TCPPort = 56895;
-			snPassThru = new SNTCPPassThruServer(kPFPrefs_DomeServer_TCPPort, 56898);
-			snPassThru.start();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
 	}
 	
 	public void setPresentationID(String presentationID)
@@ -102,8 +80,9 @@ public class ClientApplication extends ApplicationBase implements WindowListener
 			e.printStackTrace();
 		}
 		
-		stopPresenterThreads();
-		stopHostThreads();
+		if (snPassThru != null)
+			snPassThru.stop();
+
 		System.exit(0);
 	}
 	

@@ -38,10 +38,10 @@ public class ClientAppFrame extends JFrame
 				switch (newIndex)
 				{
 				case 0:
-					theApp.startHostThreads();
+//					theApp.startHostThreads();
 					break;
 				case 1:
-					theApp.startPresenterThreads();
+//					theApp.startPresenterThreads();
 					break;
 				}
 			}
