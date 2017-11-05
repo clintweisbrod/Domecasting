@@ -7,7 +7,7 @@ import java.net.Socket;
 
 import com.spitzinc.domecasting.TCPConnectionHandlerThread;
 
-public class TCPPassThruThread extends TCPConnectionHandlerThread
+public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 {
 	final static int kSNHeaderFieldLength = 10;
 	final static int kSNHeaderLength = 120;
@@ -22,7 +22,7 @@ public class TCPPassThruThread extends TCPConnectionHandlerThread
 	protected InputStream in;
 	protected OutputStream out;
 	
-	public TCPPassThruThread(ClientSideConnectionListenerThread owner, Socket inboundSocket, TCPNode outboundNode)
+	public SNTCPPassThruThread(ClientSideConnectionListenerThread owner, Socket inboundSocket, TCPNode outboundNode)
 	{
 		super(owner, inboundSocket);
 		
@@ -108,6 +108,9 @@ public class TCPPassThruThread extends TCPConnectionHandlerThread
 		System.out.println(this.getName() + ": Exiting thread.");
 	}
 	
+	/**
+	 * Just read bytes from the InputStream and write them to the OutputStream.
+	 */
 	private void simplePassThru(byte[] buffer)
 	{
 		// Read data from inbound socket
