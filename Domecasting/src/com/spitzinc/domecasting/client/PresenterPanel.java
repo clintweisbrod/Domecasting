@@ -9,10 +9,14 @@ import java.awt.Insets;
 import javax.swing.JButton;
 import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 
 public class PresenterPanel extends JPanel {
 	private static final long serialVersionUID = 1L;
 	private JTextField presentationID;
+	private JButton btnSendID;
+	private JLabel lblStatusText;
 
 	/**
 	 * Create the panel.
@@ -27,15 +31,32 @@ public class PresenterPanel extends JPanel {
 		
 		JLabel lblPresentationId = new JLabel("Presentation ID:");
 		GridBagConstraints gbc_lblPresentationId = new GridBagConstraints();
-		gbc_lblPresentationId.insets = new Insets(10, 10, 0, 0);
+		gbc_lblPresentationId.insets = new Insets(10, 10, 5, 5);
 		gbc_lblPresentationId.anchor = GridBagConstraints.EAST;
 		gbc_lblPresentationId.gridx = 0;
 		gbc_lblPresentationId.gridy = 0;
 		add(lblPresentationId, gbc_lblPresentationId);
 		
+		// Create PresentationID text field and enable "Send Presentation ID" button when at least
+		// ClientApplication.kMinimumPresentationIDLength is entered.
 		presentationID = new JTextField();
+		presentationID.getDocument().addDocumentListener(new DocumentListener() {
+			public void changedUpdate(DocumentEvent e) {
+				updateButtonState();
+			}
+			public void removeUpdate(DocumentEvent e) {
+				updateButtonState();
+			}
+			public void insertUpdate(DocumentEvent e) {
+				updateButtonState();
+			}
+	
+			public void updateButtonState() {
+				btnSendID.setEnabled(presentationID.getText().length() >= ClientApplication.kMinimumPresentationIDLength);
+			}
+		});
 		GridBagConstraints gbc_textField = new GridBagConstraints();
-		gbc_textField.insets = new Insets(10, 0, 0, 0);
+		gbc_textField.insets = new Insets(10, 0, 5, 5);
 		gbc_textField.fill = GridBagConstraints.HORIZONTAL;
 		gbc_textField.weightx = 1.0;
 		gbc_textField.anchor = GridBagConstraints.WEST;
@@ -44,15 +65,16 @@ public class PresenterPanel extends JPanel {
 		add(presentationID, gbc_textField);
 		presentationID.setColumns(20);
 		
-		JButton btnSendID = new JButton("Send Presentation ID");
+		btnSendID = new JButton("Send Presentation ID");
+		btnSendID.setEnabled(false);
 		btnSendID.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
-				ClientApplication base = (ClientApplication) ClientApplication.inst();
-				base.setPresentationID(presentationID.getText());
+				ClientApplication inst = (ClientApplication) ClientApplication.inst();
+				inst.setPresentationID(presentationID.getText());
 			}
 		});
 		GridBagConstraints gbc_btnSendID = new GridBagConstraints();
-		gbc_btnSendID.insets = new Insets(10, 0, 0, 10);
+		gbc_btnSendID.insets = new Insets(10, 0, 5, 10);
 		gbc_btnSendID.gridx = 2;
 		gbc_btnSendID.gridy = 0;
 		add(btnSendID, gbc_btnSendID);
@@ -67,12 +89,35 @@ public class PresenterPanel extends JPanel {
 		add(btnNewButton, gbc_btnNewButton);
 		
 		JButton btnStartPresentation = new JButton("Start Presentation");
-		btnStartPresentation.setEnabled(false);
+		btnStartPresentation.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				ClientApplication inst = (ClientApplication) ClientApplication.inst();
+				if (btnStartPresentation.getText() == "Start Presentation")
+				{
+					inst.setPresenting(true);
+					btnStartPresentation.setText("Stop Presentation");
+				}
+				else
+				{
+					inst.setPresenting(false);
+					btnStartPresentation.setText("Start Presentation");
+				}
+			}
+		});
 		GridBagConstraints gbc_btnStartPresentation = new GridBagConstraints();
+		gbc_btnStartPresentation.insets = new Insets(0, 0, 5, 0);
 		gbc_btnStartPresentation.gridwidth = 3;
 		gbc_btnStartPresentation.gridx = 0;
 		gbc_btnStartPresentation.gridy = 2;
 		add(btnStartPresentation, gbc_btnStartPresentation);
+		
+		lblStatusText = new JLabel("Status");
+		GridBagConstraints gbc_lblStatusText = new GridBagConstraints();
+		gbc_lblStatusText.gridwidth = 3;
+		gbc_lblStatusText.insets = new Insets(10, 0, 0, 5);
+		gbc_lblStatusText.gridx = 0;
+		gbc_lblStatusText.gridy = 3;
+		add(lblStatusText, gbc_lblStatusText);
 
 	}
 

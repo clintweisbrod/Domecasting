@@ -5,6 +5,9 @@ import javax.swing.JLabel;
 import java.awt.GridBagLayout;
 import java.awt.GridBagConstraints;
 import javax.swing.JTextField;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
+
 import java.awt.Insets;
 import javax.swing.JButton;
 import java.awt.event.ActionListener;
@@ -13,6 +16,7 @@ import java.awt.event.ActionEvent;
 public class HostPanel extends JPanel {
 	private static final long serialVersionUID = 1L;
 	private JTextField presentationID;
+	private JButton btnSendID;
 
 	/**
 	 * Create the panel.
@@ -34,6 +38,21 @@ public class HostPanel extends JPanel {
 		add(lblPresentationId, gbc_lblPresentationId);
 		
 		presentationID = new JTextField();
+		presentationID.getDocument().addDocumentListener(new DocumentListener() {
+			public void changedUpdate(DocumentEvent e) {
+				updateButtonState();
+			}
+			public void removeUpdate(DocumentEvent e) {
+				updateButtonState();
+			}
+			public void insertUpdate(DocumentEvent e) {
+				updateButtonState();
+			}
+	
+			public void updateButtonState() {
+				btnSendID.setEnabled(presentationID.getText().length() >= ClientApplication.kMinimumPresentationIDLength);
+			}
+		});
 		GridBagConstraints gbc_textField = new GridBagConstraints();
 		gbc_textField.insets = new Insets(10, 0, 0, 0);
 		gbc_textField.fill = GridBagConstraints.HORIZONTAL;
@@ -44,11 +63,12 @@ public class HostPanel extends JPanel {
 		add(presentationID, gbc_textField);
 		presentationID.setColumns(20);
 		
-		JButton btnSendID = new JButton("Send Presentation ID");
+		btnSendID = new JButton("Send Presentation ID");
+		btnSendID.setEnabled(false);
 		btnSendID.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
-				ClientApplication base = (ClientApplication) ClientApplication.inst();
-				base.setPresentationID(presentationID.getText());
+				ClientApplication inst = (ClientApplication) ClientApplication.inst();
+				inst.setPresentationID(presentationID.getText());
 			}
 		});
 		GridBagConstraints gbc_btnSendID = new GridBagConstraints();
@@ -67,8 +87,22 @@ public class HostPanel extends JPanel {
 		gbc_btnGetPresentationAssets.gridy = 1;
 		add(btnGetPresentationAssets, gbc_btnGetPresentationAssets);
 		
-		JButton btnWaitForPresentation = new JButton("Wait for remote presenter to begin");
-		btnWaitForPresentation.setEnabled(false);
+		JButton btnWaitForPresentation = new JButton("Allow Remote Control");
+		btnWaitForPresentation.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				ClientApplication inst = (ClientApplication) ClientApplication.inst();
+				if (btnWaitForPresentation.getText() == "Allow Remote Control")
+				{
+					inst.setHosting(true);
+					btnWaitForPresentation.setText("Stop Remote Control");
+				}
+				else
+				{
+					inst.setHosting(false);
+					btnWaitForPresentation.setText("Allow Remote Control");
+				}
+			}
+		});
 		GridBagConstraints gbc_btnWaitForPresentation = new GridBagConstraints();
 		gbc_btnWaitForPresentation.gridwidth = 3;
 		gbc_btnWaitForPresentation.insets = new Insets(0, 0, 0, 5);
