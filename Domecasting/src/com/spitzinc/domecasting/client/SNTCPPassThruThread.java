@@ -49,7 +49,7 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 	{
 		// Attempt to connect to outbound host
 		System.out.println(this.getName() + ": Attempting to establish outbound connection.");
-		outboundSocket = connectToHost(outboundNode.hostname, outboundNode.port);
+		outboundSocket = TCPConnectionHandlerThread.connectToHost(outboundNode.hostname, outboundNode.port, this.getName());
 		if (outboundSocket != null)
 		{
 			System.out.println(this.getName() + ": Outbound connection established.");
@@ -96,8 +96,10 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 		System.out.println(this.getName() + ": Closing sockets.");
 		try
 		{
-			socket.close();
-			outboundSocket.close();
+			if (socket != null)
+				socket.close();
+			if (outboundSocket != null)
+				outboundSocket.close();
 		}
 		catch (IOException e) {
 		}

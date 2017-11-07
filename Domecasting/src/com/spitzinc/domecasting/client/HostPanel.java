@@ -17,6 +17,8 @@ public class HostPanel extends JPanel {
 	private static final long serialVersionUID = 1L;
 	private JTextField presentationID;
 	private JButton btnSendID;
+	private JButton btnWaitForPresentation;
+	private JLabel lblStatusText;
 
 	/**
 	 * Create the panel.
@@ -31,7 +33,7 @@ public class HostPanel extends JPanel {
 		
 		JLabel lblPresentationId = new JLabel("Presentation ID:");
 		GridBagConstraints gbc_lblPresentationId = new GridBagConstraints();
-		gbc_lblPresentationId.insets = new Insets(10, 10, 0, 0);
+		gbc_lblPresentationId.insets = new Insets(10, 10, 5, 5);
 		gbc_lblPresentationId.anchor = GridBagConstraints.EAST;
 		gbc_lblPresentationId.gridx = 0;
 		gbc_lblPresentationId.gridy = 0;
@@ -54,7 +56,7 @@ public class HostPanel extends JPanel {
 			}
 		});
 		GridBagConstraints gbc_textField = new GridBagConstraints();
-		gbc_textField.insets = new Insets(10, 0, 0, 0);
+		gbc_textField.insets = new Insets(10, 0, 5, 5);
 		gbc_textField.fill = GridBagConstraints.HORIZONTAL;
 		gbc_textField.weightx = 0.5;
 		gbc_textField.anchor = GridBagConstraints.EAST;
@@ -72,7 +74,7 @@ public class HostPanel extends JPanel {
 			}
 		});
 		GridBagConstraints gbc_btnSendID = new GridBagConstraints();
-		gbc_btnSendID.insets = new Insets(10, 0, 0, 10);
+		gbc_btnSendID.insets = new Insets(10, 0, 5, 10);
 		gbc_btnSendID.anchor = GridBagConstraints.WEST;
 		gbc_btnSendID.gridx = 2;
 		gbc_btnSendID.gridy = 0;
@@ -82,12 +84,13 @@ public class HostPanel extends JPanel {
 		btnGetPresentationAssets.setEnabled(false);
 		GridBagConstraints gbc_btnGetPresentationAssets = new GridBagConstraints();
 		gbc_btnGetPresentationAssets.gridwidth = 3;
-		gbc_btnGetPresentationAssets.insets = new Insets(10, 0, 5, 5);
+		gbc_btnGetPresentationAssets.insets = new Insets(10, 0, 5, 0);
 		gbc_btnGetPresentationAssets.gridx = 0;
 		gbc_btnGetPresentationAssets.gridy = 1;
 		add(btnGetPresentationAssets, gbc_btnGetPresentationAssets);
 		
-		JButton btnWaitForPresentation = new JButton("Allow Remote Control");
+		btnWaitForPresentation = new JButton("Allow Remote Control");
+		btnWaitForPresentation.setEnabled(false);
 		btnWaitForPresentation.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				ClientApplication inst = (ClientApplication) ClientApplication.inst();
@@ -104,11 +107,19 @@ public class HostPanel extends JPanel {
 			}
 		});
 		GridBagConstraints gbc_btnWaitForPresentation = new GridBagConstraints();
+		gbc_btnWaitForPresentation.insets = new Insets(0, 0, 5, 0);
 		gbc_btnWaitForPresentation.gridwidth = 3;
-		gbc_btnWaitForPresentation.insets = new Insets(0, 0, 0, 5);
 		gbc_btnWaitForPresentation.gridx = 0;
 		gbc_btnWaitForPresentation.gridy = 2;
 		add(btnWaitForPresentation, gbc_btnWaitForPresentation);
+		
+		lblStatusText = new JLabel("New label");
+		GridBagConstraints gbc_lblStatusText = new GridBagConstraints();
+		gbc_lblStatusText.gridwidth = 3;
+		gbc_lblStatusText.insets = new Insets(10, 0, 0, 5);
+		gbc_lblStatusText.gridx = 0;
+		gbc_lblStatusText.gridy = 3;
+		add(lblStatusText, gbc_lblStatusText);
 
 	}
 

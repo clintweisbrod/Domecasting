@@ -16,6 +16,7 @@ public class PresenterPanel extends JPanel {
 	private static final long serialVersionUID = 1L;
 	private JTextField presentationID;
 	private JButton btnSendID;
+	private JButton btnStartPresentation;
 	private JLabel lblStatusText;
 
 	/**
@@ -88,7 +89,7 @@ public class PresenterPanel extends JPanel {
 		gbc_btnNewButton.gridy = 1;
 		add(btnNewButton, gbc_btnNewButton);
 		
-		JButton btnStartPresentation = new JButton("Start Presentation");
+		btnStartPresentation = new JButton("Start Presentation");
 		btnStartPresentation.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
 				ClientApplication inst = (ClientApplication) ClientApplication.inst();

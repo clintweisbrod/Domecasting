@@ -71,22 +71,32 @@ public class ServerConnectionThread extends Thread
 	public boolean sendPresentationID(String presentationID)
 	{
 		boolean result = false;
-		if (socket.isConnected())
+		
+		String infoStr = "PresentationID=" + presentationID;
+		if (sendInfo(infoStr))
 		{
-			String command = "PresentationID=" + presentationID;
-			byte[] theBytes = command.getBytes();
-			
-			// We're performing two writes to the OutputStream. They MUST be sequential.
-			synchronized (outputStreamLock)
-			{
-				if (writeHeader(theBytes.length, ClientHeader.kDCC, ClientHeader.kDCS, ClientHeader.kINFO))
-					result = writeOutputStream(theBytes, 0, theBytes.length);
-			}
-			
 			// Also send ClientApplication.clientType
 			ClientApplication inst = (ClientApplication) ClientApplication.inst();
-			command = "ClientType=" + (char)inst.clientType;
-			theBytes = command.getBytes();
+			infoStr = "ClientType=" + (char)inst.clientType;
+			result = sendInfo(infoStr);
+		}
+		
+		return result;
+	}
+	
+	public boolean sendReadyToCast(boolean readyToCast)
+	{
+		String infoStr = "ReadyToCast=" + Boolean.toString(readyToCast);
+		return sendInfo(infoStr);
+	}
+	
+	private boolean sendInfo(String infoString)
+	{
+		boolean result = false;
+		
+		if (socket.isConnected())
+		{
+			byte[] theBytes = infoString.getBytes();
 			
 			// We're performing two writes to the OutputStream. They MUST be sequential.
 			synchronized (outputStreamLock)

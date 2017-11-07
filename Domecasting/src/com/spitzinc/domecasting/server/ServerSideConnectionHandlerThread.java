@@ -15,10 +15,14 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 	protected InputStream in;
 	protected OutputStream out;
 	protected String presentationID;
+	protected byte clientType;
+	protected boolean readyToCast;
 	
 	public ServerSideConnectionHandlerThread(TCPConnectionListenerThread owner, Socket inboundSocket)
 	{
 		super(owner, inboundSocket);
+		
+		this.readyToCast = false;
 	}
 	
 	private void beginHandlingClientCommands()
@@ -35,8 +39,26 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 				break;
 			
 			// Now look at hdr contents to decide what to do.
-			
-			
+			if (hdr.messageType.equals(ClientHeader.kINFO))
+				handleINFO(hdr);
+		}
+	}
+	
+	private void handleINFO(ClientHeader hdr)
+	{
+		byte[] infoBytes = new byte[hdr.messageLen];
+		if (readInputStream(in, infoBytes, 0, infoBytes.length))
+		{
+			// All INFO messages are of the form variable=value.
+			String msg = new String(infoBytes);
+			System.out.println(this.getName() + ": Received: " + msg);
+			String[] list = msg.split("=");
+			if (list[0].equals("PresentationID"))
+				presentationID = list[1];
+			else if (list[0].equals("ClientType"))
+				clientType = (byte)list[1].charAt(0);
+			else if (list[0].equals("ReadyToCast"))
+				readyToCast = Boolean.getBoolean(list[1]);
 		}
 	}
 	
@@ -70,21 +92,11 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 			if (!securityCode.equals(expectedSecurityCode))
 				throw new ParseException("Incorrect security code sent by client.", 0);
 			
-			// Read off the 1-byte client connection type and validate it
-			if (!readInputStream(in, buffer, 0, 1))
-				throw new ParseException("Unable to read client connection type.", 0);
-			if ((buffer[0] != kHostID) && (buffer[0] != kPresenterID))
-				throw new ParseException("Invalid client type sent.", 0);
-			if (buffer[0] == kHostID)
-				clientType = ClientConnectionType.HOST;
-			else
-				clientType = ClientConnectionType.PRESENTER;
-			
 			// We can now begin negotiating the client connection
 			beginHandlingClientCommands();
 		}
 		catch (ParseException e) {
-			System.out.println(this.getName() + e.getMessage());
+			System.out.println(this.getName() + ": " + e.getMessage());
 		}
 
 		// Close stream
@@ -101,7 +113,8 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 		System.out.println(this.getName() + ": Closing socket.");
 		try
 		{
-			socket.close();
+			if (socket != null)
+				socket.close();
 		}
 		catch (IOException e) {
 		}

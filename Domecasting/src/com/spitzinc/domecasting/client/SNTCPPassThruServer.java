@@ -9,7 +9,7 @@ public class SNTCPPassThruServer
 
 	public SNTCPPassThruServer(int sendListenerPort, int recvListenerPort) throws IOException
 	{
-		// TODO: Add UI for this value
+		// TODO: Add UI for this value?
 		final int kRBPrefs_DomeServer_TCPPort = 56897;	// For typical two-machine setup, this should be the usual 56895.
 														// For testing on a single machine, needs to be 56897.
 		final int kPFPrefs_DomeServer_TCPReplyPort = 56896;

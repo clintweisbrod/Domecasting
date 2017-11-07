@@ -19,7 +19,7 @@ public class ServerAppFrame extends JFrame
 	 */
 	public ServerAppFrame(ServerApplication theApp, Dimension inPreferredSize)
 	{
-		setType(Type.UTILITY);
+		setType(Type.NORMAL);
 		theApp.appFrame = this;
 		
 		setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);	// Application WindowListener handles close

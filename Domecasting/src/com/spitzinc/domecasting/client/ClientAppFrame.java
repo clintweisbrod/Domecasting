@@ -1,5 +1,7 @@
 package com.spitzinc.domecasting.client;
 
+import com.spitzinc.domecasting.TCPConnectionHandlerThread;
+
 import java.awt.Dimension;
 
 import javax.swing.JFrame;
@@ -20,7 +22,7 @@ public class ClientAppFrame extends JFrame
 	 */
 	public ClientAppFrame(ClientApplication theApp, Dimension inPreferredSize)
 	{
-		setType(Type.UTILITY);
+		setType(Type.NORMAL);
 		theApp.appFrame = this;
 
 		setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);	// Application WindowListener handles close
@@ -38,10 +40,10 @@ public class ClientAppFrame extends JFrame
 				switch (newIndex)
 				{
 				case 0:
-//					theApp.startHostThreads();
+					theApp.clientType = TCPConnectionHandlerThread.kHostID;
 					break;
 				case 1:
-//					theApp.startPresenterThreads();
+					theApp.clientType = TCPConnectionHandlerThread.kPresenterID;
 					break;
 				}
 			}

@@ -7,6 +7,7 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketAddress;
+import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -17,9 +18,8 @@ public class TCPConnectionHandlerThread extends Thread
 	public static final byte kHostID = 'H';
 	public static final byte kPresenterID = 'P';
 	
-	public enum ClientConnectionType {HOST, PRESENTER};
-	
-	public ClientConnectionType clientType;
+//	public enum ClientConnectionType {HOST, PRESENTER};
+
 	protected AtomicBoolean stopped;
 	protected Socket socket;
 	protected TCPConnectionListenerThread owner;
@@ -41,7 +41,7 @@ public class TCPConnectionHandlerThread extends Thread
 		stopped.set(true);
 	}
 	
-	public Socket connectToHost(String hostName, int port)
+	public static Socket connectToHost(String hostName, int port, String callingThreadName)
 	{
 		Socket result = null;
 		
@@ -58,15 +58,15 @@ public class TCPConnectionHandlerThread extends Thread
 		}
 		catch (UnknownHostException e) {
 			result = null;
-			System.out.println(this.getName() + ": Unknown host: " + hostName);
+			System.out.println(callingThreadName + ": Unknown host: " + hostName);
 		}
 		catch (SocketTimeoutException e) {
 			result = null;
-			System.out.println(this.getName() + ": Connect timeout.");
+			System.out.println(callingThreadName + ": Connect timeout.");
 		}
 		catch (IOException e) {
 			result = null;
-			System.out.println(this.getName() + ": Connect failed.");
+			System.out.println(callingThreadName + ": Connect failed.");
 		}
 		
 		return result;
@@ -88,9 +88,10 @@ public class TCPConnectionHandlerThread extends Thread
 				totalBytesRead += bytesRead;
 			}
 			
+		} catch (SocketException e) {
+			System.out.println(this.getName() + ": SocketException reading InputStream. " + e.getMessage());
 		} catch (IOException e) {
-			System.out.println(this.getName() + ": IOException reading InputStream.");
-			e.printStackTrace();
+			System.out.println(this.getName() + ": IOException reading InputStream. " + e.getMessage());
 		} catch (IndexOutOfBoundsException e) {
 			System.out.println(this.getName() + ": IndexOutOfBoundsException reading InputStream" +
 					". buffer.length=" + buffer.length +
@@ -99,7 +100,6 @@ public class TCPConnectionHandlerThread extends Thread
 					", totalBytesRead=" + totalBytesRead +
 					", bytesLeftToRead=" + bytesLeftToRead +
 					".");
-			e.printStackTrace();
 		}
 		
 		return (bytesLeftToRead == 0);
@@ -116,7 +116,7 @@ public class TCPConnectionHandlerThread extends Thread
 		}
 		catch (IOException e) {
 			result = false;
-			System.out.println(this.getName() + ": Failed writing outbound socket.");
+			System.out.println(this.getName() + ": Failed writing outbound socket. " + e.getMessage());
 		}
 		
 		return result;
