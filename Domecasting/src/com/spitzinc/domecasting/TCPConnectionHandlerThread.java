@@ -14,12 +14,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 public class TCPConnectionHandlerThread extends Thread
 {
-	public static final int kSecurityCodeLength = 20;
-	public static final byte kHostID = 'H';
-	public static final byte kPresenterID = 'P';
-	
-//	public enum ClientConnectionType {HOST, PRESENTER};
-
 	protected AtomicBoolean stopped;
 	protected Socket socket;
 	protected TCPConnectionListenerThread owner;
@@ -70,20 +64,5 @@ public class TCPConnectionHandlerThread extends Thread
 		}
 		
 		return result;
-	}
-	
-	/**
-	 * Generates a unique but predictable 10-digit security code that changes every day.
-	 */
-	public static String getDailySecurityCode()
-	{
-		String result = null;
-		long currentUTCMilliseconds = System.currentTimeMillis();
-		long currentUTCDays = currentUTCMilliseconds / (86400 * 1000) + 1324354657;
-		long securityCode = currentUTCDays * currentUTCDays * currentUTCDays;
-		result = Long.toString(securityCode);
-		while (kSecurityCodeLength > result.length())
-			result = result.concat(result);
-		return result.substring(result.length() - kSecurityCodeLength);
 	}
 }

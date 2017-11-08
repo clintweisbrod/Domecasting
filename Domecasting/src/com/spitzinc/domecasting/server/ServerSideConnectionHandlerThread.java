@@ -134,16 +134,16 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 		}
 
 		// Allocate byte buffer to handle initial handshake communication
-		byte[] buffer = new byte[kSecurityCodeLength];		
+		byte[] buffer = new byte[CommUtils.kSecurityCodeLength];		
 		try
 		{
 			// Read off kSecurityCodeLength bytes. This is the security code.
-			if (!CommUtils.readInputStream(in, buffer, 0, kSecurityCodeLength, getName()))
+			if (!CommUtils.readInputStream(in, buffer, 0, CommUtils.kSecurityCodeLength, getName()))
 				throw new ParseException("Unable to read security code", 0);
 			
 			// Verify the sent security code matches what we expect
-			String securityCode = new String(buffer, 0, TCPConnectionHandlerThread.kSecurityCodeLength);
-			String expectedSecurityCode = TCPConnectionHandlerThread.getDailySecurityCode();
+			String securityCode = new String(buffer, 0, CommUtils.kSecurityCodeLength);
+			String expectedSecurityCode = CommUtils.getDailySecurityCode();
 			if (!securityCode.equals(expectedSecurityCode))
 				throw new ParseException("Incorrect security code sent by client.", 0);
 			

@@ -26,8 +26,8 @@ public class ServerConnectionThread extends Thread
 	private OutputStream out;
 	private Object outputStreamLock;
 	private Object inputStreamLock;
-	
-	private ClientHeader hdr;
+	private ClientHeader inHdr;
+	private ClientHeader outHdr;
 	
 	private AtomicBoolean stopped;
 	
@@ -40,43 +40,27 @@ public class ServerConnectionThread extends Thread
 		this.out = null;
 		this.outputStreamLock = new Object();
 		this.inputStreamLock = new Object();
+		this.inHdr = new ClientHeader();
+		this.outHdr = new ClientHeader();
 		
-		this.hdr = new ClientHeader();		
 		this.setName(this.getClass().getSimpleName() + "_" + hostName + "_" + port);
 	}
 	
 	public void setStopped() {
 		stopped.set(true);
 	}
-	
-	public boolean writeOutputStream(byte[] buffer, int offset, int len)
-	{
-		boolean result = true;
 		
-		try
-		{
-			out.write(buffer, offset, len);
-			System.out.println(this.getName() + ": Wrote " + len + " bytes to socket.");
-		}
-		catch (IOException e) {
-			result = false;
-			System.out.println(this.getName() + ": Failed writing outbound socket.");
-		}
-		
-		return result;
-	}
-	
 	public boolean sendPresentationID(String presentationID)
 	{
 		boolean result = false;
 		
 		String infoStr = "PresentationID=" + presentationID;
-		if (sendInfo(infoStr))
+		if (sendINFO(infoStr))
 		{
 			// Also send ClientApplication.clientType
 			ClientApplication inst = (ClientApplication) ClientApplication.inst();
 			infoStr = "ClientType=" + (char)inst.clientType;
-			result = sendInfo(infoStr);
+			result = sendINFO(infoStr);
 		}
 		
 		return result;
@@ -85,10 +69,25 @@ public class ServerConnectionThread extends Thread
 	public boolean sendReadyToCast(boolean readyToCast)
 	{
 		String infoStr = "ReadyToCast=" + Boolean.toString(readyToCast);
-		return sendInfo(infoStr);
+		return sendINFO(infoStr);
 	}
 	
-	private boolean sendInfo(String infoString)
+	public boolean IsPeerReady()
+	{
+		boolean result = false;
+		
+		String reply = sendREQU("IsPeerReady");
+		if (reply != null)
+		{
+			String[] list = reply.split("=");
+			if (list[0].equals("IsPeerReady"))
+				result = Boolean.getBoolean(list[1]);
+		}
+		
+		return result;
+	}
+	
+	private boolean sendINFO(String infoString)
 	{
 		boolean result = false;
 		
@@ -99,8 +98,51 @@ public class ServerConnectionThread extends Thread
 			// We're performing two writes to the OutputStream. They MUST be sequential.
 			synchronized (outputStreamLock)
 			{
-				if (CommUtils.writeHeader(out, hdr, theBytes.length, ClientHeader.kDCC, ClientHeader.kDCS, ClientHeader.kINFO, this.getName()))
+				if (CommUtils.writeHeader(out, outHdr, theBytes.length, ClientHeader.kDCC, ClientHeader.kDCS, ClientHeader.kINFO, getName()))
 					result = CommUtils.writeOutputStream(out, theBytes, 0, theBytes.length, this.getName());
+			}
+		}
+		
+		return result;
+	}
+	
+	private String sendREQU(String requString)
+	{
+		String result = null;
+		
+		if (socket.isConnected())
+		{
+			byte[] theBytes = requString.getBytes();
+			
+			// We're performing two writes to the OutputStream. They MUST be sequential.
+			boolean requestSent = false;
+			synchronized (outputStreamLock)
+			{
+				if (CommUtils.writeHeader(out, outHdr, theBytes.length, ClientHeader.kDCC, ClientHeader.kDCS, ClientHeader.kREQU, getName()))
+					requestSent = CommUtils.writeOutputStream(out, theBytes, 0, theBytes.length, getName());
+			}
+			if (requestSent)
+			{
+				boolean responseReceived = false;
+				synchronized (inputStreamLock)
+				{
+					// Read and parse the header
+					if (CommUtils.readInputStream(in, inHdr.bytes, 0, ClientHeader.kHdrByteCount, getName()))
+					{
+						if (inHdr.parseHeaderBuffer())
+						{
+							if (inHdr.messageType.equals(ClientHeader.kREQU))
+							{
+								byte[] requBytes = new byte[inHdr.messageLen];
+								if (CommUtils.readInputStream(in, requBytes, 0, requBytes.length, getName()))
+								{
+									responseReceived = true;
+									result = new String(requBytes);
+								}
+							}
+						}
+					}
+				}
 			}
 		}
 		
@@ -120,14 +162,14 @@ public class ServerConnectionThread extends Thread
 	private boolean writeSecurityCode()
 	{
 		// Allocate byte buffer for security code
-		byte[] buffer = new byte[TCPConnectionHandlerThread.kSecurityCodeLength];
+		byte[] buffer = new byte[CommUtils.kSecurityCodeLength];
 		
 		// Insert daily security code in buffer
-		String securityCode = TCPConnectionHandlerThread.getDailySecurityCode();
+		String securityCode = CommUtils.getDailySecurityCode();
 		System.arraycopy(securityCode.getBytes(), 0, buffer, 0, securityCode.length());
 	
 		// Writing to the connectionThread output stream must be thread synchronized
-		return writeOutputStream(buffer, 0, TCPConnectionHandlerThread.kSecurityCodeLength);
+		return CommUtils.writeOutputStream(out, buffer, 0, CommUtils.kSecurityCodeLength, getName());
 	}
 	
 	public void run()

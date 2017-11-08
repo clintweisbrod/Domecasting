@@ -115,6 +115,9 @@ public class ClientApplication extends ApplicationBase implements WindowListener
 	public void setPresentationID(String presentationID)
 	{
 		serverConnectionThread.sendPresentationID(presentationID);
+		
+		// Testing
+		serverConnectionThread.IsPeerReady();
 	}
 
 	@Override

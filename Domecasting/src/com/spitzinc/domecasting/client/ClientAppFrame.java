@@ -1,6 +1,6 @@
 package com.spitzinc.domecasting.client;
 
-import com.spitzinc.domecasting.TCPConnectionHandlerThread;
+import com.spitzinc.domecasting.CommUtils;
 
 import java.awt.Dimension;
 
@@ -40,10 +40,10 @@ public class ClientAppFrame extends JFrame
 				switch (newIndex)
 				{
 				case 0:
-					theApp.clientType = TCPConnectionHandlerThread.kHostID;
+					theApp.clientType = CommUtils.kHostID;
 					break;
 				case 1:
-					theApp.clientType = TCPConnectionHandlerThread.kPresenterID;
+					theApp.clientType = CommUtils.kPresenterID;
 					break;
 				}
 			}
