@@ -72,9 +72,9 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 				boolean needToModifyReplyPort = (outboundNode.replyPort != -1);
 				while (!stopped.get())
 				{
-					if (!needToModifyReplyPort && (clientAppName != null))
-						simplePassThru(buffer);
-					else
+//					if (!needToModifyReplyPort && (clientAppName != null))
+//						simplePassThru(buffer);
+//					else
 						starryNightPassThru(buffer, needToModifyReplyPort);
 				}
 			}
@@ -186,15 +186,8 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 				clientAppName = new String(buffer, kSNHeaderClientAppNamePosition, kSNHeaderFieldLength).trim();
 
 			// Write the header to the outbound socket
-			try
-			{
-				out.write(buffer, 0, kSNHeaderLength);
-				System.out.println(this.getName() + ": Wrote " + kSNHeaderLength + " bytes to outbound socket.");
-			}
-			catch (IOException e) {
+			if (!writeOutputStream(out, buffer, 0, kSNHeaderLength))
 				stopped.set(true);
-				System.out.println(this.getName() + ": Failed writing outbound socket.");
-			}
 		}
 
 		// Now read/write the remainder of the message
