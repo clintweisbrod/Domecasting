@@ -12,6 +12,7 @@ import com.spitzinc.domecasting.TCPConnectionListenerThread;
 
 public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThread
 {
+	protected ServerSideConnectionListenerThread listenerThread;
 	protected InputStream in;
 	protected OutputStream out;
 	protected String presentationID;
@@ -22,7 +23,20 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 	{
 		super(owner, inboundSocket);
 		
+		this.listenerThread = (ServerSideConnectionListenerThread)owner;
 		this.readyToCast = false;
+	}
+	
+	public String getPresentationID() {
+		return presentationID;
+	}
+	
+	public byte getClientType() {
+		return clientType;
+	}
+	
+	public boolean isReadyToCast() {
+		return readyToCast;
 	}
 	
 	private void beginHandlingClientCommands()
@@ -41,6 +55,8 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 			// Now look at hdr contents to decide what to do.
 			if (hdr.messageType.equals(ClientHeader.kINFO))
 				handleINFO(hdr);
+			else if (hdr.messageType.equals(ClientHeader.kREQU))
+				handleREQU(hdr);
 		}
 	}
 	
@@ -49,7 +65,7 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 		byte[] infoBytes = new byte[hdr.messageLen];
 		if (readInputStream(in, infoBytes, 0, infoBytes.length))
 		{
-			// All INFO messages are of the form variable=value.
+			// All INFO messages are of the form "variable=value".
 			String msg = new String(infoBytes);
 			System.out.println(this.getName() + ": Received: " + msg);
 			String[] list = msg.split("=");
@@ -59,6 +75,25 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 				clientType = (byte)list[1].charAt(0);
 			else if (list[0].equals("ReadyToCast"))
 				readyToCast = Boolean.getBoolean(list[1]);
+		}
+	}
+	
+	private void handleREQU(ClientHeader hdr)
+	{
+		byte[] requBytes = new byte[hdr.messageLen];
+		if (readInputStream(in, requBytes, 0, requBytes.length))
+		{
+			// All REQU messages are of the form "request"
+			String req = new String(requBytes);
+			System.out.println(this.getName() + ": Received: " + req);
+			if (req.equals("IsPeerReady"))
+			{
+				ServerSideConnectionHandlerThread peerThread = listenerThread.findPeerConnectionThread(this);
+				if (peerThread != null)
+				{
+					boolean isPeerReady = peerThread.isReadyToCast();
+				}
+			}
 		}
 	}
 	
