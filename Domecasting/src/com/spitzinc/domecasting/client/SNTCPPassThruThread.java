@@ -5,6 +5,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
 
+import com.spitzinc.domecasting.CommUtils;
 import com.spitzinc.domecasting.TCPConnectionHandlerThread;
 
 public class SNTCPPassThruThread extends TCPConnectionHandlerThread
@@ -42,17 +43,17 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 			replyPortBytes = replyPortStr.getBytes();
 		}
 
-		this.setName(this.getClass().getSimpleName() + "_" + inboundSocket.getLocalPort() + "->" + outboundNode.port);	
+		this.setName(getClass().getSimpleName() + "_" + inboundSocket.getLocalPort() + "->" + outboundNode.port);	
 	}
 	
 	public void run()
 	{
 		// Attempt to connect to outbound host
-		System.out.println(this.getName() + ": Attempting to establish outbound connection.");
+		System.out.println(getName() + ": Attempting to establish outbound connection.");
 		outboundSocket = TCPConnectionHandlerThread.connectToHost(outboundNode.hostname, outboundNode.port, this.getName());
 		if (outboundSocket != null)
 		{
-			System.out.println(this.getName() + ": Outbound connection established.");
+			System.out.println(getName() + ": Outbound connection established.");
 
 			try
 			{
@@ -80,7 +81,7 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 			}
 
 			// Close streams
-			System.out.println(this.getName() + ": Shutting down connection streams.");
+			System.out.println(getName() + ": Shutting down connection streams.");
 			try
 			{
 				if (out != null)
@@ -93,7 +94,7 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 		}
 
 		// Close sockets
-		System.out.println(this.getName() + ": Closing sockets.");
+		System.out.println(getName() + ": Closing sockets.");
 		try
 		{
 			if (socket != null)
@@ -107,7 +108,7 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 		// Notify owner this thread is dying.
 		owner.threadDying(this);
 
-		System.out.println(this.getName() + ": Exiting thread.");
+		System.out.println(getName() + ": Exiting thread.");
 	}
 	
 	/**
@@ -122,17 +123,17 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 			count = in.read(buffer);
 			if (count == -1)
 				stopped.set(true);
-			System.out.println(this.getName() + ": Read " + count + " bytes from inbound socket.");
+			System.out.println(getName() + ": Read " + count + " bytes from inbound socket.");
 		}
 		catch (IOException e) {
 			stopped.set(true);
-			System.out.println(this.getName() + ": Failed reading inbound socket.");
+			System.out.println(getName() + ": Failed reading inbound socket.");
 		}
 
 		// Write data to outbound socket
 		if (!stopped.get())
 		{
-			if (!writeOutputStream(out, buffer, 0, count))
+			if (!CommUtils.writeOutputStream(out, buffer, 0, count, getName()))
 				stopped.set(true);
 		}
 	}
@@ -154,7 +155,7 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 	private void starryNightPassThru(byte[] buffer, boolean modifyReplyPort)
 	{	
 		// Read the SN header from the inbound socket
-		if (!readInputStream(in, buffer, 0, kSNHeaderLength))
+		if (!CommUtils.readInputStream(in, buffer, 0, kSNHeaderLength, getName()))
 			stopped.set(true);
 			
 		// Get total length of incoming message and modify the replyToPort
@@ -166,12 +167,12 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 			try {
 				messageLength = Integer.parseInt(messageLengthStr);
 			} catch (NumberFormatException e) {
-				System.out.println(this.getName() + ": messageLengthStr: " + messageLengthStr + ".");
+				System.out.println(getName() + ": messageLengthStr: " + messageLengthStr + ".");
 				e.printStackTrace();
 				stopped.set(true);
 				return;
 			}
-			System.out.println(this.getName() + ": Parsed messageLength = " + messageLength);
+			System.out.println(getName() + ": Parsed messageLength = " + messageLength);
 
 			if (modifyReplyPort)
 			{
@@ -186,7 +187,7 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 				clientAppName = new String(buffer, kSNHeaderClientAppNamePosition, kSNHeaderFieldLength).trim();
 
 			// Write the header to the outbound socket
-			if (!writeOutputStream(out, buffer, 0, kSNHeaderLength))
+			if (!CommUtils.writeOutputStream(out, buffer, 0, kSNHeaderLength, getName()))
 				stopped.set(true);
 		}
 
@@ -196,14 +197,14 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 		{
 			// Read as much of the message as our buffer will hold
 			int bytesToRead = Math.min(bytesLeftToReceive, buffer.length);
-			if (!readInputStream(in, buffer, 0, bytesToRead))
+			if (!CommUtils.readInputStream(in, buffer, 0, bytesToRead, getName()))
 			{
 				stopped.set(true);
 				break;
 			}
 
 			// Write the buffer
-			if (!writeOutputStream(out, buffer, 0, bytesToRead))
+			if (!CommUtils.writeOutputStream(out, buffer, 0, bytesToRead, getName()))
 				stopped.set(true);
 
 			bytesLeftToReceive -= bytesToRead;

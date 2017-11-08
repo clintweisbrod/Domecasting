@@ -35,8 +35,14 @@ public class ClientHeader
 	public String messageSource;
 	public String messageDestination;
 	public String messageType;
+	public byte[] bytes;
 	
-	public boolean parseHeaderBuffer(byte[] headerBuf)
+	public ClientHeader()
+	{
+		this.bytes = new byte[ClientHeader.kHdrByteCount];
+	}
+	
+	public boolean parseHeaderBuffer()
 	{
 		// Every header sent to the server must be a fixed length of 25 bytes.
 		// 0-9: String representation of length of entire message. Right-padded.
@@ -45,7 +51,7 @@ public class ClientHeader
 		// 20-24: Message type: "COMM", "INFO", "FILE". Right-padded.
 		
 		// message length
-		String hdrField = new String(headerBuf, kFieldPos_MessageLength, kFieldLength_MessageLength).trim();
+		String hdrField = new String(bytes, kFieldPos_MessageLength, kFieldLength_MessageLength).trim();
 		try {
 			messageLen = Integer.parseInt(hdrField);
 		} catch (NumberFormatException e) {
@@ -55,21 +61,19 @@ public class ClientHeader
 		}
 		
 		// message source
-		messageSource = new String(headerBuf, kFieldPos_MessageSource, kFieldLength_MessageSource).trim();
+		messageSource = new String(bytes, kFieldPos_MessageSource, kFieldLength_MessageSource).trim();
 		
 		// message destination
-		messageDestination = new String(headerBuf, kFieldPos_MessageDestination, kFieldLength_MessageDestination).trim();
+		messageDestination = new String(bytes, kFieldPos_MessageDestination, kFieldLength_MessageDestination).trim();
 		
 		// message type
-		messageType = new String(headerBuf, kFieldPos_MessageType, kFieldLength_MessageType).trim();
+		messageType = new String(bytes, kFieldPos_MessageType, kFieldLength_MessageType).trim();
 		
 		return true;
 	}
 	
-	public boolean buildHeaderBuffer(byte[] headerBuf)
+	public boolean buildHeaderBuffer()
 	{
-		if (headerBuf.length < kHdrByteCount)
-			return false;
 		if (messageSource.length() > kFieldLength_MessageSource)
 			return false;
 		if (messageDestination.length() > kFieldLength_MessageDestination)
@@ -79,20 +83,20 @@ public class ClientHeader
 		
 		// Initialize buffer contents to all spaces
 		for (int i = 0; i < kHdrByteCount; i++)
-			headerBuf[i] = ' ';
+			bytes[i] = ' ';
 		
 		// message length
 		String hdrField = Integer.toUnsignedString(messageLen);
-		System.arraycopy(hdrField.getBytes(), 0, headerBuf, 0, hdrField.length());
+		System.arraycopy(hdrField.getBytes(), 0, bytes, 0, hdrField.length());
 		
 		// message source
-		System.arraycopy(messageSource.getBytes(), 0, headerBuf, kFieldPos_MessageSource, messageSource.length());
+		System.arraycopy(messageSource.getBytes(), 0, bytes, kFieldPos_MessageSource, messageSource.length());
 		
 		// message destination
-		System.arraycopy(messageDestination.getBytes(), 0, headerBuf, kFieldPos_MessageDestination, messageDestination.length());
+		System.arraycopy(messageDestination.getBytes(), 0, bytes, kFieldPos_MessageDestination, messageDestination.length());
 		
 		// message type
-		System.arraycopy(messageType.getBytes(), 0, headerBuf, kFieldPos_MessageType, messageType.length());
+		System.arraycopy(messageType.getBytes(), 0, bytes, kFieldPos_MessageType, messageType.length());
 		
 		return true;
 	}

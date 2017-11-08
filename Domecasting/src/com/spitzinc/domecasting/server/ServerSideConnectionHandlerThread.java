@@ -7,6 +7,7 @@ import java.net.Socket;
 import java.text.ParseException;
 
 import com.spitzinc.domecasting.ClientHeader;
+import com.spitzinc.domecasting.CommUtils;
 import com.spitzinc.domecasting.TCPConnectionHandlerThread;
 import com.spitzinc.domecasting.TCPConnectionListenerThread;
 
@@ -15,6 +16,10 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 	protected ServerSideConnectionListenerThread listenerThread;
 	protected InputStream in;
 	protected OutputStream out;
+	private Object outputStreamLock;
+	private Object inputStreamLock;
+	private ClientHeader outHdr;
+	private ClientHeader inHdr;
 	protected String presentationID;
 	protected byte clientType;
 	protected boolean readyToCast;
@@ -23,6 +28,10 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 	{
 		super(owner, inboundSocket);
 		
+		this.outputStreamLock = new Object();
+		this.inputStreamLock = new Object();
+		this.outHdr = new ClientHeader();
+		this.inHdr = new ClientHeader();
 		this.listenerThread = (ServerSideConnectionListenerThread)owner;
 		this.readyToCast = false;
 	}
@@ -42,28 +51,26 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 	private void beginHandlingClientCommands()
 	{
 		// This is the "main loop" of server connection.
-		byte[] hdrBuffer = new byte[ClientHeader.kHdrByteCount];
-		ClientHeader hdr = new ClientHeader();
 		while (!stopped.get())
 		{
 			// Read and parse the header
-			if (!readInputStream(in, hdrBuffer, 0, ClientHeader.kHdrByteCount))
+			if (!CommUtils.readInputStream(in, inHdr.bytes, 0, ClientHeader.kHdrByteCount, getName()))
 				break;
-			if (!hdr.parseHeaderBuffer(hdrBuffer))
+			if (!inHdr.parseHeaderBuffer())
 				break;
 			
 			// Now look at hdr contents to decide what to do.
-			if (hdr.messageType.equals(ClientHeader.kINFO))
-				handleINFO(hdr);
-			else if (hdr.messageType.equals(ClientHeader.kREQU))
-				handleREQU(hdr);
+			if (inHdr.messageType.equals(ClientHeader.kINFO))
+				handleINFO(inHdr);
+			else if (inHdr.messageType.equals(ClientHeader.kREQU))
+				handleREQU(inHdr);
 		}
 	}
 	
 	private void handleINFO(ClientHeader hdr)
 	{
 		byte[] infoBytes = new byte[hdr.messageLen];
-		if (readInputStream(in, infoBytes, 0, infoBytes.length))
+		if (CommUtils.readInputStream(in, infoBytes, 0, infoBytes.length, getName()))
 		{
 			// All INFO messages are of the form "variable=value".
 			String msg = new String(infoBytes);
@@ -81,17 +88,30 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 	private void handleREQU(ClientHeader hdr)
 	{
 		byte[] requBytes = new byte[hdr.messageLen];
-		if (readInputStream(in, requBytes, 0, requBytes.length))
+		if (CommUtils.readInputStream(in, requBytes, 0, requBytes.length, getName()))
 		{
-			// All REQU messages are of the form "request"
+			// All REQU messages are of the form "request" and demand a response
+			// of "request=value".
 			String req = new String(requBytes);
 			System.out.println(this.getName() + ": Received: " + req);
 			if (req.equals("IsPeerReady"))
 			{
+				boolean isPeerReady = false;
+				
+				// Look for peer connection on this server
 				ServerSideConnectionHandlerThread peerThread = listenerThread.findPeerConnectionThread(this);
 				if (peerThread != null)
+					isPeerReady = peerThread.isReadyToCast();
+				
+				// Respond to request
+				String reply = "IsPeerReady=" + Boolean.toString(isPeerReady);
+				byte[] replyBytes = reply.getBytes();
+				
+				// We're performing two writes to the OutputStream. They MUST be sequential.
+				synchronized (outputStreamLock)
 				{
-					boolean isPeerReady = peerThread.isReadyToCast();
+					if (CommUtils.writeHeader(out, outHdr, replyBytes.length, ClientHeader.kDCS, ClientHeader.kDCC, ClientHeader.kREQU, this.getName()))
+						CommUtils.writeOutputStream(out, replyBytes, 0, replyBytes.length, getName());
 				}
 			}
 		}
@@ -118,7 +138,7 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 		try
 		{
 			// Read off kSecurityCodeLength bytes. This is the security code.
-			if (!readInputStream(in, buffer, 0, kSecurityCodeLength))
+			if (!CommUtils.readInputStream(in, buffer, 0, kSecurityCodeLength, getName()))
 				throw new ParseException("Unable to read security code", 0);
 			
 			// Verify the sent security code matches what we expect

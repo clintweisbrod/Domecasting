@@ -72,56 +72,6 @@ public class TCPConnectionHandlerThread extends Thread
 		return result;
 	}
 	
-	public boolean readInputStream(InputStream is, byte[] buffer, int offset, int len)
-	{
-		int bytesLeftToRead = len;
-		int totalBytesRead = 0;
-		try
-		{
-			while (bytesLeftToRead > 0)
-			{
-				int bytesRead = is.read(buffer, offset + totalBytesRead, bytesLeftToRead);
-				if (bytesRead == -1)
-					break;
-				System.out.println(this.getName() + ": Read " + bytesRead + " bytes from socket.");
-				bytesLeftToRead -= bytesRead;
-				totalBytesRead += bytesRead;
-			}
-			
-		} catch (SocketException e) {
-			System.out.println(this.getName() + ": SocketException reading InputStream. " + e.getMessage());
-		} catch (IOException e) {
-			System.out.println(this.getName() + ": IOException reading InputStream. " + e.getMessage());
-		} catch (IndexOutOfBoundsException e) {
-			System.out.println(this.getName() + ": IndexOutOfBoundsException reading InputStream" +
-					". buffer.length=" + buffer.length +
-					", offset=" + offset +
-					", len=" + len +
-					", totalBytesRead=" + totalBytesRead +
-					", bytesLeftToRead=" + bytesLeftToRead +
-					".");
-		}
-		
-		return (bytesLeftToRead == 0);
-	}
-	
-	public boolean writeOutputStream(OutputStream os, byte[] buffer, int offset, int len)
-	{
-		boolean result = true;
-		
-		try
-		{
-			os.write(buffer, offset, len);
-			System.out.println(this.getName() + ": Wrote " + len + " bytes to socket.");
-		}
-		catch (IOException e) {
-			result = false;
-			System.out.println(this.getName() + ": Failed writing outbound socket. " + e.getMessage());
-		}
-		
-		return result;
-	}
-	
 	/**
 	 * Generates a unique but predictable 10-digit security code that changes every day.
 	 */

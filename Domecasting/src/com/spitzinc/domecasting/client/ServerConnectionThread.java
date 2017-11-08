@@ -14,6 +14,7 @@ import java.net.Socket;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.spitzinc.domecasting.ClientHeader;
+import com.spitzinc.domecasting.CommUtils;
 import com.spitzinc.domecasting.TCPConnectionHandlerThread;
 
 public class ServerConnectionThread extends Thread
@@ -27,7 +28,6 @@ public class ServerConnectionThread extends Thread
 	private Object inputStreamLock;
 	
 	private ClientHeader hdr;
-	private byte[] hdrBuffer;
 	
 	private AtomicBoolean stopped;
 	
@@ -41,9 +41,7 @@ public class ServerConnectionThread extends Thread
 		this.outputStreamLock = new Object();
 		this.inputStreamLock = new Object();
 		
-		this.hdr = new ClientHeader();
-		this.hdrBuffer = new byte[ClientHeader.kHdrByteCount];
-		
+		this.hdr = new ClientHeader();		
 		this.setName(this.getClass().getSimpleName() + "_" + hostName + "_" + port);
 	}
 	
@@ -101,8 +99,8 @@ public class ServerConnectionThread extends Thread
 			// We're performing two writes to the OutputStream. They MUST be sequential.
 			synchronized (outputStreamLock)
 			{
-				if (writeHeader(theBytes.length, ClientHeader.kDCC, ClientHeader.kDCS, ClientHeader.kINFO))
-					result = writeOutputStream(theBytes, 0, theBytes.length);
+				if (CommUtils.writeHeader(out, hdr, theBytes.length, ClientHeader.kDCC, ClientHeader.kDCS, ClientHeader.kINFO, this.getName()))
+					result = CommUtils.writeOutputStream(out, theBytes, 0, theBytes.length, this.getName());
 			}
 		}
 		
@@ -130,16 +128,6 @@ public class ServerConnectionThread extends Thread
 	
 		// Writing to the connectionThread output stream must be thread synchronized
 		return writeOutputStream(buffer, 0, TCPConnectionHandlerThread.kSecurityCodeLength);
-	}
-	
-	private boolean writeHeader(int messageLen, String messageSource, String messageDestination, String messageType)
-	{
-		hdr.messageLen = messageLen;
-		hdr.messageSource = messageSource;
-		hdr.messageDestination = messageDestination;
-		hdr.messageType = messageType;
-		hdr.buildHeaderBuffer(hdrBuffer);
-		return writeOutputStream(hdrBuffer, 0, ClientHeader.kHdrByteCount);
 	}
 	
 	public void run()
