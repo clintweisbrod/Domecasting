@@ -114,6 +114,7 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 	/**
 	 * Just read bytes from the InputStream and write them to the OutputStream.
 	 */
+/*
 	private void simplePassThru(byte[] buffer)
 	{
 		// Read data from inbound socket
@@ -137,7 +138,7 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 				stopped.set(true);
 		}
 	}
-	
+*/	
 	/**
 	 * What's the deal with this method? SNTCPPassThruServer is essentially concerned with acting as a man-in-the-middle
 	 * for the TCP communication that occurs between Preflight and Renderbox. The SN communication protocol involves
@@ -151,63 +152,62 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 	 * instance of SNTCPPassThruServer.recvListenerThread is listening on. Ya, a little complicated, but this beats
 	 * screwing with the TCP communication details in SN Preflight and Renderbox, ATM-4, SN Intercept, TLE, etc. 
 	 * @param buffer
+	 * @throws IOException 
 	 */
 	private void starryNightPassThru(byte[] buffer, boolean modifyReplyPort)
 	{	
 		// Read the SN header from the inbound socket
-		if (!CommUtils.readInputStream(in, buffer, 0, kSNHeaderLength, getName()))
+		try
+		{
+			CommUtils.readInputStream(in, buffer, 0, kSNHeaderLength, getName());
+
+			// Get total length of incoming message and modify the replyToPort
+			int messageLength = 0;
+			if (!stopped.get())
+			{
+				// Get the total length of the message that we are receiving.
+				String messageLengthStr = new String(buffer, 0, kSNHeaderFieldLength).trim();
+				try {
+					messageLength = Integer.parseInt(messageLengthStr);
+				} catch (NumberFormatException e) {
+					System.out.println(getName() + ": messageLengthStr: " + messageLengthStr + ".");
+					throw new IOException(e.getMessage());
+				}
+				System.out.println(getName() + ": Parsed messageLength = " + messageLength);
+
+				if (modifyReplyPort)
+				{
+					// Change the buffer so that the return port is set to outboundNode.replyPort
+					// The return port digits start at pos 50 in the buffer.
+					if (replyPortBytes != null)
+						System.arraycopy(replyPortBytes, 0, buffer, kSNHeaderReplyPortPosition, replyPortBytes.length);
+				}
+				
+				// Obtain the clientAppName from the header
+				if (clientAppName == null)
+					clientAppName = new String(buffer, kSNHeaderClientAppNamePosition, kSNHeaderFieldLength).trim();
+
+				// Write the header to the outbound socket
+				CommUtils.writeOutputStream(out, buffer, 0, kSNHeaderLength, getName());
+			}
+
+			// Now read/write the remainder of the message
+			int bytesLeftToReceive = messageLength - kSNHeaderLength;
+			while (!stopped.get() && (bytesLeftToReceive > 0))
+			{
+				// Read as much of the message as our buffer will hold
+				int bytesToRead = Math.min(bytesLeftToReceive, buffer.length);
+				CommUtils.readInputStream(in, buffer, 0, bytesToRead, getName());
+
+				// Write the buffer
+				CommUtils.writeOutputStream(out, buffer, 0, bytesToRead, getName());
+
+				bytesLeftToReceive -= bytesToRead;
+			}
+		} catch (IOException e1) {
+			// TODO Auto-generated catch block
 			stopped.set(true);
-			
-		// Get total length of incoming message and modify the replyToPort
-		int messageLength = 0;
-		if (!stopped.get())
-		{
-			// Get the total length of the message that we are receiving.
-			String messageLengthStr = new String(buffer, 0, kSNHeaderFieldLength).trim();
-			try {
-				messageLength = Integer.parseInt(messageLengthStr);
-			} catch (NumberFormatException e) {
-				System.out.println(getName() + ": messageLengthStr: " + messageLengthStr + ".");
-				e.printStackTrace();
-				stopped.set(true);
-				return;
-			}
-			System.out.println(getName() + ": Parsed messageLength = " + messageLength);
-
-			if (modifyReplyPort)
-			{
-				// Change the buffer so that the return port is set to outboundNode.replyPort
-				// The return port digits start at pos 50 in the buffer.
-				if (replyPortBytes != null)
-					System.arraycopy(replyPortBytes, 0, buffer, kSNHeaderReplyPortPosition, replyPortBytes.length);
-			}
-			
-			// Obtain the clientAppName from the header
-			if (clientAppName == null)
-				clientAppName = new String(buffer, kSNHeaderClientAppNamePosition, kSNHeaderFieldLength).trim();
-
-			// Write the header to the outbound socket
-			if (!CommUtils.writeOutputStream(out, buffer, 0, kSNHeaderLength, getName()))
-				stopped.set(true);
-		}
-
-		// Now read/write the remainder of the message
-		int bytesLeftToReceive = messageLength - kSNHeaderLength;
-		while (!stopped.get() && (bytesLeftToReceive > 0))
-		{
-			// Read as much of the message as our buffer will hold
-			int bytesToRead = Math.min(bytesLeftToReceive, buffer.length);
-			if (!CommUtils.readInputStream(in, buffer, 0, bytesToRead, getName()))
-			{
-				stopped.set(true);
-				break;
-			}
-
-			// Write the buffer
-			if (!CommUtils.writeOutputStream(out, buffer, 0, bytesToRead, getName()))
-				stopped.set(true);
-
-			bytesLeftToReceive -= bytesToRead;
+			e1.printStackTrace();
 		}
 	}
 }

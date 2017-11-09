@@ -100,8 +100,14 @@ public class ServerConnectionThread extends Thread
 			// We're performing two writes to the OutputStream. They MUST be sequential.
 			synchronized (outputStreamLock)
 			{
-				if (CommUtils.writeHeader(out, outHdr, theBytes.length, ClientHeader.kDCC, ClientHeader.kDCS, ClientHeader.kINFO, getName()))
-					result = CommUtils.writeOutputStream(out, theBytes, 0, theBytes.length, this.getName());
+				try {
+					CommUtils.writeHeader(out, outHdr, theBytes.length, ClientHeader.kDCC, ClientHeader.kDCS, ClientHeader.kINFO, getName());
+					CommUtils.writeOutputStream(out, theBytes, 0, theBytes.length, this.getName());
+					result = false;
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
 			}
 		}
 		
@@ -120,29 +126,33 @@ public class ServerConnectionThread extends Thread
 			boolean requestSent = false;
 			synchronized (outputStreamLock)
 			{
-				if (CommUtils.writeHeader(out, outHdr, theBytes.length, ClientHeader.kDCC, ClientHeader.kDCS, ClientHeader.kREQU, getName()))
-					requestSent = CommUtils.writeOutputStream(out, theBytes, 0, theBytes.length, getName());
+				try {
+					CommUtils.writeHeader(out, outHdr, theBytes.length, ClientHeader.kDCC, ClientHeader.kDCS, ClientHeader.kREQU, getName());
+					CommUtils.writeOutputStream(out, theBytes, 0, theBytes.length, getName());
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
 			}
 			if (requestSent)
 			{
-				boolean responseReceived = false;
 				synchronized (inputStreamLock)
 				{
 					// Read and parse the header
-					if (CommUtils.readInputStream(in, inHdr.bytes, 0, ClientHeader.kHdrByteCount, getName()))
-					{
+					try {
+						CommUtils.readInputStream(in, inHdr.bytes, 0, ClientHeader.kHdrByteCount, getName());
 						if (inHdr.parseHeaderBuffer())
 						{
 							if (inHdr.messageType.equals(ClientHeader.kREQU))
 							{
 								byte[] requBytes = new byte[inHdr.messageLen];
-								if (CommUtils.readInputStream(in, requBytes, 0, requBytes.length, getName()))
-								{
-									responseReceived = true;
-									result = new String(requBytes);
-								}
+								CommUtils.readInputStream(in, requBytes, 0, requBytes.length, getName());
+								result = new String(requBytes);
 							}
 						}
+					} catch (IOException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
 					}
 				}
 			}
@@ -151,17 +161,7 @@ public class ServerConnectionThread extends Thread
 		return result;
 	}
 	
-	private void sendInitialHandshake() throws IOException
-	{
-		synchronized (outputStreamLock)
-		{
-			// Write security code
-			if (!writeSecurityCode())
-				throw new IOException("Failed to write security code.");
-		}
-	}
-	
-	private boolean writeSecurityCode()
+	private void writeSecurityCode() throws IOException
 	{
 		// Allocate byte buffer for security code
 		byte[] buffer = new byte[CommUtils.kSecurityCodeLength];
@@ -171,7 +171,9 @@ public class ServerConnectionThread extends Thread
 		System.arraycopy(securityCode.getBytes(), 0, buffer, 0, securityCode.length());
 	
 		// Writing to the connectionThread output stream must be thread synchronized
-		return CommUtils.writeOutputStream(out, buffer, 0, CommUtils.kSecurityCodeLength, getName());
+		synchronized (outputStreamLock) {
+			CommUtils.writeOutputStream(out, buffer, 0, CommUtils.kSecurityCodeLength, getName());
+		}
 	}
 	
 	public void run()
@@ -193,7 +195,7 @@ public class ServerConnectionThread extends Thread
 						out = socket.getOutputStream();
 						
 						// Send initial handshake to server
-						sendInitialHandshake();
+						writeSecurityCode();
 					}
 					catch (IOException e) {
 						e.printStackTrace();

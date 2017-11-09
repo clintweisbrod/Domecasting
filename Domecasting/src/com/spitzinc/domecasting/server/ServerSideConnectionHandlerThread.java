@@ -51,68 +51,71 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 	private void beginHandlingClientCommands()
 	{
 		// This is the "main loop" of server connection.
-		while (!stopped.get())
+		try
 		{
-			// Read and parse the header
-			if (!CommUtils.readInputStream(in, inHdr.bytes, 0, ClientHeader.kHdrByteCount, getName()))
-				break;
-			if (!inHdr.parseHeaderBuffer())
-				break;
-			
-			// Now look at hdr contents to decide what to do.
-			if (inHdr.messageType.equals(ClientHeader.kINFO))
-				handleINFO(inHdr);
-			else if (inHdr.messageType.equals(ClientHeader.kREQU))
-				handleREQU(inHdr);
+			while (!stopped.get())
+			{
+				// Read and parse the header
+				CommUtils.readInputStream(in, inHdr.bytes, 0, ClientHeader.kHdrByteCount, getName());
+				if (!inHdr.parseHeaderBuffer())
+					break;
+				
+				// Now look at hdr contents to decide what to do.
+				if (inHdr.messageType.equals(ClientHeader.kINFO))
+					handleINFO(inHdr);
+				else if (inHdr.messageType.equals(ClientHeader.kREQU))
+					handleREQU(inHdr);
+			}
+		}
+		catch (IOException e) {
+			e.printStackTrace();
 		}
 	}
 	
-	private void handleINFO(ClientHeader hdr)
+	private void handleINFO(ClientHeader hdr) throws IOException
 	{
 		byte[] infoBytes = new byte[hdr.messageLen];
-		if (CommUtils.readInputStream(in, infoBytes, 0, infoBytes.length, getName()))
-		{
-			// All INFO messages are of the form "variable=value".
-			String msg = new String(infoBytes);
-			System.out.println(this.getName() + ": Received: " + msg);
-			String[] list = msg.split("=");
-			if (list[0].equals("PresentationID"))
-				presentationID = list[1];
-			else if (list[0].equals("ClientType"))
-				clientType = (byte)list[1].charAt(0);
-			else if (list[0].equals("ReadyToCast"))
-				readyToCast = Boolean.getBoolean(list[1]);
-		}
+		CommUtils.readInputStream(in, infoBytes, 0, infoBytes.length, getName());
+		
+		// All INFO messages are of the form "variable=value".
+		String msg = new String(infoBytes);
+		System.out.println(this.getName() + ": Received: " + msg);
+		String[] list = msg.split("=");
+		if (list[0].equals("PresentationID"))
+			presentationID = list[1];
+		else if (list[0].equals("ClientType"))
+			clientType = (byte)list[1].charAt(0);
+		else if (list[0].equals("ReadyToCast"))
+			readyToCast = Boolean.getBoolean(list[1]);
 	}
 	
-	private void handleREQU(ClientHeader hdr)
+	private void handleREQU(ClientHeader hdr) throws IOException
 	{
 		byte[] requBytes = new byte[hdr.messageLen];
-		if (CommUtils.readInputStream(in, requBytes, 0, requBytes.length, getName()))
+		CommUtils.readInputStream(in, requBytes, 0, requBytes.length, getName());
+		
+		// All REQU messages are of the form "request" and demand a response
+		// of "request=value".
+		String req = new String(requBytes);
+		System.out.println(this.getName() + ": Received: " + req);
+		if (req.equals("IsPeerReady"))
 		{
-			// All REQU messages are of the form "request" and demand a response
-			// of "request=value".
-			String req = new String(requBytes);
-			System.out.println(this.getName() + ": Received: " + req);
-			if (req.equals("IsPeerReady"))
+			boolean isPeerReady = false;
+			
+			// Look for peer connection on this server
+			ServerSideConnectionHandlerThread peerThread = listenerThread.findPeerConnectionThread(this);
+			if (peerThread != null)
+				isPeerReady = peerThread.isReadyToCast();
+			
+			// Respond to request
+			String reply = "IsPeerReady=" + Boolean.toString(isPeerReady);
+			byte[] replyBytes = reply.getBytes();
+			
+			// We're performing two writes to the OutputStream. They MUST be sequential.
+			synchronized (outputStreamLock)
 			{
-				boolean isPeerReady = false;
-				
-				// Look for peer connection on this server
-				ServerSideConnectionHandlerThread peerThread = listenerThread.findPeerConnectionThread(this);
-				if (peerThread != null)
-					isPeerReady = peerThread.isReadyToCast();
-				
-				// Respond to request
-				String reply = "IsPeerReady=" + Boolean.toString(isPeerReady);
-				byte[] replyBytes = reply.getBytes();
-				
-				// We're performing two writes to the OutputStream. They MUST be sequential.
-				synchronized (outputStreamLock)
-				{
-					if (CommUtils.writeHeader(out, outHdr, replyBytes.length, ClientHeader.kDCS, ClientHeader.kDCC, ClientHeader.kREQU, this.getName()))
-						CommUtils.writeOutputStream(out, replyBytes, 0, replyBytes.length, getName());
-				}
+				CommUtils.writeHeader(out, outHdr, replyBytes.length, ClientHeader.kDCS, ClientHeader.kDCC, ClientHeader.kREQU, this.getName());
+				CommUtils.writeOutputStream(out, replyBytes, 0, replyBytes.length, getName());
 			}
 		}
 	}
@@ -123,8 +126,6 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 		// is that the client will send:
 		// - A 20-character security code that will change everyday. If the code is
 		//   incorrect, the connection will be refused by this server.
-		// - One additional character that should be either a 'H' or 'P' to indicate the
-		//   the client is a host or presenter, respectively.
 		try {
 			in = socket.getInputStream();
 			out = socket.getOutputStream();
@@ -138,8 +139,7 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 		try
 		{
 			// Read off kSecurityCodeLength bytes. This is the security code.
-			if (!CommUtils.readInputStream(in, buffer, 0, CommUtils.kSecurityCodeLength, getName()))
-				throw new ParseException("Unable to read security code", 0);
+			CommUtils.readInputStream(in, buffer, 0, CommUtils.kSecurityCodeLength, getName());
 			
 			// Verify the sent security code matches what we expect
 			String securityCode = new String(buffer, 0, CommUtils.kSecurityCodeLength);
@@ -150,7 +150,8 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 			// We can now begin negotiating the client connection
 			beginHandlingClientCommands();
 		}
-		catch (ParseException e) {
+		catch (IOException | ParseException e) {
+			e.printStackTrace();
 			System.out.println(this.getName() + ": " + e.getMessage());
 		}
 
