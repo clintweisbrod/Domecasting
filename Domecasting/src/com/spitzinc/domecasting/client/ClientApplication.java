@@ -46,7 +46,7 @@ public class ClientApplication extends ApplicationBase implements WindowListener
 		isHosting = new AtomicBoolean(false);
 		
 		// Start thread to manage connection with server
-		serverConnectionThread = new ServerConnectionThread(kDomecastingServerHostname, kDomecastingServerPort);
+		serverConnectionThread = new ServerConnectionThread(this, kDomecastingServerHostname, kDomecastingServerPort);
 		serverConnectionThread.start();
 		
 		// Start threads to handle pass-thru of local SN comm. Both presenter and host modes
@@ -115,9 +115,6 @@ public class ClientApplication extends ApplicationBase implements WindowListener
 	public void setPresentationID(String presentationID)
 	{
 		serverConnectionThread.sendPresentationID(presentationID);
-		
-		// Testing
-		serverConnectionThread.IsPeerReady();
 	}
 
 	@Override

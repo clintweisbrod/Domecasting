@@ -121,5 +121,11 @@ public class PresenterPanel extends JPanel {
 		add(lblStatusText, gbc_lblStatusText);
 
 	}
+	
+	public void setStatusText(String status)
+	{
+		if (lblStatusText != null)
+			lblStatusText.setText(status);
+	}
 
 }

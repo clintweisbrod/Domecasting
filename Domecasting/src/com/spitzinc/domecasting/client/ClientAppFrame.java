@@ -13,6 +13,7 @@ import javax.swing.event.ChangeEvent;
 public class ClientAppFrame extends JFrame
 {
 	private static final long serialVersionUID = 1L;
+	private ClientApplication theApp;
 	private JTabbedPane tabbedPane;
 	private HostPanel hostPanel;
 	private PresenterPanel presenterPanel;
@@ -22,6 +23,8 @@ public class ClientAppFrame extends JFrame
 	 */
 	public ClientAppFrame(ClientApplication theApp, Dimension inPreferredSize)
 	{
+		this.theApp = theApp;
+		
 		setType(Type.NORMAL);
 		theApp.appFrame = this;
 
@@ -55,5 +58,19 @@ public class ClientAppFrame extends JFrame
 
 		theApp.positionFrame(this);
 		setResizable(false);
+	}
+	
+	public synchronized void setStatusText(String status)
+	{
+		if (theApp.clientType == CommUtils.kHostID)
+		{
+			if (hostPanel != null)
+				hostPanel.setStatusText(status);
+		}
+		else
+		{
+			if (presenterPanel != null)
+				presenterPanel.setStatusText(status);
+		}
 	}
 }

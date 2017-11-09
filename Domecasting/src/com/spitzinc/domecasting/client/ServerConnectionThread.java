@@ -19,6 +19,7 @@ import com.spitzinc.domecasting.TCPConnectionHandlerThread;
 
 public class ServerConnectionThread extends Thread
 {
+	private ClientApplication theApp;
 	private String hostName;
 	private int port;
 	private Socket socket;
@@ -31,8 +32,9 @@ public class ServerConnectionThread extends Thread
 	
 	private AtomicBoolean stopped;
 	
-	public ServerConnectionThread(String hostName, int port)
+	public ServerConnectionThread(ClientApplication theApp, String hostName, int port)
 	{
+		this.theApp = theApp;
 		this.hostName = hostName;
 		this.port = port;
 		this.stopped = new AtomicBoolean(false);
@@ -179,6 +181,7 @@ public class ServerConnectionThread extends Thread
 		{
 			if (socket == null)
 			{
+				theApp.appFrame.setStatusText("Attempting server connection...");
 				System.out.println(this.getName() + ": Attempting server connection...");
 				socket = TCPConnectionHandlerThread.connectToHost(hostName, port, this.getName());
 				if (socket != null)
@@ -200,6 +203,7 @@ public class ServerConnectionThread extends Thread
 				{
 					// Wait a few seconds and then try again
 					final int kServerConnectionRetryIntervalSeconds = 5;
+					theApp.appFrame.setStatusText("Spitz domecasting server not available.");
 					System.out.println(this.getName() + ": Server connection failed. Trying again in " + kServerConnectionRetryIntervalSeconds + " seconds.");
 					try {
 						Thread.sleep(kServerConnectionRetryIntervalSeconds * 1000);
@@ -209,6 +213,8 @@ public class ServerConnectionThread extends Thread
 			
 			if (!stopped.get() && (in != null) && (out != null))
 			{
+				theApp.appFrame.setStatusText("Connected to Spitz domecasting server.");
+				
 				// Everything looks good so wait() here until another thread calls notify() on this thread.
 				// Another thread will call notify() if that thread determines that this.socket is not connected.
 				synchronized(this) {

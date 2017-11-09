@@ -123,4 +123,9 @@ public class HostPanel extends JPanel {
 
 	}
 
+	public void setStatusText(String status)
+	{
+		if (lblStatusText != null)
+			lblStatusText.setText(status);
+	}
 }
