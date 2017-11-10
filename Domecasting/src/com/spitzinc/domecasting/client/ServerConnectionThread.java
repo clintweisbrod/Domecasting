@@ -51,22 +51,6 @@ public class ServerConnectionThread extends Thread
 	public void setStopped() {
 		stopped.set(true);
 	}
-		
-	public boolean sendPresentationID(String presentationID)
-	{
-		boolean result = false;
-		
-		String infoStr = "PresentationID=" + presentationID;
-		if (sendINFO(infoStr))
-		{
-			// Also send ClientApplication.clientType
-			ClientApplication inst = (ClientApplication) ClientApplication.inst();
-			infoStr = "ClientType=" + (char)inst.clientType;
-			result = sendINFO(infoStr);
-		}
-		
-		return result;
-	}
 	
 	public boolean sendReadyToCast(boolean readyToCast)
 	{
@@ -74,7 +58,7 @@ public class ServerConnectionThread extends Thread
 		return sendINFO(infoStr);
 	}
 	
-	public boolean IsPeerReady()
+	public boolean isPeerReady()
 	{
 		boolean result = false;
 		
@@ -89,11 +73,35 @@ public class ServerConnectionThread extends Thread
 		return result;
 	}
 	
+	public boolean isConnected()
+	{
+		if ((socket != null) && socket.isConnected())
+			return true;
+		else
+			return false;
+	}
+	
+	public boolean sendHostID()
+	{
+		boolean result = false;
+		
+		ClientApplication inst = (ClientApplication) ClientApplication.inst();
+		String infoStr = "HostID=" + inst.getHostID();
+		if (sendINFO(infoStr))
+		{
+			// Also send ClientApplication.clientType
+			infoStr = "ClientType=" + (char)inst.clientType;
+			result = sendINFO(infoStr);
+		}
+		
+		return result;
+	}
+	
 	private boolean sendINFO(String infoString)
 	{
 		boolean result = false;
 		
-		if (socket.isConnected())
+		if ((socket != null) && socket.isConnected())
 		{
 			byte[] theBytes = infoString.getBytes();
 			
@@ -118,7 +126,7 @@ public class ServerConnectionThread extends Thread
 	{
 		String result = null;
 		
-		if (socket.isConnected())
+		if ((socket != null) && socket.isConnected())
 		{
 			byte[] theBytes = requString.getBytes();
 			
@@ -183,7 +191,6 @@ public class ServerConnectionThread extends Thread
 		{
 			if (socket == null)
 			{
-				theApp.appFrame.setStatusText("Attempting server connection...");
 				System.out.println(this.getName() + ": Attempting server connection...");
 				socket = TCPConnectionHandlerThread.connectToHost(hostName, port, this.getName());
 				if (socket != null)
@@ -196,6 +203,7 @@ public class ServerConnectionThread extends Thread
 						
 						// Send initial handshake to server
 						writeSecurityCode();
+						sendHostID();
 					}
 					catch (IOException e) {
 						e.printStackTrace();
@@ -205,7 +213,6 @@ public class ServerConnectionThread extends Thread
 				{
 					// Wait a few seconds and then try again
 					final int kServerConnectionRetryIntervalSeconds = 5;
-					theApp.appFrame.setStatusText("Spitz domecasting server not available.");
 					System.out.println(this.getName() + ": Server connection failed. Trying again in " + kServerConnectionRetryIntervalSeconds + " seconds.");
 					try {
 						Thread.sleep(kServerConnectionRetryIntervalSeconds * 1000);
@@ -215,8 +222,6 @@ public class ServerConnectionThread extends Thread
 			
 			if (!stopped.get() && (in != null) && (out != null))
 			{
-				theApp.appFrame.setStatusText("Connected to Spitz domecasting server.");
-				
 				// Everything looks good so wait() here until another thread calls notify() on this thread.
 				// Another thread will call notify() if that thread determines that this.socket is not connected.
 				synchronized(this) {

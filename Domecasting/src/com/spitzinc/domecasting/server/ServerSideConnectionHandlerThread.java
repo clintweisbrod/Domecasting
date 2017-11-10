@@ -20,7 +20,8 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 	private Object inputStreamLock;
 	private ClientHeader outHdr;
 	private ClientHeader inHdr;
-	protected String presentationID;
+	protected String hostID;
+	protected String hostIDToControl;
 	protected byte clientType;
 	protected boolean readyToCast;
 	
@@ -36,8 +37,12 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 		this.readyToCast = false;
 	}
 	
-	public String getPresentationID() {
-		return presentationID;
+	public String getHostID() {
+		return hostID;
+	}
+	
+	public String getHostIDToControl() {
+		return hostIDToControl;
 	}
 	
 	public byte getClientType() {
@@ -81,8 +86,8 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 		String msg = new String(infoBytes);
 		System.out.println(this.getName() + ": Received: " + msg);
 		String[] list = msg.split("=");
-		if (list[0].equals("PresentationID"))
-			presentationID = list[1];
+		if (list[0].equals("HostID"))
+			hostID = list[1];
 		else if (list[0].equals("ClientType"))
 			clientType = (byte)list[1].charAt(0);
 		else if (list[0].equals("ReadyToCast"))

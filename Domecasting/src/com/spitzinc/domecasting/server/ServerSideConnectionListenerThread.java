@@ -3,6 +3,7 @@ package com.spitzinc.domecasting.server;
 import java.io.IOException;
 import java.net.Socket;
 
+import com.spitzinc.domecasting.CommUtils;
 import com.spitzinc.domecasting.TCPConnectionHandlerThread;
 import com.spitzinc.domecasting.TCPConnectionListenerThread;
 
@@ -27,25 +28,47 @@ public class ServerSideConnectionListenerThread extends TCPConnectionListenerThr
 	public ServerSideConnectionHandlerThread findPeerConnectionThread(ServerSideConnectionHandlerThread inThread)
 	{
 		ServerSideConnectionHandlerThread result = null;
-		
-		String presentationID = inThread.getPresentationID();
+
 		byte clientType = inThread.getClientType();
-		
-		for (TCPConnectionHandlerThread aThread : connectionHandlerThreads)
+		if (clientType == CommUtils.kHostID)
 		{
-			if (aThread != inThread)
+			// If we're a "host", we're looking for another thread whose hostIDToControl matches this thread's hostID.
+			String hostID = inThread.getHostID();
+			for (TCPConnectionHandlerThread aThread : connectionHandlerThreads)
 			{
-				ServerSideConnectionHandlerThread otherThread = (ServerSideConnectionHandlerThread)aThread;
-				String otherPresentationID = otherThread.getPresentationID();
-				byte otherClientType = otherThread.getClientType();
-				if ((otherClientType != clientType) && otherPresentationID.equals(presentationID))
+				if (aThread != inThread)
 				{
-					result = otherThread;
-					break;
+					ServerSideConnectionHandlerThread otherThread = (ServerSideConnectionHandlerThread)aThread;
+					String hostIDToControl = otherThread.getHostIDToControl();
+					byte otherClientType = otherThread.getClientType();
+					if ((otherClientType != clientType) && hostID.equals(hostIDToControl))
+					{
+						result = otherThread;
+						break;
+					}
 				}
 			}
 		}
-		
+		else
+		{
+			// If we're a "presenter", we're looking for another thread whose hostID matches this thread's hostIDToControl.
+			String hostIDToControl = inThread.getHostIDToControl();
+			for (TCPConnectionHandlerThread aThread : connectionHandlerThreads)
+			{
+				if (aThread != inThread)
+				{
+					ServerSideConnectionHandlerThread otherThread = (ServerSideConnectionHandlerThread)aThread;
+					String hostID = otherThread.getHostID();
+					byte otherClientType = otherThread.getClientType();
+					if ((otherClientType != clientType) && hostIDToControl.equals(hostID))
+					{
+						result = otherThread;
+						break;
+					}
+				}
+			}
+		}
+
 		return result;
 	}
 }

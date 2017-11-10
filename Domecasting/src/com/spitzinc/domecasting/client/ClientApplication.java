@@ -36,7 +36,6 @@ public class ClientApplication extends ApplicationBase implements WindowListener
 	public ClientAppFrame appFrame;
 	private SNTCPPassThruServer snPassThru = null;
 	private ServerConnectionThread serverConnectionThread;
-//	private ServerConnectionWriteThread serverConnectionThread;
 	
 	public ClientApplication()
 	{
@@ -112,14 +111,43 @@ public class ClientApplication extends ApplicationBase implements WindowListener
 		return isHosting.get();
 	}
 	
-	public void setPresentationID(String presentationID)
+	public String getHostID() {
+		return appFrame.getHostID();
+	}
+	
+	public boolean isConnected()
 	{
-		serverConnectionThread.sendPresentationID(presentationID);
+		boolean result = false;
+		
+		if (serverConnectionThread != null)
+		{
+			synchronized (serverConnectionThread) {
+				result = serverConnectionThread.isConnected();
+			}
+		}
+		
+		return result;
+	}
+	
+	public boolean isPeerReady()
+	{
+		boolean result = false;
+		
+		if (serverConnectionThread != null)
+		{
+			synchronized (serverConnectionThread) {
+				result = serverConnectionThread.isPeerReady();
+			}
+		}
+		
+		return result;
 	}
 
 	@Override
 	public void windowClosing(WindowEvent arg0)
 	{
+		appFrame.stopUpdateThread();
+
 		// Force the server connection thread to finish
 		serverConnectionThread.setStopped();
 		serverConnectionThread.interrupt();
