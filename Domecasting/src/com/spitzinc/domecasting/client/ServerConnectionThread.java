@@ -81,6 +81,20 @@ public class ServerConnectionThread extends Thread
 			return false;
 	}
 	
+	public String[] getConnectedHosts()
+	{
+		String[] result = null;
+		
+		String reply = sendREQU("GetConnectedHosts");
+		if (reply != null)
+		{
+			if (!reply.equals("<none>"))
+				result = reply.split(",");
+		}
+		
+		return result;
+	}
+	
 	public boolean sendHostID()
 	{
 		boolean result = false;
@@ -137,6 +151,7 @@ public class ServerConnectionThread extends Thread
 				try {
 					CommUtils.writeHeader(out, outHdr, theBytes.length, ClientHeader.kDCC, ClientHeader.kDCS, ClientHeader.kREQU, getName());
 					CommUtils.writeOutputStream(out, theBytes, 0, theBytes.length, getName());
+					requestSent = true;
 				} catch (IOException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();

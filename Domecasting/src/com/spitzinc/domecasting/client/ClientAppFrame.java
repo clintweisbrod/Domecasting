@@ -49,15 +49,20 @@ public class ClientAppFrame extends JFrame
 					isConnected = theApp.isConnected();
 					isPeerReady = theApp.isPeerReady();
 					
+					// Get list of hosts currently connected to server
+					String[] hosts = null;
+					if (theApp.clientType == CommUtils.kPresenterID)
+						hosts = theApp.getConnectedHosts();
+					
 					// Update panel
 					if (!isConnected)
-						setPanelStatus(ConnectionStatus.eNotConnected);
+						setPanelStatus(ConnectionStatus.eNotConnected, hosts);
 					else
 					{
 						if (!isPeerReady)
-							setPanelStatus(ConnectionStatus.eConnectedNoPeer);
+							setPanelStatus(ConnectionStatus.eConnectedNoPeer, hosts);
 						else
-							setPanelStatus(ConnectionStatus.eConnectedWithPeer);
+							setPanelStatus(ConnectionStatus.eConnectedWithPeer, hosts);
 					}
 					
 					// Sleep for a few seconds
@@ -133,7 +138,7 @@ public class ClientAppFrame extends JFrame
 	}
 	
 	// Called by the ServerStatusThread
-	public synchronized void setPanelStatus(ConnectionStatus status)
+	public synchronized void setPanelStatus(ConnectionStatus status, String[] hosts)
 	{
 		if (theApp.clientType == CommUtils.kHostID)
 		{
@@ -143,7 +148,7 @@ public class ClientAppFrame extends JFrame
 		else
 		{
 			if (presenterPanel != null)
-				presenterPanel.setPanelStatus(status);
+				presenterPanel.setPanelStatus(status, hosts);
 		}
 	}
 	

@@ -5,6 +5,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
 import java.text.ParseException;
+import java.util.ArrayList;
 
 import com.spitzinc.domecasting.ClientHeader;
 import com.spitzinc.domecasting.CommUtils;
@@ -99,8 +100,7 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 		byte[] requBytes = new byte[hdr.messageLen];
 		CommUtils.readInputStream(in, requBytes, 0, requBytes.length, getName());
 		
-		// All REQU messages are of the form "request" and demand a response
-		// of "request=value".
+		// All REQU messages are of the form "request" and have varying responses
 		String req = new String(requBytes);
 		System.out.println(this.getName() + ": Received: " + req);
 		if (req.equals("IsPeerReady"))
@@ -114,6 +114,37 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 			
 			// Respond to request
 			String reply = "IsPeerReady=" + Boolean.toString(isPeerReady);
+			byte[] replyBytes = reply.getBytes();
+			
+			// We're performing two writes to the OutputStream. They MUST be sequential.
+			synchronized (outputStreamLock)
+			{
+				CommUtils.writeHeader(out, outHdr, replyBytes.length, ClientHeader.kDCS, ClientHeader.kDCC, ClientHeader.kREQU, this.getName());
+				CommUtils.writeOutputStream(out, replyBytes, 0, replyBytes.length, getName());
+			}
+		}
+		else if (req.equals("GetConnectedHosts"))
+		{
+			// Obtain list of connected hosts
+			ArrayList<String> hosts = listenerThread.getConnectedHosts();
+			
+			// Build a reply to send back
+			String reply = null;
+			if (hosts.isEmpty())
+				reply = "<none>";
+			else if (hosts.size() == 1)
+				reply = hosts.get(0);
+			else
+			{
+				StringBuffer buf = new StringBuffer();
+				for (String host : hosts)
+				{
+					buf.append(host);
+					buf.append(",");
+				}
+				reply = buf.substring(0, buf.length() - 1);
+			}
+			
 			byte[] replyBytes = reply.getBytes();
 			
 			// We're performing two writes to the OutputStream. They MUST be sequential.

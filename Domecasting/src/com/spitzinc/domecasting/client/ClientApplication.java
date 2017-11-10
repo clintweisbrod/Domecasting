@@ -142,6 +142,20 @@ public class ClientApplication extends ApplicationBase implements WindowListener
 		
 		return result;
 	}
+	
+	public String[] getConnectedHosts()
+	{
+		String[] result = null;
+		
+		if (serverConnectionThread != null)
+		{
+			synchronized (serverConnectionThread) {
+				result = serverConnectionThread.getConnectedHosts();
+			}
+		}
+		
+		return result;
+	}
 
 	@Override
 	public void windowClosing(WindowEvent arg0)

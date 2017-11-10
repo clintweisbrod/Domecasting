@@ -66,7 +66,7 @@ public class PresenterPanel extends JPanel {
 
 	}
 	
-	public void setPanelStatus(ClientAppFrame.ConnectionStatus status)
+	public void setPanelStatus(ClientAppFrame.ConnectionStatus status, String[] hosts)
 	{
 		if (lblStatusText != null)
 		{
@@ -81,6 +81,17 @@ public class PresenterPanel extends JPanel {
 			case eConnectedWithPeer:
 				lblStatusText.setText("Domecast is ready.");
 				break;
+			}
+		}
+		
+		// Update the combobox with the hosts that are currently connected
+		if (availableHosts != null)
+		{
+			availableHosts.removeAllItems();
+			if (hosts != null)
+			{
+				for (String host : hosts)
+					availableHosts.addItem(host);
 			}
 		}
 	}

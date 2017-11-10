@@ -2,6 +2,7 @@ package com.spitzinc.domecasting.server;
 
 import java.io.IOException;
 import java.net.Socket;
+import java.util.ArrayList;
 
 import com.spitzinc.domecasting.CommUtils;
 import com.spitzinc.domecasting.TCPConnectionHandlerThread;
@@ -23,6 +24,25 @@ public class ServerSideConnectionListenerThread extends TCPConnectionListenerThr
 		ServerSideConnectionHandlerThread thread = new ServerSideConnectionHandlerThread(this, clientSocket);
 		connectionHandlerThreads.add(thread);
 		thread.start();
+	}
+	
+	public ArrayList<String> getConnectedHosts()
+	{
+		ArrayList<String> result = new ArrayList<String>();
+		
+		result.add("Erin's System");
+		result.add("Kristy's System");
+		result.add("Leanne's System");
+/*
+		for (TCPConnectionHandlerThread aThread : connectionHandlerThreads)
+		{
+			ServerSideConnectionHandlerThread theThread = (ServerSideConnectionHandlerThread)aThread;
+			byte theClientType = theThread.getClientType();
+			if (theClientType == CommUtils.kHostID)
+				result.add(theThread.getHostID());
+		}
+*/		
+		return result;
 	}
 	
 	public ServerSideConnectionHandlerThread findPeerConnectionThread(ServerSideConnectionHandlerThread inThread)
