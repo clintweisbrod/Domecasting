@@ -9,17 +9,23 @@ import javax.swing.JButton;
 import javax.swing.JComboBox;
 
 import java.awt.event.ActionListener;
+import java.awt.event.ItemEvent;
+import java.awt.event.ItemListener;
 import java.awt.event.ActionEvent;
 
 public class PresenterPanel extends JPanel {
 	private static final long serialVersionUID = 1L;
+	private boolean ignoreHostChanges;
 	private JComboBox<String> availableHosts;
 	private JLabel lblStatusText;
 
 	/**
 	 * Create the panel.
 	 */
-	public PresenterPanel() {
+	public PresenterPanel()
+	{
+		ignoreHostChanges = true;
+		
 		GridBagLayout gridBagLayout = new GridBagLayout();
 		gridBagLayout.columnWidths = new int[]{0, 0, 0, 0};
 		gridBagLayout.rowHeights = new int[]{0, 0, 0, 0};
@@ -38,6 +44,21 @@ public class PresenterPanel extends JPanel {
 		// Create PresentationID text field and enable "Send Presentation ID" button when at least
 		// ClientApplication.kMinimumPresentationIDLength is entered.
 		availableHosts = new JComboBox<String>();
+		availableHosts.addItemListener(new ItemListener() {
+
+			@Override
+			public void itemStateChanged(ItemEvent event) {
+				if (event.getStateChange() == ItemEvent.SELECTED)
+				{
+					if (!ignoreHostChanges)
+					{
+						String item = (String)event.getItem();
+						ClientApplication inst = (ClientApplication) ClientApplication.inst();
+						inst.sendHostIDToControl(item);
+					}
+				}
+			}
+		});
 		GridBagConstraints gbc_textField = new GridBagConstraints();
 		gbc_textField.insets = new Insets(10, 0, 5, 5);
 		gbc_textField.fill = GridBagConstraints.HORIZONTAL;
@@ -87,6 +108,8 @@ public class PresenterPanel extends JPanel {
 		// Update the combobox with the hosts that are currently connected
 		if (availableHosts != null)
 		{
+			ignoreHostChanges = true;
+
 			// Remember selected item
 			String selectedItem = (String)availableHosts.getSelectedItem();
 			
@@ -136,6 +159,8 @@ public class PresenterPanel extends JPanel {
 			
 			// Re-select the item that was selected before we screwed with the list
 			availableHosts.setSelectedItem(selectedItem);
+			
+			ignoreHostChanges = false;
 		}
 	}
 

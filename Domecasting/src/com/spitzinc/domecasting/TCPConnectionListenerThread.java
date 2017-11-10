@@ -69,10 +69,7 @@ public abstract class TCPConnectionListenerThread extends Thread
 		
 		// Stop any threads that may still be running
 		for (TCPConnectionHandlerThread thread : connectionHandlerThreads)
-		{
-			thread.setStopped();
 			thread.interrupt();
-		}
 		
 		// Clear the list of threads
 		connectionHandlerThreads.clear();

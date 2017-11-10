@@ -42,6 +42,12 @@ public class ClientAppFrame extends JFrame
 		
 		protected Integer doInBackground() throws Exception
 		{
+			// Sleep for a second to allow for connection to occur before requesting server status.
+			try {
+				Thread.sleep(1000);
+			} catch (InterruptedException e) {
+			}
+			
 			boolean isConnected, isPeerReady;
 			while (!stopped.get())
 			{
@@ -146,9 +152,11 @@ public class ClientAppFrame extends JFrame
 				{
 				case 0:
 					theApp.clientType = CommUtils.kHostID;
+					theApp.sendClientType();
 					break;
 				case 1:
 					theApp.clientType = CommUtils.kPresenterID;
+					theApp.sendClientType();
 					break;
 				}
 			}

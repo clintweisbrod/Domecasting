@@ -65,4 +65,17 @@ public class TCPConnectionHandlerThread extends Thread
 		
 		return result;
 	}
+	
+	public void interrupt()
+	{
+		setStopped();
+
+		if (socket != null)
+			try {
+				socket.close();
+			} catch (IOException e) {
+			}
+		
+		super.interrupt();
+	}
 }

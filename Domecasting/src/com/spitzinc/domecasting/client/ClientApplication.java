@@ -29,10 +29,7 @@ public class ClientApplication extends ApplicationBase implements WindowListener
 	}
 	
 	public byte clientType;
-	
-	public AtomicBoolean isPresenting;
-	public AtomicBoolean isHosting;
-	
+		
 	public ClientAppFrame appFrame;
 	private SNTCPPassThruServer snPassThru = null;
 	private ServerConnectionThread serverConnectionThread;
@@ -40,10 +37,7 @@ public class ClientApplication extends ApplicationBase implements WindowListener
 	public ClientApplication()
 	{
 		System.out.println("Starting instance of " + this.getClass().getSimpleName());
-		
-		isPresenting = new AtomicBoolean(false);
-		isHosting = new AtomicBoolean(false);
-		
+	
 		// Start thread to manage connection with server
 		serverConnectionThread = new ServerConnectionThread(this, kDomecastingServerHostname, kDomecastingServerPort);
 		serverConnectionThread.start();
@@ -70,45 +64,15 @@ public class ClientApplication extends ApplicationBase implements WindowListener
 		appFrame.setResizable(false);
 		appFrame.setVisible(true);
 	}
-	
-	public void setPresenting(boolean value)
-	{
-		if (value)
-		{
-			isHosting.set(false);
-			isPresenting.set(true);
-		}
-		else
-		{
-			isHosting.set(false);
-			isPresenting.set(false);
-		}
 		
-		serverConnectionThread.sendReadyToCast(value);
-	}
-	
-	public void setHosting(boolean value)
+	public void sendReadyToCast(boolean value)
 	{
-		if (value)
+		if (serverConnectionThread != null)
 		{
-			isPresenting.set(false);
-			isHosting.set(true);
+			synchronized (serverConnectionThread) {
+				serverConnectionThread.sendReadyToCast(value);
+			}
 		}
-		else
-		{
-			isPresenting.set(false);
-			isHosting.set(false);
-		}
-		
-		serverConnectionThread.sendReadyToCast(value);
-	}
-	
-	public boolean isPresenting() {
-		return isPresenting.get();
-	}
-	
-	public boolean isHosting() {
-		return isHosting.get();
 	}
 	
 	public String getHostID() {
@@ -151,6 +115,34 @@ public class ClientApplication extends ApplicationBase implements WindowListener
 		{
 			synchronized (serverConnectionThread) {
 				result = serverConnectionThread.getConnectedHosts();
+			}
+		}
+		
+		return result;
+	}
+	
+	public boolean sendClientType()
+	{
+		boolean result = false;
+		
+		if (serverConnectionThread != null)
+		{
+			synchronized (serverConnectionThread) {
+				result = serverConnectionThread.sendClientType();
+			}
+		}
+		
+		return result;
+	}
+	
+	public boolean sendHostIDToControl(String hostIDToControl)
+	{
+		boolean result = false;
+		
+		if (serverConnectionThread != null)
+		{
+			synchronized (serverConnectionThread) {
+				result = serverConnectionThread.sendHostIDToControl(hostIDToControl);
 			}
 		}
 		

@@ -58,12 +58,12 @@ public class HostPanel extends JPanel
 				ClientApplication inst = (ClientApplication) ClientApplication.inst();
 				if (btnWaitForPresentation.getText() == "Allow Remote Control")
 				{
-					inst.setHosting(true);
+					inst.sendReadyToCast(true);
 					btnWaitForPresentation.setText("Stop Remote Control");
 				}
 				else
 				{
-					inst.setHosting(false);
+					inst.sendReadyToCast(false);
 					btnWaitForPresentation.setText("Allow Remote Control");
 				}
 			}
@@ -95,7 +95,7 @@ public class HostPanel extends JPanel
 				break;
 			case eConnectedNoPeer:
 				lblStatusText.setText("Waiting for domecasting peer to connect...");
-				btnWaitForPresentation.setEnabled(true);
+				btnWaitForPresentation.setEnabled(false);
 				break;
 			case eConnectedWithPeer:
 				lblStatusText.setText("Domecast is ready.");

@@ -88,18 +88,22 @@ public class ServerConnectionThread extends Thread
 	
 	public boolean sendHostID()
 	{
-		boolean result = false;
-		
 		ClientApplication inst = (ClientApplication) ClientApplication.inst();
 		String infoStr = "HostID=" + inst.getHostID();
-		if (sendINFO(infoStr))
-		{
-			// Also send ClientApplication.clientType
-			infoStr = "ClientType=" + (char)inst.clientType;
-			result = sendINFO(infoStr);
-		}
-		
-		return result;
+		return sendINFO(infoStr);
+	}
+	
+	public boolean sendHostIDToControl(String hostIDToControl)
+	{
+		String infoStr = "HostIDToControl=" + hostIDToControl;
+		return sendINFO(infoStr);
+	}
+	
+	public boolean sendClientType()
+	{
+		ClientApplication inst = (ClientApplication) ClientApplication.inst();
+		String infoStr = "ClientType=" + (char)inst.clientType;
+		return sendINFO(infoStr);
 	}
 	
 	private boolean sendINFO(String infoString)
@@ -210,6 +214,7 @@ public class ServerConnectionThread extends Thread
 						// Send initial handshake to server
 						writeSecurityCode();
 						sendHostID();
+						sendClientType();
 					}
 					catch (IOException e) {
 						e.printStackTrace();

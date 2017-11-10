@@ -74,7 +74,6 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 			}
 		}
 		catch (IOException e) {
-			e.printStackTrace();
 		}
 	}
 	
@@ -89,6 +88,8 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 		String[] list = msg.split("=");
 		if (list[0].equals("HostID"))
 			hostID = list[1];
+		else if (list[0].equals("HostIDToControl"))
+			hostIDToControl = list[1];
 		else if (list[0].equals("ClientType"))
 			clientType = (byte)list[1].charAt(0);
 		else if (list[0].equals("ReadyToCast"))
@@ -110,7 +111,12 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 			// Look for peer connection on this server
 			ServerSideConnectionHandlerThread peerThread = listenerThread.findPeerConnectionThread(this);
 			if (peerThread != null)
-				isPeerReady = peerThread.isReadyToCast();
+			{
+				if (peerThread.clientType == CommUtils.kHostID)
+					isPeerReady = peerThread.isReadyToCast();
+				else
+					isPeerReady = true;
+			}
 			
 			// Respond to request
 			String reply = "IsPeerReady=" + Boolean.toString(isPeerReady);

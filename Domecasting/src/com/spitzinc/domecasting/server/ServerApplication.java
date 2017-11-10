@@ -53,6 +53,9 @@ public class ServerApplication extends ApplicationBase implements WindowListener
 	@Override
 	public void windowClosing(WindowEvent arg0)
 	{
+		if (connectionListenerThread != null)
+			connectionListenerThread.interrupt();
+		
 		System.exit(0);
 	}
 	
