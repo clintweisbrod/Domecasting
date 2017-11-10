@@ -92,7 +92,7 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 		else if (list[0].equals("ClientType"))
 			clientType = (byte)list[1].charAt(0);
 		else if (list[0].equals("ReadyToCast"))
-			readyToCast = Boolean.getBoolean(list[1]);
+			readyToCast = Boolean.parseBoolean(list[1]);
 	}
 	
 	private void handleREQU(ClientHeader hdr) throws IOException
@@ -140,7 +140,7 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 				for (String host : hosts)
 				{
 					buf.append(host);
-					buf.append(",");
+					buf.append("~");
 				}
 				reply = buf.substring(0, buf.length() - 1);
 			}

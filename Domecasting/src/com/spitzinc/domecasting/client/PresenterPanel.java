@@ -87,12 +87,55 @@ public class PresenterPanel extends JPanel {
 		// Update the combobox with the hosts that are currently connected
 		if (availableHosts != null)
 		{
-			availableHosts.removeAllItems();
+			// Remember selected item
+			String selectedItem = (String)availableHosts.getSelectedItem();
+			
+			// It's tempting to just call removeAllItems() and add the hosts, but this causes bad behavior when 
+			// the dropdown list is visible. So, we just add/remove items from the list as needed.
 			if (hosts != null)
 			{
+				// Add items that are not already in the list
 				for (String host : hosts)
-					availableHosts.addItem(host);
+				{
+					boolean hostExistsInList = false;
+					for (int i = 0; i < availableHosts.getItemCount(); i++)
+					{
+						if (host.equals(availableHosts.getItemAt(i)))
+						{
+							hostExistsInList = true;
+							break;
+						}
+					}
+					if (!hostExistsInList)
+						availableHosts.addItem(host);
+				}
+				
+				// Remove items from the list that are not in hosts
+				while (availableHosts.getItemCount() > hosts.length)
+				{
+					for (int i = 0; i < availableHosts.getItemCount(); i++)
+					{
+						String item = availableHosts.getItemAt(i);
+						boolean itemFoundInHosts = false;
+						for (String host : hosts)
+						{
+							if (item.equals(host))
+							{
+								itemFoundInHosts = true;
+								break;
+							}
+						}
+						if (!itemFoundInHosts)
+						{
+							availableHosts.removeItem(item);
+							break;
+						}
+					}
+				}
 			}
+			
+			// Re-select the item that was selected before we screwed with the list
+			availableHosts.setSelectedItem(selectedItem);
 		}
 	}
 

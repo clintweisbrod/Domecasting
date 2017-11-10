@@ -3,11 +3,13 @@ package com.spitzinc.domecasting.client;
 import com.spitzinc.domecasting.CommUtils;
 
 import java.awt.Dimension;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.swing.JFrame;
 import javax.swing.border.EmptyBorder;
 import javax.swing.JTabbedPane;
+import javax.swing.SwingWorker;
 import javax.swing.event.ChangeListener;
 import javax.swing.event.ChangeEvent;
 
@@ -25,7 +27,7 @@ public class ClientAppFrame extends JFrame
 	
 	// While domecast is not in progress, this thread periodically wakes up to poll server for info
 	// and updates the UI accordingly.
-	private class ServerStatusThread extends Thread
+	private class ServerStatusThread extends SwingWorker<Integer, String>
 	{
 		private static final int kPollIntervalSeconds = 5;
 		
@@ -38,7 +40,7 @@ public class ClientAppFrame extends JFrame
 			this.paused = new AtomicBoolean(false);
 		}
 		
-		public void run()
+		protected Integer doInBackground() throws Exception
 		{
 			boolean isConnected, isPeerReady;
 			while (!stopped.get())
@@ -50,24 +52,19 @@ public class ClientAppFrame extends JFrame
 					isPeerReady = theApp.isPeerReady();
 					
 					// Get list of hosts currently connected to server
-					String[] hosts = null;
+					String hosts = null;
 					if (theApp.clientType == CommUtils.kPresenterID)
 						hosts = theApp.getConnectedHosts();
 					
-					// Update panel
-					if (!isConnected)
-						setPanelStatus(ConnectionStatus.eNotConnected, hosts);
-					else
-					{
-						if (!isPeerReady)
-							setPanelStatus(ConnectionStatus.eConnectedNoPeer, hosts);
-						else
-							setPanelStatus(ConnectionStatus.eConnectedWithPeer, hosts);
-					}
+					// Publish the results
+					if ((hosts != null) && !hosts.equals("<none>"))
+						publish(hosts);
+					publish("isConnected=" + Boolean.toString(isConnected));
+					publish("isPeerReady=" + Boolean.toString(isPeerReady));
 					
 					// Sleep for a few seconds
 					try {
-						sleep(kPollIntervalSeconds * 1000);
+						Thread.sleep(kPollIntervalSeconds * 1000);
 					} catch (InterruptedException e) {
 					}
 				}
@@ -81,6 +78,43 @@ public class ClientAppFrame extends JFrame
 							wait();	// Wait here indefinitely until another thread calls this thread's notify() method.
 						} catch (InterruptedException e) {}
 					}
+				}
+			}
+			
+			return 0;
+		}
+		
+		protected void process(List<String> publishedItems)
+		{
+			boolean isConnected = false;
+			boolean isPeerReady = false;
+			String[] hosts = null;
+			for (String item : publishedItems)
+			{
+				if (item.contains("="))
+				{
+					String[] nameValuePair = item.split("=");
+					if (nameValuePair[0].equals("isConnected"))
+						isConnected = Boolean.parseBoolean(nameValuePair[1]);
+					if (nameValuePair[0].equals("isPeerReady"))
+						isPeerReady = Boolean.parseBoolean(nameValuePair[1]);
+				}
+				else if (item.contains("~"))
+					hosts = item.split("~");
+			}
+			
+			// Update the panel, but only if the thread is not paused
+			if (!paused.get())
+			{
+				// Update panel
+				if (!isConnected)
+					setPanelStatus(ConnectionStatus.eNotConnected, hosts);
+				else
+				{
+					if (!isPeerReady)
+						setPanelStatus(ConnectionStatus.eConnectedNoPeer, hosts);
+					else
+						setPanelStatus(ConnectionStatus.eConnectedWithPeer, hosts);
 				}
 			}
 		}
@@ -129,7 +163,7 @@ public class ClientAppFrame extends JFrame
 
 		// Run status thread
 		this.statusThread = new ServerStatusThread();
-		this.statusThread.start();
+		this.statusThread.execute();
 		
 	}
 	
@@ -137,19 +171,13 @@ public class ClientAppFrame extends JFrame
 		return hostPanel.getHostID();
 	}
 	
-	// Called by the ServerStatusThread
-	public synchronized void setPanelStatus(ConnectionStatus status, String[] hosts)
+	// Called by the ServerStatusThread.process() on the EDT.
+	public void setPanelStatus(ConnectionStatus status, String[] hosts)
 	{
-		if (theApp.clientType == CommUtils.kHostID)
-		{
-			if (hostPanel != null)
-				hostPanel.setPanelStatus(status);
-		}
-		else
-		{
-			if (presenterPanel != null)
-				presenterPanel.setPanelStatus(status, hosts);
-		}
+		if (hostPanel != null)
+			hostPanel.setPanelStatus(status);
+		if (presenterPanel != null)
+			presenterPanel.setPanelStatus(status, hosts);
 	}
 	
 	//

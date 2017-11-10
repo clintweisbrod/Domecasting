@@ -67,7 +67,7 @@ public class ServerConnectionThread extends Thread
 		{
 			String[] list = reply.split("=");
 			if (list[0].equals("IsPeerReady"))
-				result = Boolean.getBoolean(list[1]);
+				result = Boolean.parseBoolean(list[1]);
 		}
 		
 		return result;
@@ -81,18 +81,9 @@ public class ServerConnectionThread extends Thread
 			return false;
 	}
 	
-	public String[] getConnectedHosts()
+	public String getConnectedHosts()
 	{
-		String[] result = null;
-		
-		String reply = sendREQU("GetConnectedHosts");
-		if (reply != null)
-		{
-			if (!reply.equals("<none>"))
-				result = reply.split(",");
-		}
-		
-		return result;
+		return sendREQU("GetConnectedHosts");
 	}
 	
 	public boolean sendHostID()

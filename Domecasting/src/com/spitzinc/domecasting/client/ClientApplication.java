@@ -143,9 +143,9 @@ public class ClientApplication extends ApplicationBase implements WindowListener
 		return result;
 	}
 	
-	public String[] getConnectedHosts()
+	public String getConnectedHosts()
 	{
-		String[] result = null;
+		String result = null;
 		
 		if (serverConnectionThread != null)
 		{
