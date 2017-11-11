@@ -9,12 +9,10 @@ import java.util.Properties;
 import javax.swing.*;
 
 import com.spitzinc.domecasting.ApplicationBase;
+import com.spitzinc.domecasting.SortedProperties;
 
 public class ClientApplication extends ApplicationBase implements WindowListener
 {
-	public static final int kMinimumPresentationIDLength = 8;
-	
-	private static final String kProductName = "Domecasting Client";	
 	private static final int kAppDefaultWidth = 400;
 	private static final int kAppDefaultHeight = 200;
 	private static final Dimension kPreferredFrameSize = new Dimension(kAppDefaultWidth, kAppDefaultHeight);
@@ -27,8 +25,15 @@ public class ClientApplication extends ApplicationBase implements WindowListener
 	}
 	
 	// Prefs (with defaults)
+	protected static final String kPrefsFileName = "client.properties";
 	public String domecastingServerHostname = "localhost";
 	public int domecastingServerPort = 80;
+	public int maxClientConnections = 5;
+	public int rbPrefs_DomeServer_TCPPort = 56897;	// For typical two-machine setup, this should be the usual 56895.
+													// For testing on a single machine, needs to be 56897.
+	public int pfPrefs_DomeServer_TCPPort = 56895;
+	public int pfPrefs_DomeServer_TCPReplyPort = 56896;
+	public int passThruReceiveListenerPort = 56898;
 	
 	public byte clientType;
 	public ClientAppFrame appFrame;
@@ -49,8 +54,7 @@ public class ClientApplication extends ApplicationBase implements WindowListener
 		// of the client require these connections to be established.
 		try
 		{
-			final int kPFPrefs_DomeServer_TCPPort = 56895;
-			snPassThru = new SNTCPPassThruServer(kPFPrefs_DomeServer_TCPPort, 56898);
+			snPassThru = new SNTCPPassThruServer(pfPrefs_DomeServer_TCPPort, passThruReceiveListenerPort, maxClientConnections);
 			snPassThru.start();
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
@@ -60,22 +64,32 @@ public class ClientApplication extends ApplicationBase implements WindowListener
 	
 	private void readPrefs()
 	{
-		Properties props = readPropertiesFromFile(getPropertiesFile(kProductName));
+		Properties props = readPropertiesFromFile(getPropertiesFile(kPrefsFileName));
 		if (props != null)
 		{
 			domecastingServerHostname = getStringProperty(props, "domecastingServerHostname", domecastingServerHostname);
 			domecastingServerPort = getIntegerProperty(props, "domecastingServerPort", domecastingServerPort);
+			maxClientConnections = getIntegerProperty(props, "maxClientConnections", maxClientConnections);
+			pfPrefs_DomeServer_TCPPort = getIntegerProperty(props, "pfPrefs_DomeServer_TCPPort", pfPrefs_DomeServer_TCPPort);
+			pfPrefs_DomeServer_TCPReplyPort = getIntegerProperty(props, "pfPrefs_DomeServer_TCPReplyPort", pfPrefs_DomeServer_TCPReplyPort);
+			rbPrefs_DomeServer_TCPPort = getIntegerProperty(props, "rbPrefs_DomeServer_TCPPort", rbPrefs_DomeServer_TCPPort);
+			passThruReceiveListenerPort = getIntegerProperty(props, "passThruReceiveListenerPort", passThruReceiveListenerPort);
 		}
 	}
 	
 	private void writePrefs()
 	{
-		Properties props = new Properties();
+		Properties props = new SortedProperties();
 		
 		props.setProperty("domecastingServerHostname", domecastingServerHostname);
 		props.setProperty("domecastingServerPort", Integer.toString(domecastingServerPort));
+		props.setProperty("maxClientConnections", Integer.toString(maxClientConnections));
+		props.setProperty("pfPrefs_DomeServer_TCPPort", Integer.toString(pfPrefs_DomeServer_TCPPort));
+		props.setProperty("pfPrefs_DomeServer_TCPReplyPort", Integer.toString(pfPrefs_DomeServer_TCPReplyPort));
+		props.setProperty("rbPrefs_DomeServer_TCPPort", Integer.toString(rbPrefs_DomeServer_TCPPort));
+		props.setProperty("passThruReceiveListenerPort", Integer.toString(passThruReceiveListenerPort));
 		
-		this.writePropertiesToFile(getPropertiesFile(kProductName), props);
+		this.writePropertiesToFile(getPropertiesFile(kPrefsFileName), props);
 	}
 
 	protected void createUIElements()
@@ -197,7 +211,6 @@ public class ClientApplication extends ApplicationBase implements WindowListener
 	
 	public static void main(String[] args)
 	{
-//		final String[] argsCopy = args;
 		SwingUtilities.invokeLater(new Runnable() {
 			public void run()
 			{

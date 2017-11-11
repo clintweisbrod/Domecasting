@@ -88,8 +88,7 @@ public class ServerConnectionThread extends Thread
 	
 	public boolean sendHostID()
 	{
-		ClientApplication inst = (ClientApplication) ClientApplication.inst();
-		String infoStr = "HostID=" + inst.getHostID();
+		String infoStr = "HostID=" + theApp.getHostID();
 		return sendINFO(infoStr);
 	}
 	
@@ -101,8 +100,7 @@ public class ServerConnectionThread extends Thread
 	
 	public boolean sendClientType()
 	{
-		ClientApplication inst = (ClientApplication) ClientApplication.inst();
-		String infoStr = "ClientType=" + (char)inst.clientType;
+		String infoStr = "ClientType=" + (char)theApp.clientType;
 		return sendINFO(infoStr);
 	}
 	

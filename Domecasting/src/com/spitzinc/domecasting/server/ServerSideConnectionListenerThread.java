@@ -10,11 +10,9 @@ import com.spitzinc.domecasting.TCPConnectionListenerThread;
 
 public class ServerSideConnectionListenerThread extends TCPConnectionListenerThread
 {
-	private static final int kMaxConnectionThreads = 10;	// Should be an even number
-	
-	public ServerSideConnectionListenerThread(int port) throws IOException
+	public ServerSideConnectionListenerThread(int port, int maxConcurrentSessions) throws IOException
 	{
-		super(port, kMaxConnectionThreads);
+		super(port, maxConcurrentSessions * 2);
 	}
 
 	@Override
@@ -29,11 +27,7 @@ public class ServerSideConnectionListenerThread extends TCPConnectionListenerThr
 	public ArrayList<String> getConnectedHosts()
 	{
 		ArrayList<String> result = new ArrayList<String>();
-		
-		result.add("Erin's System");
-		result.add("Kristy's System");
-		result.add("Leanne's System");
-/*
+
 		for (TCPConnectionHandlerThread aThread : connectionHandlerThreads)
 		{
 			ServerSideConnectionHandlerThread theThread = (ServerSideConnectionHandlerThread)aThread;
@@ -41,7 +35,7 @@ public class ServerSideConnectionListenerThread extends TCPConnectionListenerThr
 			if (theClientType == CommUtils.kHostID)
 				result.add(theThread.getHostID());
 		}
-*/		
+		
 		return result;
 	}
 	

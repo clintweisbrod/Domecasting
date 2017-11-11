@@ -8,12 +8,11 @@ import java.awt.Insets;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
 
-import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
-import java.awt.event.ActionEvent;
 
-public class PresenterPanel extends JPanel {
+public class PresenterPanel extends JPanel
+{
 	private static final long serialVersionUID = 1L;
 	private boolean ignoreHostChanges;
 	private JComboBox<String> availableHosts;
@@ -41,12 +40,8 @@ public class PresenterPanel extends JPanel {
 		gbc_lblPresentationId.gridy = 0;
 		add(lblPresentationId, gbc_lblPresentationId);
 		
-		// Create PresentationID text field and enable "Send Presentation ID" button when at least
-		// ClientApplication.kMinimumPresentationIDLength is entered.
 		availableHosts = new JComboBox<String>();
 		availableHosts.addItemListener(new ItemListener() {
-
-			@Override
 			public void itemStateChanged(ItemEvent event) {
 				if (event.getStateChange() == ItemEvent.SELECTED)
 				{

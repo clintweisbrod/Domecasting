@@ -18,7 +18,7 @@ import java.util.Properties;
 public abstract class ApplicationBase implements WindowListener
 {
 	protected static final String kCompanyName = "Spitz, Inc";
-	protected static final String kPrefsFileName = "domecasting.properties";
+	protected static final String kProductName = "Domecasting";
 	
 	protected static ApplicationBase singleInstance;
 
@@ -50,12 +50,12 @@ public abstract class ApplicationBase implements WindowListener
 		createUIElements();
 	}
 	
-	protected File getPropertiesFile(String productName)
+	protected File getPropertiesFile(String fileName)
 	{
 		String prefsFilePath = new String(System.getenv("APPDATA"));
 		prefsFilePath = prefsFilePath.concat(File.separator).concat(kCompanyName);
-		prefsFilePath = prefsFilePath.concat(File.separator).concat(productName);
-		prefsFilePath = prefsFilePath.concat(File.separator).concat(kPrefsFileName);
+		prefsFilePath = prefsFilePath.concat(File.separator).concat(kProductName);
+		prefsFilePath = prefsFilePath.concat(File.separator).concat(fileName);
 		
 		return new File(prefsFilePath);
 	}

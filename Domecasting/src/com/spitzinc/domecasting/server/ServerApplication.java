@@ -9,6 +9,7 @@ import java.util.Properties;
 import javax.swing.SwingUtilities;
 
 import com.spitzinc.domecasting.ApplicationBase;
+import com.spitzinc.domecasting.SortedProperties;
 import com.spitzinc.domecasting.server.ServerAppFrame;
 
 public class ServerApplication extends ApplicationBase implements WindowListener
@@ -26,7 +27,9 @@ public class ServerApplication extends ApplicationBase implements WindowListener
 	}
 	
 	// Prefs (with defaults)
+	protected static final String kPrefsFileName = "server.properties";
 	public int domecastingServerPort = 80;
+	public int maxConcurrentSessions = 5;
 	
 	public ServerAppFrame appFrame;
 	private ServerSideConnectionListenerThread connectionListenerThread;
@@ -39,7 +42,7 @@ public class ServerApplication extends ApplicationBase implements WindowListener
 		
 		// Start up thread to listen for incoming connections on port 80
 		try {
-			connectionListenerThread = new ServerSideConnectionListenerThread(80);
+			connectionListenerThread = new ServerSideConnectionListenerThread(80, maxConcurrentSessions);
 			connectionListenerThread.start();
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
@@ -49,20 +52,22 @@ public class ServerApplication extends ApplicationBase implements WindowListener
 	
 	private void readPrefs()
 	{
-		Properties props = readPropertiesFromFile(getPropertiesFile(kProductName));
+		Properties props = readPropertiesFromFile(getPropertiesFile(kPrefsFileName));
 		if (props != null)
 		{
 			domecastingServerPort = getIntegerProperty(props, "domecastingServerPort", domecastingServerPort);
+			maxConcurrentSessions = getIntegerProperty(props, "maxConcurrentSessions", maxConcurrentSessions);
 		}
 	}
 	
 	private void writePrefs()
 	{
-		Properties props = new Properties();
+		Properties props = new SortedProperties();
 		
 		props.setProperty("domecastingServerPort", Integer.toString(domecastingServerPort));
+		props.setProperty("maxConcurrentSessions", Integer.toString(maxConcurrentSessions));
 		
-		this.writePropertiesToFile(getPropertiesFile(kProductName), props);
+		this.writePropertiesToFile(getPropertiesFile(kPrefsFileName), props);
 	}
 	
 	protected void createUIElements()
@@ -88,7 +93,6 @@ public class ServerApplication extends ApplicationBase implements WindowListener
 	
 	public static void main(String[] args)
 	{
-//		final String[] argsCopy = args;
 		SwingUtilities.invokeLater(new Runnable() {
 			public void run()
 			{
