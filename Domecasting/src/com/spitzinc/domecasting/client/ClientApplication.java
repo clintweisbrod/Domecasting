@@ -4,7 +4,7 @@ import java.awt.Dimension;
 import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
 import java.io.IOException;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.Properties;
 
 import javax.swing.*;
 
@@ -14,9 +14,7 @@ public class ClientApplication extends ApplicationBase implements WindowListener
 {
 	public static final int kMinimumPresentationIDLength = 8;
 	
-	private static final String kDomecastingServerHostname = "localhost";
-	private static final int kDomecastingServerPort = 80;
-	
+	private static final String kProductName = "Domecasting Client";	
 	private static final int kAppDefaultWidth = 400;
 	private static final int kAppDefaultHeight = 200;
 	private static final Dimension kPreferredFrameSize = new Dimension(kAppDefaultWidth, kAppDefaultHeight);
@@ -28,18 +26,23 @@ public class ClientApplication extends ApplicationBase implements WindowListener
 		return singleInstance; // could be null. only we should be able to create our own
 	}
 	
+	// Prefs (with defaults)
+	public String domecastingServerHostname = "localhost";
+	public int domecastingServerPort = 80;
+	
 	public byte clientType;
-		
 	public ClientAppFrame appFrame;
 	private SNTCPPassThruServer snPassThru = null;
 	private ServerConnectionThread serverConnectionThread;
 	
 	public ClientApplication()
 	{
-		System.out.println("Starting instance of " + this.getClass().getSimpleName());
+		System.out.println("Starting instance of " + getClass().getSimpleName());
+		
+		readPrefs();
 	
 		// Start thread to manage connection with server
-		serverConnectionThread = new ServerConnectionThread(this, kDomecastingServerHostname, kDomecastingServerPort);
+		serverConnectionThread = new ServerConnectionThread(this, domecastingServerHostname, domecastingServerPort);
 		serverConnectionThread.start();
 		
 		// Start threads to handle pass-thru of local SN comm. Both presenter and host modes
@@ -55,6 +58,26 @@ public class ClientApplication extends ApplicationBase implements WindowListener
 		}
 	}
 	
+	private void readPrefs()
+	{
+		Properties props = readPropertiesFromFile(getPropertiesFile(kProductName));
+		if (props != null)
+		{
+			domecastingServerHostname = getStringProperty(props, "domecastingServerHostname", domecastingServerHostname);
+			domecastingServerPort = getIntegerProperty(props, "domecastingServerPort", domecastingServerPort);
+		}
+	}
+	
+	private void writePrefs()
+	{
+		Properties props = new Properties();
+		
+		props.setProperty("domecastingServerHostname", domecastingServerHostname);
+		props.setProperty("domecastingServerPort", Integer.toString(domecastingServerPort));
+		
+		this.writePropertiesToFile(getPropertiesFile(kProductName), props);
+	}
+
 	protected void createUIElements()
 	{
 		appFrame = new ClientAppFrame(this, kPreferredFrameSize);
@@ -166,6 +189,8 @@ public class ClientApplication extends ApplicationBase implements WindowListener
 		
 		if (snPassThru != null)
 			snPassThru.stop();
+		
+		writePrefs();
 
 		System.exit(0);
 	}
