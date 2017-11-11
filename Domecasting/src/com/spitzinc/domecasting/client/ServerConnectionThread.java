@@ -81,20 +81,14 @@ public class ServerConnectionThread extends Thread
 			return false;
 	}
 	
-	public String getConnectedHosts()
+	public String getAvailableDomecasts()
 	{
-		return sendREQU("GetConnectedHosts");
+		return sendREQU("GetAvailableDomecasts");
 	}
 	
-	public boolean sendHostID()
+	public boolean sendDomecastID(String domecastID)
 	{
-		String infoStr = "HostID=" + theApp.getHostID();
-		return sendINFO(infoStr);
-	}
-	
-	public boolean sendHostIDToControl(String hostIDToControl)
-	{
-		String infoStr = "HostIDToControl=" + hostIDToControl;
+		String infoStr = "DomecastID=" + domecastID;
 		return sendINFO(infoStr);
 	}
 	
@@ -211,7 +205,6 @@ public class ServerConnectionThread extends Thread
 						
 						// Send initial handshake to server
 						writeSecurityCode();
-						sendHostID();
 						sendClientType();
 					}
 					catch (IOException e) {

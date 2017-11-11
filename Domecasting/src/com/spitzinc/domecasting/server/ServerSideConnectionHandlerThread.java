@@ -21,8 +21,7 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 	private Object inputStreamLock;
 	private ClientHeader outHdr;
 	private ClientHeader inHdr;
-	protected String hostID;
-	protected String hostIDToControl;
+	protected String domecastID;
 	protected byte clientType;
 	protected boolean readyToCast;
 	
@@ -38,12 +37,8 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 		this.readyToCast = false;
 	}
 	
-	public String getHostID() {
-		return hostID;
-	}
-	
-	public String getHostIDToControl() {
-		return hostIDToControl;
+	public String getDomecastID() {
+		return domecastID;
 	}
 	
 	public byte getClientType() {
@@ -86,10 +81,8 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 		String msg = new String(infoBytes);
 		System.out.println(this.getName() + ": Received: " + msg);
 		String[] list = msg.split("=");
-		if (list[0].equals("HostID"))
-			hostID = list[1];
-		else if (list[0].equals("HostIDToControl"))
-			hostIDToControl = list[1];
+		if (list[0].equals("DomecastID"))
+			domecastID = list[1];
 		else if (list[0].equals("ClientType"))
 			clientType = (byte)list[1].charAt(0);
 		else if (list[0].equals("ReadyToCast"))
@@ -129,23 +122,23 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 				CommUtils.writeOutputStream(out, replyBytes, 0, replyBytes.length, getName());
 			}
 		}
-		else if (req.equals("GetConnectedHosts"))
+		else if (req.equals("GetAvailableDomecasts"))
 		{
-			// Obtain list of connected hosts
-			ArrayList<String> hosts = listenerThread.getConnectedHosts();
+			// Obtain list of available domecasts
+			ArrayList<String> domecasts = listenerThread.getAvailableDomecasts();
 			
 			// Build a reply to send back
 			String reply = null;
-			if (hosts.isEmpty())
+			if (domecasts.isEmpty())
 				reply = "<none>";
-			else if (hosts.size() == 1)
-				reply = hosts.get(0);
+			else if (domecasts.size() == 1)
+				reply = domecasts.get(0);
 			else
 			{
 				StringBuffer buf = new StringBuffer();
-				for (String host : hosts)
+				for (String domecast : domecasts)
 				{
-					buf.append(host);
+					buf.append(domecast);
 					buf.append("~");
 				}
 				reply = buf.substring(0, buf.length() - 1);

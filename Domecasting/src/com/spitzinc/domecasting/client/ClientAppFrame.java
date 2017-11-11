@@ -57,14 +57,14 @@ public class ClientAppFrame extends JFrame
 					isConnected = theApp.isConnected();
 					isPeerReady = theApp.isPeerReady();
 					
-					// Get list of hosts currently connected to server
-					String hosts = null;
-					if (theApp.clientType == CommUtils.kPresenterID)
-						hosts = theApp.getConnectedHosts();
+					// Get list of domecasts currently connected to server
+					String domecasts = null;
+					if (theApp.clientType == CommUtils.kHostID)
+						domecasts = theApp.getAvailableDomecasts();
 					
 					// Publish the results
-					if ((hosts != null) && !hosts.equals("<none>"))
-						publish(hosts);
+					if ((domecasts != null) && !domecasts.equals("<none>"))
+						publish(domecasts);
 					publish("isConnected=" + Boolean.toString(isConnected));
 					publish("isPeerReady=" + Boolean.toString(isPeerReady));
 					
@@ -94,7 +94,7 @@ public class ClientAppFrame extends JFrame
 		{
 			boolean isConnected = false;
 			boolean isPeerReady = false;
-			String[] hosts = null;
+			String[] domecasts = null;
 			for (String item : publishedItems)
 			{
 				if (item.contains("="))
@@ -106,7 +106,7 @@ public class ClientAppFrame extends JFrame
 						isPeerReady = Boolean.parseBoolean(nameValuePair[1]);
 				}
 				else if (item.contains("~"))
-					hosts = item.split("~");
+					domecasts = item.split("~");
 			}
 			
 			// Update the panel, but only if the thread is not paused
@@ -114,13 +114,13 @@ public class ClientAppFrame extends JFrame
 			{
 				// Update panel
 				if (!isConnected)
-					setPanelStatus(ConnectionStatus.eNotConnected, hosts);
+					setPanelStatus(ConnectionStatus.eNotConnected, domecasts);
 				else
 				{
 					if (!isPeerReady)
-						setPanelStatus(ConnectionStatus.eConnectedNoPeer, hosts);
+						setPanelStatus(ConnectionStatus.eConnectedNoPeer, domecasts);
 					else
-						setPanelStatus(ConnectionStatus.eConnectedWithPeer, hosts);
+						setPanelStatus(ConnectionStatus.eConnectedWithPeer, domecasts);
 				}
 			}
 		}
@@ -175,17 +175,13 @@ public class ClientAppFrame extends JFrame
 		
 	}
 	
-	public String getHostID() {
-		return hostPanel.getHostID();
-	}
-	
 	// Called by the ServerStatusThread.process() on the EDT.
-	public void setPanelStatus(ConnectionStatus status, String[] hosts)
+	public void setPanelStatus(ConnectionStatus status, String[] domecasts)
 	{
 		if (hostPanel != null)
-			hostPanel.setPanelStatus(status);
+			hostPanel.setPanelStatus(status, domecasts);
 		if (presenterPanel != null)
-			presenterPanel.setPanelStatus(status, hosts);
+			presenterPanel.setPanelStatus(status);
 	}
 	
 	//

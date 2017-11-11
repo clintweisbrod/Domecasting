@@ -112,10 +112,6 @@ public class ClientApplication extends ApplicationBase implements WindowListener
 		}
 	}
 	
-	public String getHostID() {
-		return appFrame.getHostID();
-	}
-	
 	public boolean isConnected()
 	{
 		boolean result = false;
@@ -144,14 +140,14 @@ public class ClientApplication extends ApplicationBase implements WindowListener
 		return result;
 	}
 	
-	public String getConnectedHosts()
+	public String getAvailableDomecasts()
 	{
 		String result = null;
 		
 		if (serverConnectionThread != null)
 		{
 			synchronized (serverConnectionThread) {
-				result = serverConnectionThread.getConnectedHosts();
+				result = serverConnectionThread.getAvailableDomecasts();
 			}
 		}
 		
@@ -172,14 +168,14 @@ public class ClientApplication extends ApplicationBase implements WindowListener
 		return result;
 	}
 	
-	public boolean sendHostIDToControl(String hostIDToControl)
+	public boolean sendDomecastID(String domecastID)
 	{
 		boolean result = false;
 		
 		if (serverConnectionThread != null)
 		{
 			synchronized (serverConnectionThread) {
-				result = serverConnectionThread.sendHostIDToControl(hostIDToControl);
+				result = serverConnectionThread.sendDomecastID(domecastID);
 			}
 		}
 		

@@ -1,38 +1,96 @@
 package com.spitzinc.domecasting.client;
 
 import javax.swing.JPanel;
+import javax.swing.JTextField;
+import javax.swing.SwingUtilities;
 import javax.swing.JLabel;
 import java.awt.GridBagLayout;
 import java.awt.GridBagConstraints;
 import java.awt.Insets;
 import javax.swing.JButton;
-import javax.swing.JComboBox;
-
-import java.awt.event.ItemEvent;
-import java.awt.event.ItemListener;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class PresenterPanel extends JPanel
 {
 	private static final long serialVersionUID = 1L;
-	private boolean ignoreHostChanges;
-	private JComboBox<String> availableHosts;
+	private static final int kMinDomecastIDLength = 8;
+	private JTextField txtDomecastID;
+	private JButton btnUploadAssets;
 	private JLabel lblStatusText;
+	private DomecastIDSendThread domecastSendThread;
+	
+	private class DomecastIDSendThread extends Thread
+	{
+		private static final long kDelaySeconds = 3;
+		private String domecastID;
+		private AtomicLong triggerTime;
+		public AtomicBoolean abort;
+		
+		public DomecastIDSendThread()
+		{
+			this.triggerTime = new AtomicLong(System.currentTimeMillis() + kDelaySeconds * 1000);
+			this.abort = new AtomicBoolean(false);
+			this.setName(getClass().getSimpleName());
+		}
+		
+		public void arm(String domecastID)
+		{
+			this.domecastID = domecastID;
+			triggerTime.set(System.currentTimeMillis() + kDelaySeconds * 1000);
+			abort.set(false);
+			System.out.println(this.getName() + " armed.");
+		}
+		
+		public void run()
+		{
+			// Periodically check if enough time has elapsed
+			while (triggerTime.get() > System.currentTimeMillis())
+			{
+				// Sleep for a second
+				try {
+					sleep(1000);
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+			
+			if (!abort.get())
+			{
+				System.out.println(this.getName() + " Sending " + domecastID);
+				
+				// Time to send the domecastID
+				ClientApplication inst = (ClientApplication)ClientApplication.inst();
+				inst.sendDomecastID(domecastID);
+				
+				// Enable the button to upload assets
+				SwingUtilities.invokeLater(new Runnable() {
+					public void run() {
+						btnUploadAssets.setEnabled(true);
+					}
+				});
+			}
+		}
+	}
 
 	/**
 	 * Create the panel.
 	 */
 	public PresenterPanel()
 	{
-		ignoreHostChanges = true;
+		domecastSendThread = null;
 		
 		GridBagLayout gridBagLayout = new GridBagLayout();
-		gridBagLayout.columnWidths = new int[]{0, 0, 0, 0};
+		gridBagLayout.columnWidths = new int[]{0, 0};
 		gridBagLayout.rowHeights = new int[]{0, 0, 0, 0};
-		gridBagLayout.columnWeights = new double[]{0.0, 1.0, 0.0, Double.MIN_VALUE};
+		gridBagLayout.columnWeights = new double[]{0.0, Double.MIN_VALUE};
 		gridBagLayout.rowWeights = new double[]{0.0, 0.0, 0.0, Double.MIN_VALUE};
 		setLayout(gridBagLayout);
 		
-		JLabel lblPresentationId = new JLabel("Choose the host system to control:");
+		JLabel lblPresentationId = new JLabel("Enter the name of your domecast:");
 		GridBagConstraints gbc_lblPresentationId = new GridBagConstraints();
 		gbc_lblPresentationId.insets = new Insets(10, 10, 5, 5);
 		gbc_lblPresentationId.anchor = GridBagConstraints.EAST;
@@ -40,17 +98,34 @@ public class PresenterPanel extends JPanel
 		gbc_lblPresentationId.gridy = 0;
 		add(lblPresentationId, gbc_lblPresentationId);
 		
-		availableHosts = new JComboBox<String>();
-		availableHosts.addItemListener(new ItemListener() {
-			public void itemStateChanged(ItemEvent event) {
-				if (event.getStateChange() == ItemEvent.SELECTED)
+		txtDomecastID = new JTextField();
+		txtDomecastID.addKeyListener(new KeyAdapter() {
+			@Override
+			public void keyReleased(KeyEvent arg0) {
+				// I don't want a separate button like "Send domecastID to server". Instead,
+				// whenever a key is pressed, we first test to make sure the entered domecastID
+				// is at least some minimum length. If so, we "arm" a thread that will execute
+				// once after a few seconds without typing have elapsed. When the thread executes, it
+				// will call ClientApplication.sendDomecastID() and enable btnUploadAssets.
+				String domecastID = txtDomecastID.getText();
+				if (domecastID.length() >= kMinDomecastIDLength)
 				{
-					if (!ignoreHostChanges)
+					// If the domecastSendThread has not been created or has already dies, create a new one.
+					if ((domecastSendThread == null) || ((domecastSendThread != null) && !domecastSendThread.isAlive()))
 					{
-						String item = (String)event.getItem();
-						ClientApplication inst = (ClientApplication) ClientApplication.inst();
-						inst.sendHostIDToControl(item);
+						domecastSendThread = new DomecastIDSendThread();
+						domecastSendThread.start();
 					}
+					
+					// Arm the thread
+					domecastSendThread.arm(domecastID);
+				}
+				else
+				{
+					// If the domecastID has been made shorter than the minimum, don't send the last valid length domecastID.
+					if ((domecastSendThread != null) && domecastSendThread.isAlive())
+						domecastSendThread.abort.set(true);
+					btnUploadAssets.setEnabled(false);
 				}
 			}
 		});
@@ -61,20 +136,20 @@ public class PresenterPanel extends JPanel
 		gbc_textField.anchor = GridBagConstraints.WEST;
 		gbc_textField.gridx = 1;
 		gbc_textField.gridy = 0;
-		add(availableHosts, gbc_textField);
+		add(txtDomecastID, gbc_textField);
 		
-		JButton btnNewButton = new JButton("Upload Presentation Assets...");
-		btnNewButton.setEnabled(false);
-		GridBagConstraints gbc_btnNewButton = new GridBagConstraints();
-		gbc_btnNewButton.insets = new Insets(10, 0, 5, 0);
-		gbc_btnNewButton.gridwidth = 3;
-		gbc_btnNewButton.gridx = 0;
-		gbc_btnNewButton.gridy = 1;
-		add(btnNewButton, gbc_btnNewButton);
+		btnUploadAssets = new JButton("Upload Presentation Assets...");
+		btnUploadAssets.setEnabled(false);
+		GridBagConstraints gbc_btnUploadAssets = new GridBagConstraints();
+		gbc_btnUploadAssets.insets = new Insets(0, 0, 5, 0);
+		gbc_btnUploadAssets.gridwidth = 2;
+		gbc_btnUploadAssets.gridx = 0;
+		gbc_btnUploadAssets.gridy = 1;
+		add(btnUploadAssets, gbc_btnUploadAssets);
 		
-		lblStatusText = new JLabel("Status");
+		lblStatusText = new JLabel("Server Status");
 		GridBagConstraints gbc_lblStatusText = new GridBagConstraints();
-		gbc_lblStatusText.gridwidth = 3;
+		gbc_lblStatusText.gridwidth = 2;
 		gbc_lblStatusText.insets = new Insets(10, 0, 0, 5);
 		gbc_lblStatusText.gridx = 0;
 		gbc_lblStatusText.gridy = 2;
@@ -82,7 +157,7 @@ public class PresenterPanel extends JPanel
 
 	}
 	
-	public void setPanelStatus(ClientAppFrame.ConnectionStatus status, String[] hosts)
+	public void setPanelStatus(ClientAppFrame.ConnectionStatus status)
 	{
 		if (lblStatusText != null)
 		{
@@ -99,64 +174,5 @@ public class PresenterPanel extends JPanel
 				break;
 			}
 		}
-		
-		// Update the combobox with the hosts that are currently connected
-		if (availableHosts != null)
-		{
-			ignoreHostChanges = true;
-
-			// Remember selected item
-			String selectedItem = (String)availableHosts.getSelectedItem();
-			
-			// It's tempting to just call removeAllItems() and add the hosts, but this causes bad behavior when 
-			// the dropdown list is visible. So, we just add/remove items from the list as needed.
-			if (hosts != null)
-			{
-				// Add items that are not already in the list
-				for (String host : hosts)
-				{
-					boolean hostExistsInList = false;
-					for (int i = 0; i < availableHosts.getItemCount(); i++)
-					{
-						if (host.equals(availableHosts.getItemAt(i)))
-						{
-							hostExistsInList = true;
-							break;
-						}
-					}
-					if (!hostExistsInList)
-						availableHosts.addItem(host);
-				}
-				
-				// Remove items from the list that are not in hosts
-				while (availableHosts.getItemCount() > hosts.length)
-				{
-					for (int i = 0; i < availableHosts.getItemCount(); i++)
-					{
-						String item = availableHosts.getItemAt(i);
-						boolean itemFoundInHosts = false;
-						for (String host : hosts)
-						{
-							if (item.equals(host))
-							{
-								itemFoundInHosts = true;
-								break;
-							}
-						}
-						if (!itemFoundInHosts)
-						{
-							availableHosts.removeItem(item);
-							break;
-						}
-					}
-				}
-			}
-			
-			// Re-select the item that was selected before we screwed with the list
-			availableHosts.setSelectedItem(selectedItem);
-			
-			ignoreHostChanges = false;
-		}
 	}
-
 }
