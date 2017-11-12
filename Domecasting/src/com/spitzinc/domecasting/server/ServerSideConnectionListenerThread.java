@@ -24,6 +24,10 @@ public class ServerSideConnectionListenerThread extends TCPConnectionListenerThr
 		thread.start();
 	}
 	
+	/**
+	 * Clients in host mode use a JComboBox to display all current domecasts.
+	 * This method returns a list of domecastIDs owned by presenter connections. 
+	 */
 	public ArrayList<String> getAvailableDomecasts()
 	{
 		ArrayList<String> result = new ArrayList<String>();
@@ -39,6 +43,10 @@ public class ServerSideConnectionListenerThread extends TCPConnectionListenerThr
 		return result;
 	}
 	
+	/**
+	 * Given a ServerSideConnectionHandlerThread instance, returns the ServerSideConnectionHandlerThread
+	 * instance with the same domecastID but opposite clientType (if one exists).
+	 */
 	public ServerSideConnectionHandlerThread findPeerConnectionThread(ServerSideConnectionHandlerThread inThread)
 	{
 		ServerSideConnectionHandlerThread result = null;
@@ -63,6 +71,10 @@ public class ServerSideConnectionListenerThread extends TCPConnectionListenerThr
 		return result;
 	}
 	
+	/**
+	 * Clients in presenter mode must submit a unique domecastID. This method tests the supplied
+	 * domecastID for uniqueness.
+	 */
 	public boolean isDomecastIDUnique(String domecastID)
 	{
 		boolean result = true;
@@ -80,6 +92,9 @@ public class ServerSideConnectionListenerThread extends TCPConnectionListenerThr
 		return result;
 	}
 	
+	/**
+	 * Displays vitals of each connection in the server application window.
+	 */
 	public void displayStatus(ServerApplication theApp)
 	{
 		StringBuffer buf = new StringBuffer();
