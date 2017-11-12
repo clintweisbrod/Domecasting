@@ -92,9 +92,9 @@ public class ServerConnectionThread extends Thread
 		return sendINFO(infoStr);
 	}
 	
-	public boolean sendClientType()
+	public boolean sendClientType(byte clientType)
 	{
-		String infoStr = "ClientType=" + (char)theApp.clientType;
+		String infoStr = "ClientType=" + (char)clientType;
 		return sendINFO(infoStr);
 	}
 	
@@ -205,7 +205,12 @@ public class ServerConnectionThread extends Thread
 						
 						// Send initial handshake to server
 						writeSecurityCode();
-						sendClientType();
+						byte clientType;
+						if (theApp.appFrame.tabbedPane.getSelectedIndex() == 0)
+							clientType = CommUtils.kHostID;
+						else
+							clientType = CommUtils.kPresenterID;
+						sendClientType(clientType);
 					}
 					catch (IOException e) {
 						e.printStackTrace();

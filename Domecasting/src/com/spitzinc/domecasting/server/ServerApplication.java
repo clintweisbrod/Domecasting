@@ -1,12 +1,15 @@
 package com.spitzinc.domecasting.server;
 
 import java.awt.Dimension;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
 import java.io.IOException;
 import java.util.Properties;
 
 import javax.swing.SwingUtilities;
+import javax.swing.Timer;
 
 import com.spitzinc.domecasting.ApplicationBase;
 import com.spitzinc.domecasting.SortedProperties;
@@ -14,8 +17,7 @@ import com.spitzinc.domecasting.server.ServerAppFrame;
 
 public class ServerApplication extends ApplicationBase implements WindowListener
 {
-	private static final String kProductName = "Domecasting Server";
-	private static final int kAppDefaultWidth = 400;
+	private static final int kAppDefaultWidth = 600;
 	private static final int kAppDefaultHeight = 200;
 	private static final Dimension kPreferredFrameSize = new Dimension(kAppDefaultWidth, kAppDefaultHeight);
 	private static final String kApplicationWindowTitle = "Spitz Dome Casting Server";
@@ -32,7 +34,7 @@ public class ServerApplication extends ApplicationBase implements WindowListener
 	public int maxConcurrentSessions = 5;
 	
 	public ServerAppFrame appFrame;
-	private ServerSideConnectionListenerThread connectionListenerThread;
+	public ServerSideConnectionListenerThread connectionListenerThread;
 	
 	public ServerApplication()
 	{
@@ -97,6 +99,18 @@ public class ServerApplication extends ApplicationBase implements WindowListener
 			public void run()
 			{
 				ServerApplication.createSingleInstance();
+				
+				ActionListener taskPerformer = new ActionListener() {
+				    public void actionPerformed(ActionEvent evt)
+				    {
+				    	ServerApplication inst = (ServerApplication)ServerApplication.inst();
+				    	if (inst.connectionListenerThread != null)
+				    		inst.connectionListenerThread.displayStatus(inst);
+				    }
+				};
+				Timer timer = new Timer(2000, taskPerformer);
+				timer.setRepeats(true);
+				timer.start();
 			}
 		});
 	}

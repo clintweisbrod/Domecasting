@@ -62,4 +62,17 @@ public class ServerSideConnectionListenerThread extends TCPConnectionListenerThr
 
 		return result;
 	}
+	
+	public void displayStatus(ServerApplication theApp)
+	{
+		StringBuffer buf = new StringBuffer();
+		for (TCPConnectionHandlerThread aThread : connectionHandlerThreads)
+		{
+			ServerSideConnectionHandlerThread theThread = (ServerSideConnectionHandlerThread)aThread;
+			buf.append(theThread.toString());
+			buf.append('\n');
+		}
+		
+		theApp.appFrame.textArea.setText(buf.toString());
+	}
 }

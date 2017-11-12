@@ -4,7 +4,6 @@ import javax.swing.JPanel;
 import javax.swing.JLabel;
 import java.awt.GridBagLayout;
 import java.awt.GridBagConstraints;
-import javax.swing.JTextField;
 
 import java.awt.Insets;
 import javax.swing.JButton;
@@ -12,7 +11,6 @@ import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 import java.awt.event.ActionEvent;
-import javax.swing.SwingConstants;
 import javax.swing.JComboBox;
 
 public class HostPanel extends JPanel
@@ -45,7 +43,7 @@ public class HostPanel extends JPanel
 		gbc_lblNewLabel.gridy = 0;
 		add(lblNewLabel, gbc_lblNewLabel);
 		
-		availableDomecasts = new JComboBox();
+		availableDomecasts = new JComboBox<String>();
 		availableDomecasts.addItemListener(new ItemListener() {
 			public void itemStateChanged(ItemEvent event) {
 				if (event.getStateChange() == ItemEvent.SELECTED)
@@ -183,5 +181,15 @@ public class HostPanel extends JPanel
 			
 			ignoreDomecastComboboxChanges = false;
 		}
+	}
+	
+	public String getDomecastID()
+	{
+		String result = "";
+
+		if ((availableDomecasts.getItemCount() > 0) && (availableDomecasts.getSelectedIndex() >= 0))
+			result = (String)availableDomecasts.getSelectedItem();
+		
+		return result;
 	}
 }

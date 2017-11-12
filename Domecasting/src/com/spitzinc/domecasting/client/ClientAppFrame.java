@@ -20,7 +20,7 @@ public class ClientAppFrame extends JFrame
 	public enum ConnectionStatus {eNotConnected, eConnectedNoPeer, eConnectedWithPeer};
 	
 	private ClientApplication theApp;
-	private JTabbedPane tabbedPane;
+	public JTabbedPane tabbedPane;
 	private HostPanel hostPanel;
 	private PresenterPanel presenterPanel;
 	private ServerStatusThread statusThread;
@@ -59,7 +59,7 @@ public class ClientAppFrame extends JFrame
 					
 					// Get list of domecasts currently connected to server
 					String domecasts = null;
-					if (theApp.clientType == CommUtils.kHostID)
+					if (tabbedPane.getSelectedIndex() == 0)
 						domecasts = theApp.getAvailableDomecasts();
 					
 					// Publish the results
@@ -151,12 +151,12 @@ public class ClientAppFrame extends JFrame
 				switch (newIndex)
 				{
 				case 0:
-					theApp.clientType = CommUtils.kHostID;
-					theApp.sendClientType();
+					theApp.sendClientType(CommUtils.kHostID);
+					theApp.sendDomecastID(hostPanel.getDomecastID());
 					break;
 				case 1:
-					theApp.clientType = CommUtils.kPresenterID;
-					theApp.sendClientType();
+					theApp.sendClientType(CommUtils.kPresenterID);
+					theApp.sendDomecastID(presenterPanel.getDomecastID());
 					break;
 				}
 			}

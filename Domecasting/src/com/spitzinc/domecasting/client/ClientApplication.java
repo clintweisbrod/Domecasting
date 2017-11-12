@@ -35,7 +35,6 @@ public class ClientApplication extends ApplicationBase implements WindowListener
 	public int pfPrefs_DomeServer_TCPReplyPort = 56896;
 	public int passThruReceiveListenerPort = 56898;
 	
-	public byte clientType;
 	public ClientAppFrame appFrame;
 	private SNTCPPassThruServer snPassThru = null;
 	private ServerConnectionThread serverConnectionThread;
@@ -154,14 +153,14 @@ public class ClientApplication extends ApplicationBase implements WindowListener
 		return result;
 	}
 	
-	public boolean sendClientType()
+	public boolean sendClientType(byte clientType)
 	{
 		boolean result = false;
 		
 		if (serverConnectionThread != null)
 		{
 			synchronized (serverConnectionThread) {
-				result = serverConnectionThread.sendClientType();
+				result = serverConnectionThread.sendClientType(clientType);
 			}
 		}
 		

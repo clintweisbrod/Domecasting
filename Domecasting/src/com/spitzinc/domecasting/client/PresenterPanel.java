@@ -175,4 +175,8 @@ public class PresenterPanel extends JPanel
 			}
 		}
 	}
+	
+	public String getDomecastID() {
+		return txtDomecastID.getText();
+	}
 }

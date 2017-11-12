@@ -82,7 +82,12 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 		System.out.println(this.getName() + ": Received: " + msg);
 		String[] list = msg.split("=");
 		if (list[0].equals("DomecastID"))
-			domecastID = list[1];
+		{
+			if (list.length == 2)
+				domecastID = list[1];
+			else
+				domecastID = null;
+		}
 		else if (list[0].equals("ClientType"))
 			clientType = (byte)list[1].charAt(0);
 		else if (list[0].equals("ReadyToCast"))
@@ -214,5 +219,15 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 		owner.threadDying(this);
 
 		System.out.println(this.getName() + ": Exiting thread.");
+	}
+	
+	public String toString()
+	{
+		StringBuffer buf = new StringBuffer();
+		buf.append("domecastID=" + domecastID + ", ");
+		buf.append("clientType=" + (char)clientType + ", ");
+		buf.append("readyToCast=" + Boolean.toString(readyToCast));
+		
+		return buf.toString();
 	}
 }
