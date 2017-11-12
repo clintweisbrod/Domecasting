@@ -81,16 +81,16 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 		String msg = new String(infoBytes);
 		System.out.println(this.getName() + ": Received: " + msg);
 		String[] list = msg.split("=");
-		if (list[0].equals("DomecastID"))
+		if (list[0].equals("domecastID"))
 		{
 			if (list.length == 2)
 				domecastID = list[1];
 			else
 				domecastID = null;
 		}
-		else if (list[0].equals("ClientType"))
+		else if (list[0].equals("clientType"))
 			clientType = (byte)list[1].charAt(0);
-		else if (list[0].equals("ReadyToCast"))
+		else if (list[0].equals("readyToCast"))
 			readyToCast = Boolean.parseBoolean(list[1]);
 	}
 	
@@ -102,7 +102,7 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 		// All REQU messages are of the form "request" and have varying responses
 		String req = new String(requBytes);
 		System.out.println(this.getName() + ": Received: " + req);
-		if (req.equals("IsPeerReady"))
+		if (req.equals("isPeerReady"))
 		{
 			boolean isPeerReady = false;
 			
@@ -117,7 +117,7 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 			}
 			
 			// Respond to request
-			String reply = "IsPeerReady=" + Boolean.toString(isPeerReady);
+			String reply = "isPeerReady=" + Boolean.toString(isPeerReady);
 			byte[] replyBytes = reply.getBytes();
 			
 			// We're performing two writes to the OutputStream. They MUST be sequential.
@@ -127,7 +127,23 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 				CommUtils.writeOutputStream(out, replyBytes, 0, replyBytes.length, getName());
 			}
 		}
-		else if (req.equals("GetAvailableDomecasts"))
+		else if (req.startsWith("isDomecastIDUnique"))
+		{
+			String[] list = req.split("=");
+			boolean isDomecastIDUnique = listenerThread.isDomecastIDUnique(list[1]);
+			
+			// Respond to request
+			String reply = "isDomecastIDUnique=" + Boolean.toString(isDomecastIDUnique);
+			byte[] replyBytes = reply.getBytes();
+			
+			// We're performing two writes to the OutputStream. They MUST be sequential.
+			synchronized (outputStreamLock)
+			{
+				CommUtils.writeHeader(out, outHdr, replyBytes.length, ClientHeader.kDCS, ClientHeader.kDCC, ClientHeader.kREQU, this.getName());
+				CommUtils.writeOutputStream(out, replyBytes, 0, replyBytes.length, getName());
+			}
+		}
+		else if (req.equals("getAvailableDomecasts"))
 		{
 			// Obtain list of available domecasts
 			ArrayList<String> domecasts = listenerThread.getAvailableDomecasts();

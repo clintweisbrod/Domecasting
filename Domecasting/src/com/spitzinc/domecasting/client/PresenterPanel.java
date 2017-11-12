@@ -60,18 +60,32 @@ public class PresenterPanel extends JPanel
 			
 			if (!abort.get())
 			{
-				System.out.println(this.getName() + " Sending " + domecastID);
-				
-				// Time to send the domecastID
+				// First make sure the supplied domecastID is unique on the server
 				ClientApplication inst = (ClientApplication)ClientApplication.inst();
-				inst.sendDomecastID(domecastID);
-				
-				// Enable the button to upload assets
-				SwingUtilities.invokeLater(new Runnable() {
-					public void run() {
-						btnUploadAssets.setEnabled(true);
-					}
-				});
+				if (inst.isDomecastIDUnique(domecastID))
+				{
+					System.out.println(this.getName() + " Sending " + domecastID);
+					
+					// Time to send the domecastID
+					inst.sendDomecastID(domecastID);
+					
+					// Enable the button to upload assets
+					SwingUtilities.invokeLater(new Runnable() {
+						public void run() {
+							btnUploadAssets.setEnabled(true);
+						}
+					});
+				}
+				else
+				{
+					// Notify the user that this domecastID is already used
+					SwingUtilities.invokeLater(new Runnable() {
+						public void run() {
+							inst.appFrame.infoBox("Please provide a different domecast ID.",
+												  "The supplied domecast ID is already in use.");
+						}
+					});
+				}
 			}
 		}
 	}

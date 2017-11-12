@@ -63,6 +63,23 @@ public class ServerSideConnectionListenerThread extends TCPConnectionListenerThr
 		return result;
 	}
 	
+	public boolean isDomecastIDUnique(String domecastID)
+	{
+		boolean result = true;
+		
+		for (TCPConnectionHandlerThread aThread : connectionHandlerThreads)
+		{
+			ServerSideConnectionHandlerThread theThread = (ServerSideConnectionHandlerThread)aThread;
+			if ((theThread.getClientType() == CommUtils.kPresenterID) && (domecastID.equals(theThread.getDomecastID())))
+			{
+				result = false;
+				break;
+			}
+		}
+		
+		return result;
+	}
+	
 	public void displayStatus(ServerApplication theApp)
 	{
 		StringBuffer buf = new StringBuffer();

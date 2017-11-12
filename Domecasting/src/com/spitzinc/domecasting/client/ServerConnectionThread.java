@@ -54,23 +54,7 @@ public class ServerConnectionThread extends Thread
 	
 	public boolean sendReadyToCast(boolean readyToCast)
 	{
-		String infoStr = "ReadyToCast=" + Boolean.toString(readyToCast);
-		return sendINFO(infoStr);
-	}
-	
-	public boolean isPeerReady()
-	{
-		boolean result = false;
-		
-		String reply = sendREQU("IsPeerReady");
-		if (reply != null)
-		{
-			String[] list = reply.split("=");
-			if (list[0].equals("IsPeerReady"))
-				result = Boolean.parseBoolean(list[1]);
-		}
-		
-		return result;
+		return sendINFO("readyToCast=" + Boolean.toString(readyToCast));
 	}
 	
 	public boolean isConnected()
@@ -81,20 +65,50 @@ public class ServerConnectionThread extends Thread
 			return false;
 	}
 	
+	public boolean isPeerReady()
+	{
+		boolean result = false;
+		
+		String reply = sendREQU("isPeerReady");
+		if (reply != null)
+		{
+			String[] list = reply.split("=");
+			if (list[0].equals("isPeerReady"))
+				result = Boolean.parseBoolean(list[1]);
+		}
+		
+		return result;
+	}
+	
+	public boolean isDomecastIDUnique(String domecastID)
+	{
+		boolean result = false;
+		
+		String reply = sendREQU("isDomecastIDUnique=" + domecastID);
+		if (reply != null)
+		{
+			String[] list = reply.split("=");
+			if (list[0].equals("isDomecastIDUnique"))
+				result = Boolean.parseBoolean(list[1]);
+		}
+		
+		return result;
+	}
+	
 	public String getAvailableDomecasts()
 	{
-		return sendREQU("GetAvailableDomecasts");
+		return sendREQU("getAvailableDomecasts");
 	}
 	
 	public boolean sendDomecastID(String domecastID)
 	{
-		String infoStr = "DomecastID=" + domecastID;
+		String infoStr = "domecastID=" + domecastID;
 		return sendINFO(infoStr);
 	}
 	
 	public boolean sendClientType(byte clientType)
 	{
-		String infoStr = "ClientType=" + (char)clientType;
+		String infoStr = "clientType=" + (char)clientType;
 		return sendINFO(infoStr);
 	}
 	

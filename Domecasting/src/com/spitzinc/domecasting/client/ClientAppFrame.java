@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.swing.JFrame;
+import javax.swing.JOptionPane;
 import javax.swing.border.EmptyBorder;
 import javax.swing.JTabbedPane;
 import javax.swing.SwingWorker;
@@ -182,6 +183,11 @@ public class ClientAppFrame extends JFrame
 			hostPanel.setPanelStatus(status, domecasts);
 		if (presenterPanel != null)
 			presenterPanel.setPanelStatus(status);
+	}
+	
+	public void infoBox(String infoMessage, String titleBar)
+	{
+		JOptionPane.showMessageDialog(this, infoMessage, titleBar, JOptionPane.INFORMATION_MESSAGE);
 	}
 	
 	//

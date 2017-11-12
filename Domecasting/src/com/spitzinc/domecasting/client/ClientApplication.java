@@ -139,6 +139,20 @@ public class ClientApplication extends ApplicationBase implements WindowListener
 		return result;
 	}
 	
+	public boolean isDomecastIDUnique(String domecastID)
+	{
+		boolean result = false;
+
+		if (serverConnectionThread != null)
+		{
+			synchronized (serverConnectionThread) {
+				result = serverConnectionThread.isDomecastIDUnique(domecastID);
+			}
+		}
+		
+		return result;
+	}
+	
 	public String getAvailableDomecasts()
 	{
 		String result = null;
