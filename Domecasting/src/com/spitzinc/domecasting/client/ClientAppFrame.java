@@ -18,7 +18,7 @@ public class ClientAppFrame extends JFrame
 {
 	private static final long serialVersionUID = 1L;
 	
-	public enum ConnectionStatus {eNotConnected, eConnectedNoPeer, eConnectedPeerNotReady, eConnectedPeerReady};
+	public enum ConnectionStatus {eNotConnected, eConnectedNoPeer, eConnectedPeerNotReady, eConnectedPeersAvailable, eConnectedPeerReady};
 	
 	private ClientApplication theApp;
 	public JTabbedPane tabbedPane;
@@ -124,7 +124,12 @@ public class ClientAppFrame extends JFrame
 				else
 				{
 					if (!isPeerPresent)
-						setPanelStatus(ConnectionStatus.eConnectedNoPeer, domecasts);
+					{
+						if (domecasts != null)
+							setPanelStatus(ConnectionStatus.eConnectedPeersAvailable, domecasts);
+						else
+							setPanelStatus(ConnectionStatus.eConnectedNoPeer, domecasts);
+					}
 					else
 					{
 						if (!isPeerReady)

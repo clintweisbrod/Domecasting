@@ -184,10 +184,10 @@ public class PresenterPanel extends JPanel
 				lblStatusText.setText("Waiting for domecasting host to connect...");
 				break;
 			case eConnectedPeerNotReady:
-				lblStatusText.setText("Waiting for connected host to allow domecast...");
+				lblStatusText.setText("Waiting for connected host to start domecast...");
 				break;
 			case eConnectedPeerReady:
-				lblStatusText.setText("Domecast is ready.");
+				lblStatusText.setText("Domecast in progress.");
 				break;
 			}
 		}

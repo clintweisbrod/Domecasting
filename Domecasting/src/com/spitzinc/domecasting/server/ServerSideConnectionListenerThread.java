@@ -37,7 +37,11 @@ public class ServerSideConnectionListenerThread extends TCPConnectionListenerThr
 			ServerSideConnectionHandlerThread theThread = (ServerSideConnectionHandlerThread)aThread;
 			byte theClientType = theThread.getClientType();
 			if (theClientType == CommUtils.kPresenterID)
-				result.add(theThread.getDomecastID());
+			{
+				String domecastID = theThread.getDomecastID();
+				if (domecastID != null)
+					result.add(domecastID);
+			}
 		}
 
 		return result;
