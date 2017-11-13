@@ -10,6 +10,14 @@ public class CommUtils
 	public static final byte kHostID = 'H';
 	public static final byte kPresenterID = 'P';
 	
+	// Commands sent between client and server
+	public static final String kReadyToCast = "readyToCast";
+	public static final String kIsPeerReady = "isPeerReady";
+	public static final String kIsDomecastIDUnique = "isDomecastIDUnique";
+	public static final String kGetAvailableDomecasts = "getAvailableDomecasts";
+	public static final String kDomecastID = "domecastID";
+	public static final String kClientType = "clientType";
+	
 	public static void readInputStream(InputStream is, byte[] buffer, int offset, int len, String caller) throws IOException
 	{
 		int bytesLeftToRead = len;

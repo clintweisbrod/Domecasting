@@ -81,16 +81,16 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 		String msg = new String(infoBytes);
 		System.out.println(this.getName() + ": Received: " + msg);
 		String[] list = msg.split("=");
-		if (list[0].equals("domecastID"))
+		if (list[0].equals(CommUtils.kDomecastID))
 		{
 			if (list.length == 2)
 				domecastID = list[1];
 			else
 				domecastID = null;
 		}
-		else if (list[0].equals("clientType"))
+		else if (list[0].equals(CommUtils.kClientType))
 			clientType = (byte)list[1].charAt(0);
-		else if (list[0].equals("readyToCast"))
+		else if (list[0].equals(CommUtils.kReadyToCast))
 			readyToCast = Boolean.parseBoolean(list[1]);
 	}
 	
@@ -102,7 +102,7 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 		// All REQU messages are of the form "request" and have varying responses
 		String req = new String(requBytes);
 		System.out.println(this.getName() + ": Received: " + req);
-		if (req.equals("isPeerReady"))
+		if (req.equals(CommUtils.kIsPeerReady))
 		{
 			boolean isPeerReady = false;
 			
@@ -117,7 +117,7 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 			}
 			
 			// Respond to request
-			String reply = "isPeerReady=" + Boolean.toString(isPeerReady);
+			String reply = CommUtils.kIsPeerReady + "=" + Boolean.toString(isPeerReady);
 			byte[] replyBytes = reply.getBytes();
 			
 			// We're performing two writes to the OutputStream. They MUST be sequential.
@@ -127,13 +127,13 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 				CommUtils.writeOutputStream(out, replyBytes, 0, replyBytes.length, getName());
 			}
 		}
-		else if (req.startsWith("isDomecastIDUnique"))
+		else if (req.startsWith(CommUtils.kIsDomecastIDUnique))
 		{
 			String[] list = req.split("=");
 			boolean isDomecastIDUnique = listenerThread.isDomecastIDUnique(list[1]);
 			
 			// Respond to request
-			String reply = "isDomecastIDUnique=" + Boolean.toString(isDomecastIDUnique);
+			String reply = CommUtils.kIsDomecastIDUnique + "=" + Boolean.toString(isDomecastIDUnique);
 			byte[] replyBytes = reply.getBytes();
 			
 			// We're performing two writes to the OutputStream. They MUST be sequential.
@@ -143,7 +143,7 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 				CommUtils.writeOutputStream(out, replyBytes, 0, replyBytes.length, getName());
 			}
 		}
-		else if (req.equals("getAvailableDomecasts"))
+		else if (req.equals(CommUtils.kGetAvailableDomecasts))
 		{
 			// Obtain list of available domecasts
 			ArrayList<String> domecasts = listenerThread.getAvailableDomecasts();

@@ -54,7 +54,7 @@ public class ServerConnectionThread extends Thread
 	
 	public boolean sendReadyToCast(boolean readyToCast)
 	{
-		return sendINFO("readyToCast=" + Boolean.toString(readyToCast));
+		return sendINFO(CommUtils.kReadyToCast + Boolean.toString(readyToCast));
 	}
 	
 	public boolean isConnected()
@@ -69,11 +69,11 @@ public class ServerConnectionThread extends Thread
 	{
 		boolean result = false;
 		
-		String reply = sendREQU("isPeerReady");
+		String reply = sendREQU(CommUtils.kIsPeerReady);
 		if (reply != null)
 		{
 			String[] list = reply.split("=");
-			if (list[0].equals("isPeerReady"))
+			if (list[0].equals(CommUtils.kIsPeerReady))
 				result = Boolean.parseBoolean(list[1]);
 		}
 		
@@ -84,11 +84,11 @@ public class ServerConnectionThread extends Thread
 	{
 		boolean result = false;
 		
-		String reply = sendREQU("isDomecastIDUnique=" + domecastID);
+		String reply = sendREQU(CommUtils.kIsDomecastIDUnique + "=" + domecastID);
 		if (reply != null)
 		{
 			String[] list = reply.split("=");
-			if (list[0].equals("isDomecastIDUnique"))
+			if (list[0].equals(CommUtils.kIsDomecastIDUnique))
 				result = Boolean.parseBoolean(list[1]);
 		}
 		
@@ -97,18 +97,18 @@ public class ServerConnectionThread extends Thread
 	
 	public String getAvailableDomecasts()
 	{
-		return sendREQU("getAvailableDomecasts");
+		return sendREQU(CommUtils.kGetAvailableDomecasts);
 	}
 	
 	public boolean sendDomecastID(String domecastID)
 	{
-		String infoStr = "domecastID=" + domecastID;
+		String infoStr = CommUtils.kDomecastID + "=" + domecastID;
 		return sendINFO(infoStr);
 	}
 	
 	public boolean sendClientType(byte clientType)
 	{
-		String infoStr = "clientType=" + (char)clientType;
+		String infoStr = CommUtils.kClientType + "=" + (char)clientType;
 		return sendINFO(infoStr);
 	}
 	
