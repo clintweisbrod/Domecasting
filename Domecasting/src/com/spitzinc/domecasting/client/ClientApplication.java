@@ -101,12 +101,12 @@ public class ClientApplication extends ApplicationBase implements WindowListener
 		appFrame.setVisible(true);
 	}
 		
-	public void sendReadyToCast(boolean value)
+	public void sendHostReadyToCast(boolean value)
 	{
 		if (serverConnectionThread != null)
 		{
 			synchronized (serverConnectionThread) {
-				serverConnectionThread.sendReadyToCast(value);
+				serverConnectionThread.sendHostReadyToCast(value);
 			}
 		}
 	}

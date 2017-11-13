@@ -71,27 +71,27 @@ public class HostPanel extends JPanel
 		gbc_btnGetPresentationAssets.gridy = 2;
 		add(btnGetPresentationAssets, gbc_btnGetPresentationAssets);
 		
-		btnPresentationControl = new JButton("Allow Remote Control");
+		btnPresentationControl = new JButton("Start Domecast");
 		btnPresentationControl.setEnabled(false);
 		btnPresentationControl.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				ClientApplication inst = (ClientApplication) ClientApplication.inst();
-				if (btnPresentationControl.getText() == "Allow Remote Control")
+				if (btnPresentationControl.getText() == "Start Domecast")
 				{
 					// Tell the server we're ready to be controlled by presenter
-					inst.sendReadyToCast(true);
+					inst.sendHostReadyToCast(true);
 					
 					// Disable controls so that only the btnPresentationControl is enabled
 					availableDomecasts.setEnabled(false);
 					HostPanel.this.getParent().setEnabled(false);
 					
 					// Change the button text
-					btnPresentationControl.setText("Stop Remote Control");
+					btnPresentationControl.setText("Stop Domecast");
 				}
 				else
 				{
 					// Tell the server we're not willing to allow more control from presenter
-					inst.sendReadyToCast(false);
+					inst.sendHostReadyToCast(false);
 					
 					// Enable controls we disabled
 					availableDomecasts.setEnabled(true);

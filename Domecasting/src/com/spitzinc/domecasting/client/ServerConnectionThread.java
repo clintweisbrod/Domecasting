@@ -52,9 +52,9 @@ public class ServerConnectionThread extends Thread
 		stopped.set(true);
 	}
 	
-	public boolean sendReadyToCast(boolean readyToCast)
+	public boolean sendHostReadyToCast(boolean readyToCast)
 	{
-		return sendINFO(CommUtils.kReadyToCast + Boolean.toString(readyToCast));
+		return sendINFO(CommUtils.kHostReadyForDomecast + "=" + Boolean.toString(readyToCast));
 	}
 	
 	public boolean isConnected()

@@ -18,7 +18,7 @@ public class CommUtils
 	public static final String kGetAvailableDomecasts = "getAvailableDomecasts";
 	public static final String kDomecastID = "domecastID";
 	public static final String kClientType = "clientType";
-	public static final String kReadyToCast = "readyToCast";
+	public static final String kHostReadyForDomecast = "hostReadyForDomecast";
 	
 	public static void readInputStream(InputStream is, byte[] buffer, int offset, int len, String caller) throws IOException
 	{
@@ -31,7 +31,7 @@ public class CommUtils
 				int bytesRead = is.read(buffer, offset + totalBytesRead, bytesLeftToRead);
 				if (bytesRead == -1)
 					break;
-				System.out.println(caller + ": Read " + bytesRead + " bytes from socket.");
+//				System.out.println(caller + ": Read " + bytesRead + " bytes from socket.");
 				bytesLeftToRead -= bytesRead;
 				totalBytesRead += bytesRead;
 			}
@@ -55,7 +55,7 @@ public class CommUtils
 		try
 		{
 			os.write(buffer, offset, len);
-			System.out.println(caller + ": Wrote " + len + " bytes to socket.");
+//			System.out.println(caller + ": Wrote " + len + " bytes to socket.");
 		}
 		catch (IOException | IndexOutOfBoundsException | NullPointerException e) {
 			throw new IOException(caller + ": " + e.getMessage());

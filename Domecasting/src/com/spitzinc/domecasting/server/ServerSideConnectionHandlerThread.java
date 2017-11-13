@@ -24,7 +24,7 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 	private ClientHeader inHdr;
 	protected String domecastID;
 	protected byte clientType;
-	protected boolean readyToCast;
+	protected boolean hostReadyForDomecast;	// Only valid for host connections
 	
 	public ServerSideConnectionHandlerThread(TCPConnectionListenerThread owner, Socket inboundSocket)
 	{
@@ -36,7 +36,7 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 		this.outHdr = new ClientHeader();
 		this.inHdr = new ClientHeader();
 		this.listenerThread = (ServerSideConnectionListenerThread)owner;
-		this.readyToCast = false;
+		this.hostReadyForDomecast = false;
 	}
 	
 	public String getDomecastID() {
@@ -47,8 +47,8 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 		return clientType;
 	}
 	
-	public boolean isReadyToCast() {
-		return readyToCast;
+	public boolean isHostReadyForDomecast() {
+		return hostReadyForDomecast;
 	}
 	
 	private void beginHandlingClientCommands()
@@ -94,8 +94,8 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 		}
 		else if (list[0].equals(CommUtils.kClientType))
 			clientType = (byte)list[1].charAt(0);
-		else if (list[0].equals(CommUtils.kReadyToCast))
-			readyToCast = Boolean.parseBoolean(list[1]);
+		else if (list[0].equals(CommUtils.kHostReadyForDomecast))
+			hostReadyForDomecast = Boolean.parseBoolean(list[1]);
 	}
 	
 	private void handleREQU(ClientHeader hdr) throws IOException
@@ -150,7 +150,7 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 			if (peerConnectionThread != null)
 			{
 				if (peerConnectionThread.clientType == CommUtils.kHostID)
-					isPeerReady = peerConnectionThread.isReadyToCast();
+					isPeerReady = peerConnectionThread.isHostReadyForDomecast();
 				else
 					isPeerReady = true;
 			}
@@ -284,7 +284,8 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 		StringBuffer buf = new StringBuffer();
 		buf.append("domecastID=" + domecastID + ", ");
 		buf.append("clientType=" + (char)clientType + ", ");
-		buf.append("readyToCast=" + Boolean.toString(readyToCast));
+		if (clientType == CommUtils.kHostID)
+			buf.append("hostReadyForDomecast=" + Boolean.toString(hostReadyForDomecast));
 		
 		return buf.toString();
 	}
