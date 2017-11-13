@@ -181,7 +181,7 @@ public class PresenterPanel extends JPanel
 				lblStatusText.setText("Spitz domecasting server not available.");
 				break;
 			case eConnectedNoPeer:
-				lblStatusText.setText("Waiting for domecasting peer to connect...");
+				lblStatusText.setText("Waiting for domecasting host to connect...");
 				break;
 			case eConnectedWithPeer:
 				lblStatusText.setText("Domecast is ready.");
