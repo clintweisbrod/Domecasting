@@ -102,6 +102,22 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 		// All REQU messages are of the form "request" and have varying responses
 		String req = new String(requBytes);
 		System.out.println(this.getName() + ": Received: " + req);
+		
+		if (req.equals(CommUtils.kIsConnected))
+		{
+			// If we're executing this, then yes, we're connected
+			// Respond to request
+			String reply = CommUtils.kIsConnected + "=" + Boolean.toString(true);
+			byte[] replyBytes = reply.getBytes();
+			
+			// We're performing two writes to the OutputStream. They MUST be sequential.
+			synchronized (outputStreamLock)
+			{
+				CommUtils.writeHeader(out, outHdr, replyBytes.length, ClientHeader.kDCS, ClientHeader.kDCC, ClientHeader.kREQU, this.getName());
+				CommUtils.writeOutputStream(out, replyBytes, 0, replyBytes.length, getName());
+			}
+		}
+		
 		if (req.equals(CommUtils.kIsPeerReady))
 		{
 			boolean isPeerReady = false;

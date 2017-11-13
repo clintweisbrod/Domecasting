@@ -59,10 +59,17 @@ public class ServerConnectionThread extends Thread
 	
 	public boolean isConnected()
 	{
-		if ((socket != null) && socket.isConnected())
-			return true;
-		else
-			return false;
+		boolean result = false;
+
+		String reply = sendREQU(CommUtils.kIsConnected);
+		if (reply != null)
+		{
+			String[] list = reply.split("=");
+			if (list[0].equals(CommUtils.kIsConnected))
+				result = Boolean.parseBoolean(list[1]);
+		}
+		
+		return result;
 	}
 	
 	public boolean isPeerReady()
