@@ -164,7 +164,7 @@ public class PresenterPanel extends JPanel
 		lblStatusText = new JLabel("Server Status");
 		GridBagConstraints gbc_lblStatusText = new GridBagConstraints();
 		gbc_lblStatusText.gridwidth = 2;
-		gbc_lblStatusText.insets = new Insets(10, 0, 0, 5);
+		gbc_lblStatusText.insets = new Insets(10, 0, 10, 0);
 		gbc_lblStatusText.gridx = 0;
 		gbc_lblStatusText.gridy = 2;
 		add(lblStatusText, gbc_lblStatusText);

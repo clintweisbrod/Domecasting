@@ -17,7 +17,7 @@ public class HostPanel extends JPanel
 {
 	private static final long serialVersionUID = 1L;
 	private boolean ignoreDomecastComboboxChanges;
-	private JButton btnWaitForPresentation;
+	private JButton btnPresentationControl;
 	private JLabel lblStatusText;
 	private JComboBox<String> availableDomecasts;
 	private JLabel lblNewLabel;
@@ -71,20 +71,34 @@ public class HostPanel extends JPanel
 		gbc_btnGetPresentationAssets.gridy = 2;
 		add(btnGetPresentationAssets, gbc_btnGetPresentationAssets);
 		
-		btnWaitForPresentation = new JButton("Allow Remote Control");
-		btnWaitForPresentation.setEnabled(false);
-		btnWaitForPresentation.addActionListener(new ActionListener() {
+		btnPresentationControl = new JButton("Allow Remote Control");
+		btnPresentationControl.setEnabled(false);
+		btnPresentationControl.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				ClientApplication inst = (ClientApplication) ClientApplication.inst();
-				if (btnWaitForPresentation.getText() == "Allow Remote Control")
+				if (btnPresentationControl.getText() == "Allow Remote Control")
 				{
+					// Tell the server we're ready to be controlled by presenter
 					inst.sendReadyToCast(true);
-					btnWaitForPresentation.setText("Stop Remote Control");
+					
+					// Disable controls so that only the btnPresentationControl is enabled
+					availableDomecasts.setEnabled(false);
+					HostPanel.this.getParent().setEnabled(false);
+					
+					// Change the button text
+					btnPresentationControl.setText("Stop Remote Control");
 				}
 				else
 				{
+					// Tell the server we're not willing to allow more control from presenter
 					inst.sendReadyToCast(false);
-					btnWaitForPresentation.setText("Allow Remote Control");
+					
+					// Enable controls we disabled
+					availableDomecasts.setEnabled(true);
+					HostPanel.this.getParent().setEnabled(true);
+					
+					// Change the button text
+					btnPresentationControl.setText("Allow Remote Control");
 				}
 			}
 		});
@@ -92,11 +106,11 @@ public class HostPanel extends JPanel
 		gbc_btnWaitForPresentation.insets = new Insets(0, 0, 5, 0);
 		gbc_btnWaitForPresentation.gridx = 0;
 		gbc_btnWaitForPresentation.gridy = 3;
-		add(btnWaitForPresentation, gbc_btnWaitForPresentation);
+		add(btnPresentationControl, gbc_btnWaitForPresentation);
 		
 		lblStatusText = new JLabel("Server Status");
 		GridBagConstraints gbc_lblStatusText = new GridBagConstraints();
-		gbc_lblStatusText.insets = new Insets(10, 0, 0, 0);
+		gbc_lblStatusText.insets = new Insets(10, 0, 10, 0);
 		gbc_lblStatusText.gridx = 0;
 		gbc_lblStatusText.gridy = 4;
 		add(lblStatusText, gbc_lblStatusText);
@@ -111,15 +125,15 @@ public class HostPanel extends JPanel
 			{
 			case eNotConnected:
 				lblStatusText.setText("Spitz domecasting server not available.");
-				btnWaitForPresentation.setEnabled(false);
+				btnPresentationControl.setEnabled(false);
 				break;
 			case eConnectedNoPeer:
 				lblStatusText.setText("Waiting for domecasting presenter to connect...");
-				btnWaitForPresentation.setEnabled(false);
+				btnPresentationControl.setEnabled(false);
 				break;
 			case eConnectedWithPeer:
 				lblStatusText.setText("Domecast is ready.");
-				btnWaitForPresentation.setEnabled(true);
+				btnPresentationControl.setEnabled(true);
 				break;
 			}
 		}

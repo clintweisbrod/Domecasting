@@ -15,6 +15,7 @@ import com.spitzinc.domecasting.TCPConnectionListenerThread;
 public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThread
 {
 	protected ServerSideConnectionListenerThread listenerThread;
+	protected ServerSideConnectionHandlerThread peerConnectionThread;
 	protected InputStream in;
 	protected OutputStream out;
 	private Object outputStreamLock;
@@ -29,6 +30,7 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 	{
 		super(owner, inboundSocket);
 		
+		this.peerConnectionThread = null;
 		this.outputStreamLock = new Object();
 		this.inputStreamLock = new Object();
 		this.outHdr = new ClientHeader();
@@ -66,6 +68,8 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 					handleINFO(inHdr);
 				else if (inHdr.messageType.equals(ClientHeader.kREQU))
 					handleREQU(inHdr);
+				else if (inHdr.messageType.equals(ClientHeader.kCOMM))
+					handleCOMM(inHdr);
 			}
 		}
 		catch (IOException e) {
@@ -123,11 +127,11 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 			boolean isPeerReady = false;
 			
 			// Look for peer connection on this server
-			ServerSideConnectionHandlerThread peerThread = listenerThread.findPeerConnectionThread(this);
-			if (peerThread != null)
+			peerConnectionThread = listenerThread.findPeerConnectionThread(this);
+			if (peerConnectionThread != null)
 			{
-				if (peerThread.clientType == CommUtils.kHostID)
-					isPeerReady = peerThread.isReadyToCast();
+				if (peerConnectionThread.clientType == CommUtils.kHostID)
+					isPeerReady = peerConnectionThread.isReadyToCast();
 				else
 					isPeerReady = true;
 			}
@@ -190,6 +194,11 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 				CommUtils.writeOutputStream(out, replyBytes, 0, replyBytes.length, getName());
 			}
 		}
+	}
+	
+	private void handleCOMM(ClientHeader hdr) throws IOException
+	{
+		
 	}
 	
 	public void run()
