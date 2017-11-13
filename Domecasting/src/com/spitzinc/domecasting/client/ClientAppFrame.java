@@ -18,7 +18,7 @@ public class ClientAppFrame extends JFrame
 {
 	private static final long serialVersionUID = 1L;
 	
-	public enum ConnectionStatus {eNotConnected, eConnectedNoPeer, eConnectedWithPeer};
+	public enum ConnectionStatus {eNotConnected, eConnectedNoPeer, eConnectedPeerNotReady, eConnectedPeerReady};
 	
 	private ClientApplication theApp;
 	public JTabbedPane tabbedPane;
@@ -49,13 +49,14 @@ public class ClientAppFrame extends JFrame
 			} catch (InterruptedException e) {
 			}
 			
-			boolean isConnected, isPeerReady;
+			boolean isConnected, isPeerPresent, isPeerReady;
 			while (!stopped.get())
 			{
 				if (!paused.get())
 				{
 					// Get server status
 					isConnected = theApp.isConnected();
+					isPeerPresent = theApp.isPeerPresent();
 					isPeerReady = theApp.isPeerReady();
 					
 					// Get list of domecasts currently connected to server
@@ -66,8 +67,9 @@ public class ClientAppFrame extends JFrame
 					// Publish the results
 					if ((domecasts != null) && !domecasts.equals("<none>"))
 						publish(domecasts);
-					publish("isConnected=" + Boolean.toString(isConnected));
-					publish("isPeerReady=" + Boolean.toString(isPeerReady));
+					publish(CommUtils.kIsConnected + "=" + Boolean.toString(isConnected));
+					publish(CommUtils.kIsPeerPresent + "=" + Boolean.toString(isPeerPresent));
+					publish(CommUtils.kIsPeerReady + "=" + Boolean.toString(isPeerReady));
 					
 					// Sleep for a few seconds
 					try {
@@ -94,6 +96,7 @@ public class ClientAppFrame extends JFrame
 		protected void process(List<String> publishedItems)
 		{
 			boolean isConnected = false;
+			boolean isPeerPresent = false;
 			boolean isPeerReady = false;
 			String[] domecasts = null;
 			for (String item : publishedItems)
@@ -101,9 +104,11 @@ public class ClientAppFrame extends JFrame
 				if (item.contains("="))
 				{
 					String[] nameValuePair = item.split("=");
-					if (nameValuePair[0].equals("isConnected"))
+					if (nameValuePair[0].equals(CommUtils.kIsConnected))
 						isConnected = Boolean.parseBoolean(nameValuePair[1]);
-					if (nameValuePair[0].equals("isPeerReady"))
+					if (nameValuePair[0].equals(CommUtils.kIsPeerPresent))
+						isPeerPresent = Boolean.parseBoolean(nameValuePair[1]);
+					if (nameValuePair[0].equals(CommUtils.kIsPeerReady))
 						isPeerReady = Boolean.parseBoolean(nameValuePair[1]);
 				}
 				else if (item.contains("~"))
@@ -118,10 +123,15 @@ public class ClientAppFrame extends JFrame
 					setPanelStatus(ConnectionStatus.eNotConnected, domecasts);
 				else
 				{
-					if (!isPeerReady)
+					if (!isPeerPresent)
 						setPanelStatus(ConnectionStatus.eConnectedNoPeer, domecasts);
 					else
-						setPanelStatus(ConnectionStatus.eConnectedWithPeer, domecasts);
+					{
+						if (!isPeerReady)
+							setPanelStatus(ConnectionStatus.eConnectedPeerNotReady, domecasts);
+						else
+							setPanelStatus(ConnectionStatus.eConnectedPeerReady, domecasts);
+					}
 				}
 			}
 		}

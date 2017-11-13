@@ -125,6 +125,20 @@ public class ClientApplication extends ApplicationBase implements WindowListener
 		return result;
 	}
 	
+	public boolean isPeerPresent()
+	{
+		boolean result = false;
+		
+		if (serverConnectionThread != null)
+		{
+			synchronized (serverConnectionThread) {
+				result = serverConnectionThread.isPeerPresent();
+			}
+		}
+		
+		return result;
+	}
+	
 	public boolean isPeerReady()
 	{
 		boolean result = false;

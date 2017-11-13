@@ -12,6 +12,7 @@ public class CommUtils
 	
 	// Commands sent between client and server
 	public static final String kIsConnected = "isConnected";
+	public static final String kIsPeerPresent = "isPeerPresent";
 	public static final String kIsPeerReady = "isPeerReady";
 	public static final String kIsDomecastIDUnique = "isDomecastIDUnique";
 	public static final String kGetAvailableDomecasts = "getAvailableDomecasts";

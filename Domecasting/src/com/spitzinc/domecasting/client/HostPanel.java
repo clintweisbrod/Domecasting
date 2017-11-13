@@ -131,7 +131,7 @@ public class HostPanel extends JPanel
 				lblStatusText.setText("Waiting for domecasting presenter to connect...");
 				btnPresentationControl.setEnabled(false);
 				break;
-			case eConnectedWithPeer:
+			case eConnectedPeerReady:
 				lblStatusText.setText("Domecast is ready.");
 				btnPresentationControl.setEnabled(true);
 				break;

@@ -122,7 +122,26 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 			}
 		}
 		
-		if (req.equals(CommUtils.kIsPeerReady))
+		if (req.equals(CommUtils.kIsPeerPresent))
+		{
+			boolean isPeerPresent = false;
+			
+			// Look for peer connection on this server
+			peerConnectionThread = listenerThread.findPeerConnectionThread(this);
+			isPeerPresent = (peerConnectionThread != null);
+			
+			// Respond to request
+			String reply = CommUtils.kIsPeerPresent + "=" + Boolean.toString(isPeerPresent);
+			byte[] replyBytes = reply.getBytes();
+			
+			// We're performing two writes to the OutputStream. They MUST be sequential.
+			synchronized (outputStreamLock)
+			{
+				CommUtils.writeHeader(out, outHdr, replyBytes.length, ClientHeader.kDCS, ClientHeader.kDCC, ClientHeader.kREQU, this.getName());
+				CommUtils.writeOutputStream(out, replyBytes, 0, replyBytes.length, getName());
+			}
+		}
+		else if (req.equals(CommUtils.kIsPeerReady))
 		{
 			boolean isPeerReady = false;
 			
@@ -172,8 +191,6 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 			String reply = null;
 			if (domecasts.isEmpty())
 				reply = "<none>";
-			else if (domecasts.size() == 1)
-				reply = domecasts.get(0);
 			else
 			{
 				StringBuffer buf = new StringBuffer();
@@ -182,7 +199,7 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 					buf.append(domecast);
 					buf.append("~");
 				}
-				reply = buf.substring(0, buf.length() - 1);
+				reply = buf.toString();
 			}
 			
 			byte[] replyBytes = reply.getBytes();

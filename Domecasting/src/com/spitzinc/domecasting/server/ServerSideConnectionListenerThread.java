@@ -53,17 +53,23 @@ public class ServerSideConnectionListenerThread extends TCPConnectionListenerThr
 
 		byte clientType = inThread.getClientType();
 		String domecastID = inThread.getDomecastID();
-		for (TCPConnectionHandlerThread aThread : connectionHandlerThreads)
+		if (domecastID != null)
 		{
-			if (aThread != inThread)
+			for (TCPConnectionHandlerThread aThread : connectionHandlerThreads)
 			{
-				ServerSideConnectionHandlerThread otherThread = (ServerSideConnectionHandlerThread)aThread;
-				String otherDomecastID = otherThread.getDomecastID();
-				byte otherClientType = otherThread.getClientType();
-				if ((otherClientType != clientType) && domecastID.equals(otherDomecastID))
+				if (aThread != inThread)
 				{
-					result = otherThread;
-					break;
+					ServerSideConnectionHandlerThread otherThread = (ServerSideConnectionHandlerThread)aThread;
+					String otherDomecastID = otherThread.getDomecastID();
+					if (otherDomecastID == null)
+						continue;
+					
+					byte otherClientType = otherThread.getClientType();
+					if ((otherClientType != clientType) && domecastID.equals(otherDomecastID))
+					{
+						result = otherThread;
+						break;
+					}
 				}
 			}
 		}

@@ -72,6 +72,21 @@ public class ServerConnectionThread extends Thread
 		return result;
 	}
 	
+	public boolean isPeerPresent()
+	{
+		boolean result = false;
+		
+		String reply = sendREQU(CommUtils.kIsPeerPresent);
+		if (reply != null)
+		{
+			String[] list = reply.split("=");
+			if (list[0].equals(CommUtils.kIsPeerPresent))
+				result = Boolean.parseBoolean(list[1]);
+		}
+		
+		return result;
+	}
+	
 	public boolean isPeerReady()
 	{
 		boolean result = false;
