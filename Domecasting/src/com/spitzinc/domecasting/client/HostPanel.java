@@ -98,7 +98,7 @@ public class HostPanel extends JPanel
 					HostPanel.this.getParent().setEnabled(true);
 					
 					// Change the button text
-					btnPresentationControl.setText("Allow Remote Control");
+					btnPresentationControl.setText("Start Domecast");
 				}
 			}
 		});
