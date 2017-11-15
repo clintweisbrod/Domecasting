@@ -42,7 +42,7 @@ public class ClientApplication extends ApplicationBase implements WindowListener
 	private SNTCPPassThruServer snPassThru = null;
 	private ServerConnectionThread serverConnectionThread;
 	
-	public boolean routeComm = false;	// This boolean is set true when the peer connection is ready to handle domecast comm
+	public boolean isPeerReady = false;
 	public byte clientType = CommUtils.kHostID;
 	
 	public ClientApplication()
@@ -105,6 +105,26 @@ public class ClientApplication extends ApplicationBase implements WindowListener
 		appFrame.pack();
 		appFrame.setResizable(false);
 		appFrame.setVisible(true);
+	}
+	
+	public boolean routeComm()
+	{
+		// Decide if the necessary conditions are in place to begin routing comm
+		boolean result = false;
+		
+		if (clientType == CommUtils.kPresenterID)
+		{
+			String domecastID = appFrame.presenterPanel.getDomecastID();
+			result = isPeerReady && (domecastID.length() >= PresenterPanel.kMinDomecastIDLength);
+		}
+		else
+		{
+			String domecastID = appFrame.hostPanel.getDomecastID();
+			boolean domecastStarted = appFrame.hostPanel.btnPresentationControl.getText().equals("Stop Domecast");
+			result = isPeerReady && domecastStarted && (domecastID.length() >= PresenterPanel.kMinDomecastIDLength);
+		}
+		
+		return result;
 	}
 	
 	public InputStream getServerInputStream()
@@ -172,7 +192,7 @@ public class ClientApplication extends ApplicationBase implements WindowListener
 		if (serverConnectionThread != null)
 		{
 			synchronized (serverConnectionThread) {
-				routeComm = result = serverConnectionThread.isPeerReady();
+				isPeerReady = result = serverConnectionThread.isPeerReady();
 			}
 		}
 		

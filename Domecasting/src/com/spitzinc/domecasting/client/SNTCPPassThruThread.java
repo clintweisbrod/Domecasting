@@ -228,7 +228,7 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 		// Do the usual read from PF or ATM4. This may be overwritten below
 		CommUtils.readInputStream(in, buffer, 0, len, caller);
 		
-		if (theApp.routeComm)
+		if (theApp.routeComm())
 		{
 			InputStream dcsIn = theApp.getServerInputStream();
 			if (dcsIn != null)
@@ -278,7 +278,7 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 	
 	private void handleOutputStreamCommRouting(byte[] buffer, int offset, int len, String caller) throws IOException
 	{
-		if (theApp.routeComm)
+		if (theApp.routeComm())
 		{
 			OutputStream dcsOut = theApp.getServerOutputStream();
 			if (dcsOut != null)

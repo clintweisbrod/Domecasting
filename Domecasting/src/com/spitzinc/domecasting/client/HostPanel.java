@@ -17,7 +17,7 @@ public class HostPanel extends JPanel
 {
 	private static final long serialVersionUID = 1L;
 	private boolean ignoreDomecastComboboxChanges;
-	private JButton btnPresentationControl;
+	public JButton btnPresentationControl;
 	private JLabel lblStatusText;
 	private JComboBox<String> availableDomecasts;
 	private JLabel lblNewLabel;
@@ -50,9 +50,9 @@ public class HostPanel extends JPanel
 				{
 					if (!ignoreDomecastComboboxChanges)
 					{
-						String item = (String)event.getItem();
-						ClientApplication inst = (ClientApplication) ClientApplication.inst();
-						inst.sendDomecastID(item);
+						String domecastID = (String)event.getItem();
+						ClientInfoSendThread sendThread = new ClientInfoSendThread(null, domecastID, null);
+						sendThread.start();
 					}
 				}
 			}
@@ -76,26 +76,34 @@ public class HostPanel extends JPanel
 		btnPresentationControl.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				ClientApplication inst = (ClientApplication) ClientApplication.inst();
-				if (btnPresentationControl.getText() == "Start Domecast")
+				if (btnPresentationControl.getText().equals("Start Domecast"))
 				{
 					// Tell the server we're ready to be controlled by presenter
-					inst.sendHostReadyToCast(true);
+					ClientInfoSendThread sendThread = new ClientInfoSendThread(null, null, true);
+					sendThread.start();
 					
 					// Disable controls so that only the btnPresentationControl is enabled
 					availableDomecasts.setEnabled(false);
-					HostPanel.this.getParent().setEnabled(false);
+					inst.appFrame.setEnabled(false);
+					
+					// Pause the UI update thread
+					inst.appFrame.pauseUpdateThread();
 					
 					// Change the button text
 					btnPresentationControl.setText("Stop Domecast");
 				}
 				else
 				{
-					// Tell the server we're not willing to allow more control from presenter
-					inst.sendHostReadyToCast(false);
+					// Tell the server we're ready to be controlled by presenter
+					ClientInfoSendThread sendThread = new ClientInfoSendThread(null, null, false);
+					sendThread.start();
 					
 					// Enable controls we disabled
 					availableDomecasts.setEnabled(true);
-					HostPanel.this.getParent().setEnabled(true);
+					inst.appFrame.setEnabled(true);
+					
+					// Unpause the UI update thread
+					inst.appFrame.unpauseUpdateThread();
 					
 					// Change the button text
 					btnPresentationControl.setText("Start Domecast");

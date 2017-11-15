@@ -16,7 +16,7 @@ import java.util.concurrent.atomic.AtomicLong;
 public class PresenterPanel extends JPanel
 {
 	private static final long serialVersionUID = 1L;
-	private static final int kMinDomecastIDLength = 8;
+	public static final int kMinDomecastIDLength = 8;
 	private JTextField txtDomecastID;
 	private JButton btnUploadAssets;
 	private JLabel lblStatusText;
@@ -24,7 +24,7 @@ public class PresenterPanel extends JPanel
 	
 	private class DomecastIDSendThread extends Thread
 	{
-		private static final long kDelaySeconds = 3;
+		private static final long kDelaySeconds = 2;
 		private String domecastID;
 		private AtomicLong triggerTime;
 		public AtomicBoolean abort;
@@ -62,29 +62,32 @@ public class PresenterPanel extends JPanel
 			{
 				// First make sure the supplied domecastID is unique on the server
 				ClientApplication inst = (ClientApplication)ClientApplication.inst();
-				if (inst.isDomecastIDUnique(domecastID))
+				if (inst.isConnected())
 				{
-					System.out.println(this.getName() + " Sending " + domecastID);
-					
-					// Time to send the domecastID
-					inst.sendDomecastID(domecastID);
-					
-					// Enable the button to upload assets
-					SwingUtilities.invokeLater(new Runnable() {
-						public void run() {
-							btnUploadAssets.setEnabled(true);
-						}
-					});
-				}
-				else
-				{
-					// Notify the user that this domecastID is already used
-					SwingUtilities.invokeLater(new Runnable() {
-						public void run() {
-							inst.appFrame.infoBox("Please provide a different domecast ID.",
-												  "The supplied domecast ID is already in use.");
-						}
-					});
+					if (inst.isDomecastIDUnique(domecastID))
+					{
+						System.out.println(this.getName() + " Sending " + domecastID);
+						
+						// Time to send the domecastID
+						inst.sendDomecastID(domecastID);
+						
+						// Enable the button to upload assets
+						SwingUtilities.invokeLater(new Runnable() {
+							public void run() {
+								btnUploadAssets.setEnabled(true);
+							}
+						});
+					}
+					else
+					{
+						// Notify the user that this domecastID is already used
+						SwingUtilities.invokeLater(new Runnable() {
+							public void run() {
+								inst.appFrame.infoBox("Please provide a different domecast ID.",
+													  "The supplied domecast ID is already in use.");
+							}
+						});
+					}
 				}
 			}
 		}

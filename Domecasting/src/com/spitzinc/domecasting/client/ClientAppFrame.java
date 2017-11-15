@@ -22,15 +22,15 @@ public class ClientAppFrame extends JFrame
 	
 	private ClientApplication theApp;
 	public JTabbedPane tabbedPane;
-	private HostPanel hostPanel;
-	private PresenterPanel presenterPanel;
+	public HostPanel hostPanel;
+	public PresenterPanel presenterPanel;
 	private ServerStatusThread statusThread;
 	
 	// While domecast is not in progress, this thread periodically wakes up to poll server for info
 	// and updates the UI accordingly.
 	private class ServerStatusThread extends SwingWorker<Integer, String>
 	{
-		private static final int kPollIntervalSeconds = 5;
+		private static final int kPollIntervalSeconds = 3;
 		
 		public AtomicBoolean stopped;
 		public AtomicBoolean paused;
@@ -167,13 +167,19 @@ public class ClientAppFrame extends JFrame
 				switch (newIndex)
 				{
 				case 0:
-					theApp.sendClientType(CommUtils.kHostID);
-					theApp.sendDomecastID(hostPanel.getDomecastID());
+				{
+					theApp.clientType = CommUtils.kHostID;
+					ClientInfoSendThread sendThread = new ClientInfoSendThread(theApp.clientType, hostPanel.getDomecastID(), null);
+					sendThread.start();
 					break;
+				}
 				case 1:
-					theApp.sendClientType(CommUtils.kPresenterID);
-					theApp.sendDomecastID(presenterPanel.getDomecastID());
+				{
+					theApp.clientType = CommUtils.kPresenterID;
+					ClientInfoSendThread sendThread = new ClientInfoSendThread(theApp.clientType, presenterPanel.getDomecastID(), null);
+					sendThread.start();
 					break;
+				}
 				}
 			}
 		});
