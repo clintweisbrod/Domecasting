@@ -91,6 +91,7 @@ public abstract class TCPConnectionListenerThread extends Thread
 					// Wait for connection from client
 					System.out.println(this.getName() + ": Waiting for inbound connection request.");
 					clientSocket = serverSocket.accept();
+					clientSocket.setKeepAlive(true);
 					System.out.println(this.getName() + ": Inbound connection accepted.");
 				}
 				catch (SocketException e)
