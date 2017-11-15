@@ -48,6 +48,14 @@ public class ServerConnectionThread extends Thread
 		this.setName(this.getClass().getSimpleName() + "_" + hostName + "_" + port);
 	}
 	
+	public InputStream getInputStream() {
+		return in;
+	}
+	
+	public OutputStream getOutputStream() {
+		return out;
+	}
+	
 	public void setStopped() {
 		stopped.set(true);
 	}

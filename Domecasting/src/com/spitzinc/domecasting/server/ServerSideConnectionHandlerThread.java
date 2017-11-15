@@ -16,12 +16,12 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 {
 	protected ServerSideConnectionListenerThread listenerThread;
 	protected ServerSideConnectionHandlerThread peerConnectionThread;
-	protected InputStream in;
-	protected OutputStream out;
-	private Object outputStreamLock;
-	private Object inputStreamLock;
+	public InputStream in;
+	public OutputStream out;
+	public Object outputStreamLock;
 	private ClientHeader outHdr;
 	private ClientHeader inHdr;
+	private byte[] commBuffer;
 	protected String domecastID;
 	protected byte clientType;
 	protected boolean hostReadyForDomecast;	// Only valid for host connections
@@ -32,9 +32,9 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 		
 		this.peerConnectionThread = null;
 		this.outputStreamLock = new Object();
-		this.inputStreamLock = new Object();
 		this.outHdr = new ClientHeader();
 		this.inHdr = new ClientHeader();
+		this.commBuffer = new byte[CommUtils.kCommBufferSize];
 		this.listenerThread = (ServerSideConnectionListenerThread)owner;
 		this.hostReadyForDomecast = false;
 	}
@@ -213,9 +213,25 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 		}
 	}
 	
+	/**
+	 * Pass the hdr (already read) and the remaining data on the InputStream to the peer connections's OutputStream.
+	 */
 	private void handleCOMM(ClientHeader hdr) throws IOException
 	{
+		// Read the data after the header
+		CommUtils.readInputStream(in, commBuffer, 0, hdr.messageLen, getName());
 		
+		if (peerConnectionThread != null)
+		{
+			synchronized (peerConnectionThread.outputStreamLock)
+			{
+				// Write the header we've received
+				CommUtils.writeOutputStream(peerConnectionThread.out, hdr.bytes, 0, ClientHeader.kHdrByteCount, getName());
+				
+				// Write the data we've received
+				CommUtils.writeOutputStream(peerConnectionThread.out, commBuffer, 0, hdr.messageLen, getName());
+			}
+		}
 	}
 	
 	public void run()

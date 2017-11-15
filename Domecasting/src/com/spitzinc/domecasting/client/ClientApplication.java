@@ -4,11 +4,14 @@ import java.awt.Dimension;
 import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.Properties;
 
 import javax.swing.*;
 
 import com.spitzinc.domecasting.ApplicationBase;
+import com.spitzinc.domecasting.CommUtils;
 import com.spitzinc.domecasting.SortedProperties;
 
 public class ClientApplication extends ApplicationBase implements WindowListener
@@ -38,6 +41,9 @@ public class ClientApplication extends ApplicationBase implements WindowListener
 	public ClientAppFrame appFrame;
 	private SNTCPPassThruServer snPassThru = null;
 	private ServerConnectionThread serverConnectionThread;
+	
+	public boolean routeComm = false;	// This boolean is set true when the peer connection is ready to handle domecast comm
+	public byte clientType = CommUtils.kHostID;
 	
 	public ClientApplication()
 	{
@@ -100,6 +106,26 @@ public class ClientApplication extends ApplicationBase implements WindowListener
 		appFrame.setResizable(false);
 		appFrame.setVisible(true);
 	}
+	
+	public InputStream getServerInputStream()
+	{
+		InputStream result = null;
+		
+		if (serverConnectionThread != null)
+			result = serverConnectionThread.getInputStream();
+
+		return result;
+	}
+	
+	public OutputStream getServerOutputStream()
+	{
+		OutputStream result = null;
+		
+		if (serverConnectionThread != null)
+			result = serverConnectionThread.getOutputStream();
+
+		return result;
+	}
 		
 	public void sendHostReadyToCast(boolean value)
 	{
@@ -146,7 +172,7 @@ public class ClientApplication extends ApplicationBase implements WindowListener
 		if (serverConnectionThread != null)
 		{
 			synchronized (serverConnectionThread) {
-				result = serverConnectionThread.isPeerReady();
+				routeComm = result = serverConnectionThread.isPeerReady();
 			}
 		}
 		
@@ -188,6 +214,7 @@ public class ClientApplication extends ApplicationBase implements WindowListener
 		if (serverConnectionThread != null)
 		{
 			synchronized (serverConnectionThread) {
+				this.clientType = clientType; 
 				result = serverConnectionThread.sendClientType(clientType);
 			}
 		}

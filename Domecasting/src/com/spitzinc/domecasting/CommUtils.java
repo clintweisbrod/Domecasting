@@ -7,6 +7,7 @@ import java.io.OutputStream;
 public class CommUtils
 {
 	public static final int kSecurityCodeLength = 20;
+	public static final int kCommBufferSize = 16 * 1024;
 	public static final byte kHostID = 'H';
 	public static final byte kPresenterID = 'P';
 	
@@ -31,7 +32,7 @@ public class CommUtils
 				int bytesRead = is.read(buffer, offset + totalBytesRead, bytesLeftToRead);
 				if (bytesRead == -1)
 					break;
-//				System.out.println(caller + ": Read " + bytesRead + " bytes from socket.");
+				System.out.println(caller + ": Read " + bytesRead + " bytes from socket.");
 				bytesLeftToRead -= bytesRead;
 				totalBytesRead += bytesRead;
 			}
@@ -55,7 +56,7 @@ public class CommUtils
 		try
 		{
 			os.write(buffer, offset, len);
-//			System.out.println(caller + ": Wrote " + len + " bytes to socket.");
+			System.out.println(caller + ": Wrote " + len + " bytes to socket.");
 		}
 		catch (IOException | IndexOutOfBoundsException | NullPointerException e) {
 			throw new IOException(caller + ": " + e.getMessage());
