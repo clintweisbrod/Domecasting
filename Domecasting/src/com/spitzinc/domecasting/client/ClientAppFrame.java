@@ -59,9 +59,12 @@ public class ClientAppFrame extends JFrame
 					isPeerPresent = theApp.isPeerPresent();
 					isPeerReady = theApp.isPeerReady();
 					
+					if ((theApp.clientType == CommUtils.kPresenterID) && isPeerReady)
+						paused.set(true);
+					
 					// Get list of domecasts currently connected to server
 					String domecasts = null;
-					if (tabbedPane.getSelectedIndex() == 0)
+					if (theApp.clientType == CommUtils.kHostID)
 						domecasts = theApp.getAvailableDomecasts();
 					
 					// Publish the results
@@ -229,9 +232,12 @@ public class ClientAppFrame extends JFrame
 	
 	public void stopUpdateThread()
 	{
-		statusThread.stopped.set(true);
+		if (statusThread != null)
+		{
+			statusThread.stopped.set(true);
 		
-		if (statusThread.paused.get())
-			unpauseUpdateThread();
+			if (statusThread.paused.get())
+				unpauseUpdateThread();
+		}
 	}
 }

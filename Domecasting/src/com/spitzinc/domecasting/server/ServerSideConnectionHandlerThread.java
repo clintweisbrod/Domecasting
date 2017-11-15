@@ -218,8 +218,15 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 	 */
 	private void handleCOMM(ClientHeader hdr) throws IOException
 	{
+//		String hdrString =  new String(hdr.bytes);
+//		System.out.println("Header:");
+//		System.out.println(hdrString);
+		
 		// Read the data after the header
 		CommUtils.readInputStream(in, commBuffer, 0, hdr.messageLen, getName());
+//		String bodyString =  new String(commBuffer, 0, hdr.messageLen);
+//		System.out.println("Body:");
+//		System.out.println(bodyString);
 		
 		if (peerConnectionThread != null)
 		{

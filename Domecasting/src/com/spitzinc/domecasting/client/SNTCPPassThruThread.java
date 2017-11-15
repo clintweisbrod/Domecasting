@@ -233,7 +233,6 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 			InputStream dcsIn = theApp.getServerInputStream();
 			if (dcsIn != null)
 			{
-				String msgSrc, msgDst;
 				if (theApp.clientType == CommUtils.kPresenterID)
 				{
 					if (modifyReplyPort)

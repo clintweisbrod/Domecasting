@@ -116,6 +116,12 @@ public class ClientApplication extends ApplicationBase implements WindowListener
 		{
 			String domecastID = appFrame.presenterPanel.getDomecastID();
 			result = isPeerReady && (domecastID.length() >= PresenterPanel.kMinDomecastIDLength);
+//			result = (domecastID.length() >= PresenterPanel.kMinDomecastIDLength);
+//			if (result == true)
+//			{
+//				int i = 0;
+//				i++;
+//			}
 		}
 		else
 		{
