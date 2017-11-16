@@ -1,5 +1,7 @@
 package com.spitzinc.domecasting.client;
 
+import com.spitzinc.domecasting.Log;
+
 /**
  * Create and run instances of this thread so that we're not trying to comm with server using
  * event dispatch thread. 
@@ -20,7 +22,7 @@ public class ClientInfoSendThread extends Thread
 	
 	public void run()
 	{
-		System.out.println(getName() + " is starting.");
+		Log.inst().info("Starting.");
 		
 		ClientApplication inst = (ClientApplication) ClientApplication.inst();
 		if (clientType != null)
@@ -30,6 +32,6 @@ public class ClientInfoSendThread extends Thread
 		if (domecastID != null)
 			inst.sendDomecastID(domecastID);
 
-		System.out.println(getName() + " is exiting.");
+		Log.inst().info("Exiting.");
 	}
 }

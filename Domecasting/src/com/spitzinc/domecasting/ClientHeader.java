@@ -55,7 +55,7 @@ public class ClientHeader
 		try {
 			messageLen = Integer.parseInt(hdrField);
 		} catch (NumberFormatException e) {
-			System.out.println(getClass().getSimpleName() + ": msgLenStr: " + hdrField + ".");
+			Log.inst().info("msgLenStr: " + hdrField);
 			e.printStackTrace();
 			return false;
 		}

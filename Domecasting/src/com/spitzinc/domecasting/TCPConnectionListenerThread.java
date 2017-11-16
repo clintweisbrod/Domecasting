@@ -81,6 +81,8 @@ public abstract class TCPConnectionListenerThread extends Thread
 	
 	public void run()
 	{
+		Log.inst().info("Starting thread.");
+		
 		if (serverSocket != null)
 		{
 			while (!stopped.get())
@@ -89,10 +91,10 @@ public abstract class TCPConnectionListenerThread extends Thread
 				try
 				{
 					// Wait for connection from client
-					System.out.println(this.getName() + ": Waiting for inbound connection request.");
+					Log.inst().info("Waiting for inbound connection request.");
 					clientSocket = serverSocket.accept();
 					clientSocket.setKeepAlive(true);
-					System.out.println(this.getName() + ": Inbound connection accepted.");
+					Log.inst().info("Inbound connection accepted.");
 				}
 				catch (SocketException e)
 				{
@@ -107,7 +109,7 @@ public abstract class TCPConnectionListenerThread extends Thread
 				}
 				catch (IOException e)
 				{
-					System.out.println(this.getName() + ": ServerSocket.accept() failed.");
+					Log.inst().info("ServerSocket.accept() failed.");
 					e.printStackTrace();
 				}
 				
@@ -116,11 +118,11 @@ public abstract class TCPConnectionListenerThread extends Thread
 					if (connectionHandlerThreads.size() < maxConnections)
 						handleSocketConnection(clientSocket);
 					else
-						System.out.println(this.getName() + ": Maximum of " + maxConnections + " connections reached.");
+						Log.inst().info("Maximum of " + maxConnections + " connections reached.");
 				}
 			}
 		}
 		
-		System.out.println(this.getName() + ": Exiting thread.");
+		Log.inst().info("Exiting thread.");
 	}
 }

@@ -99,7 +99,7 @@ public abstract class ApplicationBase implements WindowListener
 			}
 		}
 		catch (Exception e) {
-			System.out.println("There was a problem with the properties file: " + inFile.getAbsolutePath());
+			Log.inst().error("There was a problem with the properties file: " + inFile.getAbsolutePath());
 			e.printStackTrace();
 		}
 		finally
@@ -159,7 +159,7 @@ public abstract class ApplicationBase implements WindowListener
 		}
 		
 		if (!writeSuccess)
-			System.out.println("ERROR: Couldn't write properties file: " +inFile.getAbsolutePath());
+			Log.inst().error("Couldn't write properties file: " +inFile.getAbsolutePath());
 
 		return writeSuccess;
 	}

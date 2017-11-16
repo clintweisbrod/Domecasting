@@ -15,6 +15,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.spitzinc.domecasting.ClientHeader;
 import com.spitzinc.domecasting.CommUtils;
+import com.spitzinc.domecasting.Log;
 import com.spitzinc.domecasting.TCPConnectionHandlerThread;
 
 public class ServerConnectionThread extends Thread
@@ -232,12 +233,14 @@ public class ServerConnectionThread extends Thread
 	
 	public void run()
 	{
+		Log.inst().info("Starting thread.");
+		
 		// Attempt to maintain a socket connection to the server
 		while (!stopped.get())
 		{
 			if (socket == null)
 			{
-				System.out.println(this.getName() + ": Attempting server connection...");
+				Log.inst().info("Attempting server connection...");
 				socket = TCPConnectionHandlerThread.connectToHost(hostName, port, this.getName());
 				if (socket != null)
 				{
@@ -264,7 +267,7 @@ public class ServerConnectionThread extends Thread
 				{
 					// Wait a few seconds and then try again
 					final int kServerConnectionRetryIntervalSeconds = 5;
-					System.out.println(this.getName() + ": Server connection failed. Trying again in " + kServerConnectionRetryIntervalSeconds + " seconds.");
+					Log.inst().info("Server connection failed. Trying again in " + kServerConnectionRetryIntervalSeconds + " seconds.");
 					try {
 						Thread.sleep(kServerConnectionRetryIntervalSeconds * 1000);
 					} catch (InterruptedException e) {}
@@ -300,6 +303,6 @@ public class ServerConnectionThread extends Thread
 			}
 		}
 		
-		System.out.println(this.getName() + ": Exiting thread.");
+		Log.inst().info("Exiting thread.");
 	}
 }

@@ -49,15 +49,15 @@ public class TCPConnectionHandlerThread extends Thread
 		}
 		catch (UnknownHostException e) {
 			result = null;
-			System.out.println(callingThreadName + ": Unknown host: " + hostName);
+			Log.inst().info(callingThreadName + ": Unknown host: " + hostName);
 		}
 		catch (SocketTimeoutException e) {
 			result = null;
-			System.out.println(callingThreadName + ": Connect timeout.");
+			Log.inst().info(callingThreadName + ": Connect timeout.");
 		}
 		catch (IOException e) {
 			result = null;
-			System.out.println(callingThreadName + ": Connect failed.");
+			Log.inst().info(callingThreadName + ": Connect failed.");
 		}
 		
 		return result;

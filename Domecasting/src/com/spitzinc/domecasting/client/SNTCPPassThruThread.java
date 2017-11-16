@@ -7,6 +7,7 @@ import java.net.Socket;
 
 import com.spitzinc.domecasting.ClientHeader;
 import com.spitzinc.domecasting.CommUtils;
+import com.spitzinc.domecasting.Log;
 import com.spitzinc.domecasting.TCPConnectionHandlerThread;
 
 public class SNTCPPassThruThread extends TCPConnectionHandlerThread
@@ -60,11 +61,11 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 	public void run()
 	{
 		// Attempt to connect to outbound host
-		System.out.println(getName() + ": Attempting to establish outbound connection.");
+		Log.inst().info("Attempting to establish outbound connection.");
 		outboundSocket = TCPConnectionHandlerThread.connectToHost(outboundNode.hostname, outboundNode.port, this.getName());
 		if (outboundSocket != null)
 		{
-			System.out.println(getName() + ": Outbound connection established.");
+			Log.inst().info("Outbound connection established.");
 
 			try
 			{
@@ -86,7 +87,7 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 			}
 
 			// Close streams
-			System.out.println(getName() + ": Shutting down connection streams.");
+			Log.inst().info("Shutting down connection streams.");
 			try
 			{
 				if (out != null)
@@ -99,7 +100,7 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 		}
 
 		// Close sockets
-		System.out.println(getName() + ": Closing sockets.");
+		Log.inst().info("Closing sockets.");
 		try
 		{
 			if (socket != null)
@@ -113,7 +114,7 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 		// Notify owner this thread is dying.
 		owner.threadDying(this);
 
-		System.out.println(getName() + ": Exiting thread.");
+		Log.inst().info("Exiting thread.");
 	}
 	
 	/**
@@ -129,11 +130,11 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 			count = in.read(buffer);
 			if (count == -1)
 				stopped.set(true);
-			System.out.println(getName() + ": Read " + count + " bytes from inbound socket.");
+			Log.inst().info(getName() + ": Read " + count + " bytes from inbound socket.");
 		}
 		catch (IOException e) {
 			stopped.set(true);
-			System.out.println(getName() + ": Failed reading inbound socket.");
+			Log.inst().info(getName() + ": Failed reading inbound socket.");
 		}
 
 		// Write data to outbound socket
@@ -179,10 +180,10 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 				try {
 					messageLength = Integer.parseInt(messageLengthStr);
 				} catch (NumberFormatException e) {
-					System.out.println(getName() + ": messageLengthStr: " + messageLengthStr + ".");
+					Log.inst().error("messageLengthStr: " + messageLengthStr + ".");
 					throw new IOException(e.getMessage());
 				}
-//				System.out.println(getName() + ": Parsed messageLength = " + messageLength);
+//				Log.inst().info("Parsed messageLength = " + messageLength);
 
 				if (modifyReplyPort)
 				{
@@ -252,12 +253,12 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 								CommUtils.readInputStream(dcsIn, buffer, 0, inHdr.messageLen, caller);
 								
 								if (!inHdr.messageType.equals(ClientHeader.kCOMM))
-									System.out.println("WHOA!!! Received " + inHdr.messageType + " header");
+									Log.inst().info("WHOA!!! Received " + inHdr.messageType + " header");
 								
 							} while (!inHdr.messageType.equals(ClientHeader.kCOMM));
 							String receivedData = new String(buffer, 0, inHdr.messageLen);
-							System.out.println("Received from server: ");
-							System.out.println(receivedData);
+							Log.inst().info("Received from server: ");
+							Log.inst().info(receivedData);
 						}
 					}
 				}
@@ -306,7 +307,7 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 						synchronized(dcsOut) {
 							CommUtils.writeHeader(dcsOut, outHdr, len, msgSrc, msgDst, ClientHeader.kCOMM, caller);
 							CommUtils.writeOutputStream(dcsOut, buffer, 0, len, caller);
-							System.out.println("Wrote header + " + len + " bytes to server.");
+							Log.inst().info("Wrote header + " + len + " bytes to server.");
 						}
 						
 						// Also do the usual pass-thru to the local RB

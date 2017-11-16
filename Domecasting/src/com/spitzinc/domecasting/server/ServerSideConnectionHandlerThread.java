@@ -9,6 +9,7 @@ import java.util.ArrayList;
 
 import com.spitzinc.domecasting.ClientHeader;
 import com.spitzinc.domecasting.CommUtils;
+import com.spitzinc.domecasting.Log;
 import com.spitzinc.domecasting.TCPConnectionHandlerThread;
 import com.spitzinc.domecasting.TCPConnectionListenerThread;
 
@@ -83,7 +84,7 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 		
 		// All INFO messages are of the form "variable=value".
 		String msg = new String(infoBytes);
-		System.out.println(this.getName() + ": Received: " + msg);
+		Log.inst().info("Received: " + msg);
 		String[] list = msg.split("=");
 		if (list[0].equals(CommUtils.kDomecastID))
 		{
@@ -105,7 +106,7 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 		
 		// All REQU messages are of the form "request" and have varying responses
 		String req = new String(requBytes);
-		System.out.println(this.getName() + ": Received: " + req);
+		Log.inst().info("Received: " + req);
 		
 		if (req.equals(CommUtils.kIsConnected))
 		{
@@ -219,14 +220,14 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 	private void handleCOMM(ClientHeader hdr) throws IOException
 	{
 //		String hdrString =  new String(hdr.bytes);
-//		System.out.println("Header:");
-//		System.out.println(hdrString);
+//		Log.inst().info("Header:");
+//		Log.inst().info(hdrString);
 		
 		// Read the data after the header
 		CommUtils.readInputStream(in, commBuffer, 0, hdr.messageLen, getName());
 //		String bodyString =  new String(commBuffer, 0, hdr.messageLen);
-//		System.out.println("Body:");
-//		System.out.println(bodyString);
+//		Log.inst().info("Body:");
+//		Log.inst().info(bodyString);
 		
 		if (peerConnectionThread != null)
 		{
@@ -273,11 +274,11 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 		}
 		catch (IOException | ParseException e) {
 			e.printStackTrace();
-			System.out.println(this.getName() + ": " + e.getMessage());
+			Log.inst().error(e.getMessage());
 		}
 
 		// Close stream
-		System.out.println(this.getName() + ": Shutting down connection stream.");
+		Log.inst().info("Shutting down connection stream.");
 		try
 		{
 			if (in != null)
@@ -287,7 +288,7 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 		}
 		
 		// Close socket
-		System.out.println(this.getName() + ": Closing socket.");
+		Log.inst().info("Closing socket.");
 		try
 		{
 			if (socket != null)
@@ -299,7 +300,7 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 		// Notify owner this thread is dying.
 		owner.threadDying(this);
 
-		System.out.println(this.getName() + ": Exiting thread.");
+		Log.inst().info("Exiting thread.");
 	}
 	
 	public String toString()

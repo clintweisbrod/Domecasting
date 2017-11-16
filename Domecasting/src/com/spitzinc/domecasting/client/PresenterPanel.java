@@ -3,6 +3,9 @@ package com.spitzinc.domecasting.client;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
+
+import com.spitzinc.domecasting.Log;
+
 import javax.swing.JLabel;
 import java.awt.GridBagLayout;
 import java.awt.GridBagConstraints;
@@ -41,7 +44,7 @@ public class PresenterPanel extends JPanel
 			this.domecastID = domecastID;
 			triggerTime.set(System.currentTimeMillis() + kDelaySeconds * 1000);
 			abort.set(false);
-			System.out.println(this.getName() + " armed.");
+			Log.inst().info("Armed.");
 		}
 		
 		public void run()
@@ -66,7 +69,7 @@ public class PresenterPanel extends JPanel
 				{
 					if (inst.isDomecastIDUnique(domecastID))
 					{
-						System.out.println(this.getName() + " Sending " + domecastID);
+						Log.inst().info("Sending " + domecastID);
 						
 						// Time to send the domecastID
 						inst.sendDomecastID(domecastID);
