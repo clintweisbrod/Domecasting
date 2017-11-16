@@ -32,7 +32,7 @@ public class CommUtils
 				int bytesRead = is.read(buffer, offset + totalBytesRead, bytesLeftToRead);
 				if (bytesRead == -1)
 					break;
-				Log.inst().info(caller + ": Read " + bytesRead + " bytes from socket.");
+//				Log.inst().info(caller + ": Read " + bytesRead + " bytes from socket.");
 				bytesLeftToRead -= bytesRead;
 				totalBytesRead += bytesRead;
 			}
@@ -56,7 +56,7 @@ public class CommUtils
 		try
 		{
 			os.write(buffer, offset, len);
-			Log.inst().info(caller + ": Wrote " + len + " bytes to socket.");
+//			Log.inst().info(caller + ": Wrote " + len + " bytes to socket.");
 		}
 		catch (IOException | IndexOutOfBoundsException | NullPointerException e) {
 			throw new IOException(caller + ": " + e.getMessage());

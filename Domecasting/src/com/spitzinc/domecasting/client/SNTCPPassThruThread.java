@@ -256,6 +256,7 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 									Log.inst().info("WHOA!!! Received " + inHdr.messageType + " header");
 								
 							} while (!inHdr.messageType.equals(ClientHeader.kCOMM));
+							
 							String receivedData = new String(buffer, 0, inHdr.messageLen);
 							Log.inst().info("Received from server: ");
 							Log.inst().info(receivedData);
@@ -276,7 +277,15 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 								inHdr.parseHeaderBuffer();
 								// Read the data
 								CommUtils.readInputStream(dcsIn, buffer, 0, inHdr.messageLen, caller);
+								
+								if (!inHdr.messageType.equals(ClientHeader.kCOMM))
+									Log.inst().info("WHOA!!! Received " + inHdr.messageType + " header");
+								
 							} while (!inHdr.messageType.equals(ClientHeader.kCOMM));
+							
+							String receivedData = new String(buffer, 0, inHdr.messageLen);
+							Log.inst().info("Received from server: ");
+							Log.inst().info(receivedData);
 						}
 					}
 					else
@@ -307,7 +316,10 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 						synchronized(dcsOut) {
 							CommUtils.writeHeader(dcsOut, outHdr, len, msgSrc, msgDst, ClientHeader.kCOMM, caller);
 							CommUtils.writeOutputStream(dcsOut, buffer, 0, len, caller);
-							Log.inst().info("Wrote header + " + len + " bytes to server.");
+							
+							String sentData = new String(buffer, 0, len);
+							Log.inst().info("Sent to local RB: ");
+							Log.inst().info(sentData);
 						}
 						
 						// Also do the usual pass-thru to the local RB
@@ -323,12 +335,16 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 				else	// Host
 				{
 					// The thread that has modifyReplyPort set is the one sending data from PF or ATM4 to RB. As a host,
-					// and during comm routing, we don't want to send this data to the local RB because we are letting the
-					// presenter do that. So, we do not write the local OutputStream.
+					// and during comm routing, we still write the contents of the buffer to the local OutputStream but
+					// the buffer contents have been filled with data from the remote PF or ATM4.
 					if (modifyReplyPort)
 					{
 						// Just do the usual pass-thru
 						CommUtils.writeOutputStream(out, buffer, 0, len, caller);
+						
+						String sentData = new String(buffer, 0, len);
+						Log.inst().info("Sent to local RB: ");
+						Log.inst().info(sentData);
 					}
 					else
 					{
