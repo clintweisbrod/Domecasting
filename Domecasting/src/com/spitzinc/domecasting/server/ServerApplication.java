@@ -12,6 +12,7 @@ import javax.swing.SwingUtilities;
 import javax.swing.Timer;
 
 import com.spitzinc.domecasting.ApplicationBase;
+import com.spitzinc.domecasting.Log;
 import com.spitzinc.domecasting.SortedProperties;
 import com.spitzinc.domecasting.server.ServerAppFrame;
 
@@ -38,7 +39,10 @@ public class ServerApplication extends ApplicationBase implements WindowListener
 	
 	public ServerApplication()
 	{
-		System.out.println("Starting instance of " + this.getClass().getSimpleName());
+		// Configure logger
+		configureLog4j("src/com/spitzinc/domecasting/server");
+		
+		Log.inst().info("Starting instance of " + getClass().getSimpleName());
 		
 		readPrefs();
 		

@@ -13,6 +13,9 @@ import javax.swing.JFrame;
 import javax.swing.UIManager;
 import javax.swing.UnsupportedLookAndFeelException;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.core.LoggerContext;
+
 import java.util.Properties;
 
 public abstract class ApplicationBase implements WindowListener
@@ -50,14 +53,34 @@ public abstract class ApplicationBase implements WindowListener
 		createUIElements();
 	}
 	
+	protected void configureLog4j(String configPath)
+	{
+		// Configure logger to read a configuration file from same folder as properties file and
+		// write log file to same place.
+		String propsPath = getPropertiesPath();
+		System.setProperty("log4j.logpath", propsPath);
+		File log4jConfigFile = new File(configPath + File.separatorChar + "log4j2.xml");
+		LoggerContext context = (org.apache.logging.log4j.core.LoggerContext)LogManager.getContext(false);
+		context.setConfigLocation(log4jConfigFile.toURI());
+		
+//		File log4jConfigFile = getPropertiesFile(configFilename);
+//		String log4jFolder = log4jConfigFile.getParentFile().getAbsolutePath();
+//		System.setProperty("log4j.logpath", log4jFolder);
+//		LoggerContext context = (org.apache.logging.log4j.core.LoggerContext)LogManager.getContext(false);
+//		context.setConfigLocation(log4jConfigFile.toURI());
+	}
+	
+	protected String getPropertiesPath()
+	{
+		String propsFilePath = new String(System.getenv("APPDATA"));
+		propsFilePath = propsFilePath.concat(File.separator).concat(kCompanyName);
+		propsFilePath = propsFilePath.concat(File.separator).concat(kProductName);
+		return propsFilePath;
+	}
+	
 	protected File getPropertiesFile(String fileName)
 	{
-		String prefsFilePath = new String(System.getenv("APPDATA"));
-		prefsFilePath = prefsFilePath.concat(File.separator).concat(kCompanyName);
-		prefsFilePath = prefsFilePath.concat(File.separator).concat(kProductName);
-		prefsFilePath = prefsFilePath.concat(File.separator).concat(fileName);
-		
-		return new File(prefsFilePath);
+		return new File(getPropertiesPath().concat(File.separator).concat(fileName));
 	}
 	
 	protected Properties readPropertiesFromFile(File inFile)

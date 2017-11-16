@@ -12,6 +12,7 @@ import javax.swing.*;
 
 import com.spitzinc.domecasting.ApplicationBase;
 import com.spitzinc.domecasting.CommUtils;
+import com.spitzinc.domecasting.Log;
 import com.spitzinc.domecasting.SortedProperties;
 
 public class ClientApplication extends ApplicationBase implements WindowListener
@@ -47,7 +48,10 @@ public class ClientApplication extends ApplicationBase implements WindowListener
 	
 	public ClientApplication()
 	{
-		System.out.println("Starting instance of " + getClass().getSimpleName());
+		// Configure logger
+		configureLog4j("src/com/spitzinc/domecasting/client");
+		
+		Log.inst().info("Starting instance of " + getClass().getSimpleName());
 		
 		readPrefs();
 	
