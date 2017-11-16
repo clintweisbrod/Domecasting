@@ -256,13 +256,13 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 								CommUtils.readInputStream(dcsIn, buffer, 0, inHdr.messageLen, caller);
 								
 								if (!inHdr.messageType.equals(ClientHeader.kCOMM))
-									Log.inst().info("WHOA!!! Received " + inHdr.messageType + " header");
+									Log.inst().error("WHOA!!! Received " + inHdr.messageType + " header");
 								
 							} while (!inHdr.messageType.equals(ClientHeader.kCOMM));
 							
-							String receivedData = new String(buffer, 0, inHdr.messageLen);
-							Log.inst().info("Received from server: ");
-							Log.inst().info(receivedData);
+//							String receivedData = new String(buffer, 0, inHdr.messageLen);
+//							Log.inst().info("Received from server: ");
+//							Log.inst().info(receivedData);
 						}
 					}
 				}
@@ -284,13 +284,13 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 								CommUtils.readInputStream(dcsIn, buffer, 0, inHdr.messageLen, caller);
 								
 								if (!inHdr.messageType.equals(ClientHeader.kCOMM))
-									Log.inst().info("WHOA!!! Received " + inHdr.messageType + " header");
+									Log.inst().error("WHOA!!! Received " + inHdr.messageType + " header");
 								
 							} while (!inHdr.messageType.equals(ClientHeader.kCOMM));
 							
-							String receivedData = new String(buffer, 0, inHdr.messageLen);
-							Log.inst().info("Received from server: ");
-							Log.inst().info(receivedData);
+//							String receivedData = new String(buffer, 0, inHdr.messageLen);
+//							Log.inst().info("Received from server: ");
+//							Log.inst().info(receivedData);
 						}
 					}
 					else
@@ -330,9 +330,9 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 							CommUtils.writeHeader(dcsOut, outHdr, len, msgSrc, msgDst, ClientHeader.kCOMM, caller);
 							CommUtils.writeOutputStream(dcsOut, buffer, 0, len, caller);
 							
-							String sentData = new String(buffer, 0, len);
-							Log.inst().info("Sent to local RB: ");
-							Log.inst().info(sentData);
+//							String sentData = new String(buffer, 0, len);
+//							Log.inst().info("Sent to local RB: ");
+//							Log.inst().info(sentData);
 						}
 						
 						// Also do the usual pass-thru to the local RB
@@ -356,9 +356,9 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 						// Just do the usual pass-thru
 						CommUtils.writeOutputStream(out, buffer, 0, len, caller);
 						
-						String sentData = new String(buffer, 0, len);
-						Log.inst().info("Sent to local RB: ");
-						Log.inst().info(sentData);
+//						String sentData = new String(buffer, 0, len);
+//						Log.inst().info("Sent to local RB: ");
+//						Log.inst().info(sentData);
 					}
 					else
 					{
