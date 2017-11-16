@@ -107,7 +107,7 @@ public class ClientApplication extends ApplicationBase implements WindowListener
 		appFrame.setVisible(true);
 	}
 	
-	public boolean routeComm()
+	public synchronized boolean routeComm()
 	{
 		// Decide if the necessary conditions are in place to begin routing comm
 		boolean result = false;
@@ -126,7 +126,7 @@ public class ClientApplication extends ApplicationBase implements WindowListener
 		else
 		{
 			String domecastID = appFrame.hostPanel.getDomecastID();
-			boolean domecastStarted = appFrame.hostPanel.btnPresentationControl.getText().equals("Stop Domecast");
+			boolean domecastStarted = appFrame.hostPanel.domecastOn.get();
 			result = isPeerReady && domecastStarted && (domecastID.length() >= PresenterPanel.kMinDomecastIDLength);
 		}
 		

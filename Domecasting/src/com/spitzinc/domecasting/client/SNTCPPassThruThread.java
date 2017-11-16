@@ -244,11 +244,13 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 						// read this data above but we will now ignore it. We want to read the response from the remote RB.
 						// Read and parse the header
 						synchronized(dcsIn) {
-							CommUtils.readInputStream(dcsIn, inHdr.bytes, 0, ClientHeader.kHdrByteCount, caller);
-							inHdr.parseHeaderBuffer();
-						
-							// Read the data
-							CommUtils.readInputStream(dcsIn, buffer, 0, inHdr.messageLen, caller);
+							do {
+								// Read header
+								CommUtils.readInputStream(dcsIn, inHdr.bytes, 0, ClientHeader.kHdrByteCount, caller);
+								inHdr.parseHeaderBuffer();
+								// Read the data
+								CommUtils.readInputStream(dcsIn, buffer, 0, inHdr.messageLen, caller);
+							} while (!inHdr.messageType.equals(ClientHeader.kCOMM));
 						}
 					}
 				}
@@ -260,11 +262,13 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 						// we will now ignore it. We want to read the data from the remote PF or ATM4.
 						// Read and parse the header
 						synchronized(dcsIn) {
-							CommUtils.readInputStream(dcsIn, inHdr.bytes, 0, ClientHeader.kHdrByteCount, caller);
-							inHdr.parseHeaderBuffer();
-						
-							// Read the data
-							CommUtils.readInputStream(dcsIn, buffer, 0, inHdr.messageLen, caller);
+							do {
+								// Read header
+								CommUtils.readInputStream(dcsIn, inHdr.bytes, 0, ClientHeader.kHdrByteCount, caller);
+								inHdr.parseHeaderBuffer();
+								// Read the data
+								CommUtils.readInputStream(dcsIn, buffer, 0, inHdr.messageLen, caller);
+							} while (!inHdr.messageType.equals(ClientHeader.kCOMM));
 						}
 					}
 					else
@@ -314,7 +318,8 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 					// presenter do that. So, we do not write the local OutputStream.
 					if (modifyReplyPort)
 					{
-						
+						// Just do the usual pass-thru
+						CommUtils.writeOutputStream(out, buffer, 0, len, caller);
 					}
 					else
 					{

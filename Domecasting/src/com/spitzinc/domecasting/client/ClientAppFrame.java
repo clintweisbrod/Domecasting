@@ -33,12 +33,10 @@ public class ClientAppFrame extends JFrame
 		private static final int kPollIntervalSeconds = 3;
 		
 		public AtomicBoolean stopped;
-		public AtomicBoolean paused;
 		
 		public ServerStatusThread()
 		{
 			this.stopped = new AtomicBoolean(false);
-			this.paused = new AtomicBoolean(false);
 		}
 		
 		protected Integer doInBackground() throws Exception
@@ -52,15 +50,13 @@ public class ClientAppFrame extends JFrame
 			boolean isConnected, isPeerPresent, isPeerReady;
 			while (!stopped.get())
 			{
-				if (!paused.get())
+				// Only do this if we're not routing comm
+				if (!theApp.routeComm())
 				{
 					// Get server status
 					isConnected = theApp.isConnected();
 					isPeerPresent = theApp.isPeerPresent();
 					isPeerReady = theApp.isPeerReady();
-					
-					if ((theApp.clientType == CommUtils.kPresenterID) && isPeerReady)
-						paused.set(true);
 					
 					// Get list of domecasts currently connected to server
 					String domecasts = null;
@@ -80,11 +76,10 @@ public class ClientAppFrame extends JFrame
 					} catch (InterruptedException e) {
 					}
 				}
-				
-				// If domecast communication is in progress, we don't want this thread continually
-				// requesting info from the server.
-				if (paused.get())
+				else
 				{
+					// If domecast communication is in progress, we don't want this thread continually
+					// requesting info from the server.
 					synchronized(this) {
 						try {
 							wait();	// Wait here indefinitely until another thread calls this thread's notify() method.
@@ -118,28 +113,24 @@ public class ClientAppFrame extends JFrame
 					domecasts = item.split("~");
 			}
 			
-			// Update the panel, but only if the thread is not paused
-			if (!paused.get())
+			// Update the panel
+			if (!isConnected)
+				setPanelStatus(ConnectionStatus.eNotConnected, domecasts);
+			else
 			{
-				// Update panel
-				if (!isConnected)
-					setPanelStatus(ConnectionStatus.eNotConnected, domecasts);
+				if (!isPeerPresent)
+				{
+					if (domecasts != null)
+						setPanelStatus(ConnectionStatus.eConnectedPeersAvailable, domecasts);
+					else
+						setPanelStatus(ConnectionStatus.eConnectedNoPeer, domecasts);
+				}
 				else
 				{
-					if (!isPeerPresent)
-					{
-						if (domecasts != null)
-							setPanelStatus(ConnectionStatus.eConnectedPeersAvailable, domecasts);
-						else
-							setPanelStatus(ConnectionStatus.eConnectedNoPeer, domecasts);
-					}
+					if (!isPeerReady)
+						setPanelStatus(ConnectionStatus.eConnectedPeerNotReady, domecasts);
 					else
-					{
-						if (!isPeerReady)
-							setPanelStatus(ConnectionStatus.eConnectedPeerNotReady, domecasts);
-						else
-							setPanelStatus(ConnectionStatus.eConnectedPeerReady, domecasts);
-					}
+						setPanelStatus(ConnectionStatus.eConnectedPeerReady, domecasts);
 				}
 			}
 		}
@@ -218,26 +209,9 @@ public class ClientAppFrame extends JFrame
 	//	Control of status update thread
 	//
 	
-	public void pauseUpdateThread() {
-		statusThread.paused.set(true);
-	}
-	
-	public void unpauseUpdateThread()
-	{
-		statusThread.paused.set(false);
-		synchronized (statusThread) {
-			statusThread.notify();
-		}
-	}
-	
 	public void stopUpdateThread()
 	{
 		if (statusThread != null)
-		{
 			statusThread.stopped.set(true);
-		
-			if (statusThread.paused.get())
-				unpauseUpdateThread();
-		}
 	}
 }
