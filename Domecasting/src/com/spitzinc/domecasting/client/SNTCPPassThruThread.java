@@ -182,7 +182,7 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 					System.out.println(getName() + ": messageLengthStr: " + messageLengthStr + ".");
 					throw new IOException(e.getMessage());
 				}
-				System.out.println(getName() + ": Parsed messageLength = " + messageLength);
+//				System.out.println(getName() + ": Parsed messageLength = " + messageLength);
 
 				if (modifyReplyPort)
 				{
@@ -250,7 +250,14 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 								inHdr.parseHeaderBuffer();
 								// Read the data
 								CommUtils.readInputStream(dcsIn, buffer, 0, inHdr.messageLen, caller);
+								
+								if (!inHdr.messageType.equals(ClientHeader.kCOMM))
+									System.out.println("WHOA!!! Received " + inHdr.messageType + " header");
+								
 							} while (!inHdr.messageType.equals(ClientHeader.kCOMM));
+							String receivedData = new String(buffer, 0, inHdr.messageLen);
+							System.out.println("Received from server: ");
+							System.out.println(receivedData);
 						}
 					}
 				}
@@ -299,6 +306,7 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 						synchronized(dcsOut) {
 							CommUtils.writeHeader(dcsOut, outHdr, len, msgSrc, msgDst, ClientHeader.kCOMM, caller);
 							CommUtils.writeOutputStream(dcsOut, buffer, 0, len, caller);
+							System.out.println("Wrote header + " + len + " bytes to server.");
 						}
 						
 						// Also do the usual pass-thru to the local RB
