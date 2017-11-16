@@ -226,9 +226,6 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 	
 	private void handleInputStreamCommRouting(byte[] buffer, int offset, int len, String caller) throws IOException
 	{
-		// Do the usual read from PF or ATM4. This may be overwritten below
-		CommUtils.readInputStream(in, buffer, 0, len, caller);
-		
 		if (theApp.routeComm())
 		{
 			InputStream dcsIn = theApp.getServerInputStream();
@@ -238,11 +235,17 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 				{
 					if (modifyReplyPort)
 					{
+						// If we get here, this is the thread that reads data from PF or ATM4. Read the data.
+						CommUtils.readInputStream(in, buffer, 0, len, caller);
 					}
 					else
 					{
-						// If we get here, this is the thread that reads responses from the local RB. We have already
-						// read this data above but we will now ignore it. We want to read the response from the remote RB.
+						// If we get here, this is the thread that reads responses from the local RB. We want to read
+						// the response from the remote RB.
+						
+						// This is not the data we want during comm routing
+//						CommUtils.readInputStream(in, buffer, 0, len, caller);
+
 						// Read and parse the header
 						synchronized(dcsIn) {
 							do {
@@ -267,8 +270,10 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 				{
 					if (modifyReplyPort)
 					{
-						// If we get here, we're reading data from PF or ATM4. We have already read this data above but
-						// we will now ignore it. We want to read the data from the remote PF or ATM4.
+						// This is not the data we want during comm routing
+//						CommUtils.readInputStream(in, buffer, 0, len, caller);
+						
+						// If we get here, we're reading data from PF or ATM4. We want to read the data from the remote PF or ATM4.
 						// Read and parse the header
 						synchronized(dcsIn) {
 							do {
@@ -290,9 +295,17 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 					}
 					else
 					{
+						// If we get here, we're reading responses from the local RB. These responses must be
+						// sent back to the presenter so read them.
+						CommUtils.readInputStream(in, buffer, 0, len, caller);
 					}
 				}
 			}
+		}
+		else
+		{
+			// Do the usual read from PF or ATM4. This may be overwritten below
+			CommUtils.readInputStream(in, buffer, 0, len, caller);
 		}
 	}
 	
@@ -328,8 +341,9 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 					else
 					{
 						// If we get here, this is the thread that handles responses from RB to either PF or ATM4.
-						// The local OutputStream (out) is a connection to either PF or ATM4. For presenters, we want
-						// to receive the remote RB's responses, not the local ones, so we do not write the local OutputStream.
+						// The local OutputStream (out) is a connection to either PF or ATM4. For presenters, we
+						// receive the remote RB's responses, not the local ones.
+						CommUtils.writeOutputStream(out, buffer, 0, len, caller);
 					}
 				}
 				else	// Host
