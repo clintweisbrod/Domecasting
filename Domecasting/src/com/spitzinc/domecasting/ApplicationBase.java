@@ -62,12 +62,6 @@ public abstract class ApplicationBase implements WindowListener
 		File log4jConfigFile = new File(configPath + File.separatorChar + "log4j2.xml");
 		LoggerContext context = (org.apache.logging.log4j.core.LoggerContext)LogManager.getContext(false);
 		context.setConfigLocation(log4jConfigFile.toURI());
-		
-//		File log4jConfigFile = getPropertiesFile(configFilename);
-//		String log4jFolder = log4jConfigFile.getParentFile().getAbsolutePath();
-//		System.setProperty("log4j.logpath", log4jFolder);
-//		LoggerContext context = (org.apache.logging.log4j.core.LoggerContext)LogManager.getContext(false);
-//		context.setConfigLocation(log4jConfigFile.toURI());
 	}
 	
 	protected String getPropertiesPath()

@@ -180,7 +180,7 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 				try {
 					messageLength = Integer.parseInt(messageLengthStr);
 				} catch (NumberFormatException e) {
-					Log.inst().error("messageLengthStr: " + messageLengthStr + ".");
+					Log.inst().error("messageLengthStr: " + messageLengthStr);
 					throw new IOException(e.getMessage());
 				}
 //				Log.inst().info("Parsed messageLength = " + messageLength);
