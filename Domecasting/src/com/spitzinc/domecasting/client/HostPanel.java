@@ -91,7 +91,7 @@ public class HostPanel extends JPanel
 					
 					// Disable controls so that only the btnPresentationControl is enabled
 					availableDomecasts.setEnabled(false);
-					inst.appFrame.setEnabled(false);
+					inst.appFrame.tabbedPane.setEnabled(false);
 					
 					// Change the button text
 					btnPresentationControl.setText("Stop Domecast");
@@ -106,7 +106,7 @@ public class HostPanel extends JPanel
 					
 					// Enable controls we disabled
 					availableDomecasts.setEnabled(true);
-					inst.appFrame.setEnabled(true);
+					inst.appFrame.tabbedPane.setEnabled(true);
 					
 					// Change the button text
 					btnPresentationControl.setText("Start Domecast");
