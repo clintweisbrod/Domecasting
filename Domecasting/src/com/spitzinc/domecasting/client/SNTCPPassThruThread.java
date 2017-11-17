@@ -81,9 +81,10 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 				// Allocate byte buffer to handle comm
 				byte[] buffer = new byte[CommUtils.kCommBufferSize];
 
-				// Begin reading data from inbound stream and writing it to outbound stream
+				// Begin reading data from inbound stream and writing it to outbound stream in chunks
+				// of SN comm.
 				while (!stopped.get())
-					starryNightPassThru(buffer);
+					starryNightPassThru(buffer, theApp.routeComm());
 			}
 
 			// Close streams
@@ -160,7 +161,7 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 	 * @param buffer
 	 * @throws IOException 
 	 */
-	private void starryNightPassThru(byte[] buffer)
+	private void starryNightPassThru(byte[] buffer, boolean routeComm)
 	{
 		// If modifyReplyPort is true, this means we are dealing with communication that has
 		// originated from PF | ATM4. If theApp.routeComm is true, then we must
@@ -168,7 +169,7 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 		// Read the SN header from the inbound socket
 		try
 		{
-			handleInputStreamCommRouting(buffer, 0, kSNHeaderLength, getName());
+			handleInputStreamCommRouting(buffer, 0, kSNHeaderLength, routeComm, getName());
 //			CommUtils.readInputStream(in, buffer, 0, kSNHeaderLength, getName());
 
 			// Get total length of incoming message and modify the replyToPort
@@ -198,7 +199,7 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 					clientAppName = new String(buffer, kSNHeaderClientAppNamePosition, kSNHeaderFieldLength).trim();
 
 				// Write the header to the outbound socket
-				handleOutputStreamCommRouting(buffer, 0, kSNHeaderLength, getName());
+				handleOutputStreamCommRouting(buffer, 0, kSNHeaderLength, routeComm, getName());
 //				CommUtils.writeOutputStream(out, buffer, 0, kSNHeaderLength, getName());
 			}
 
@@ -208,11 +209,11 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 			{
 				// Read as much of the message as our buffer will hold
 				int bytesToRead = Math.min(bytesLeftToReceive, buffer.length);
-				handleInputStreamCommRouting(buffer, 0, bytesToRead, getName());
+				handleInputStreamCommRouting(buffer, 0, bytesToRead, routeComm, getName());
 //				CommUtils.readInputStream(in, buffer, 0, bytesToRead, getName());
 
 				// Write the buffer
-				handleOutputStreamCommRouting(buffer, 0, bytesToRead, getName());
+				handleOutputStreamCommRouting(buffer, 0, bytesToRead, routeComm, getName());
 //				CommUtils.writeOutputStream(out, buffer, 0, bytesToRead, getName());
 
 				bytesLeftToReceive -= bytesToRead;
@@ -224,9 +225,9 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 		}
 	}
 	
-	private void handleInputStreamCommRouting(byte[] buffer, int offset, int len, String caller) throws IOException
+	private void handleInputStreamCommRouting(byte[] buffer, int offset, int len, boolean routeComm, String caller) throws IOException
 	{
-		if (theApp.routeComm())
+		if (routeComm)
 		{
 			InputStream dcsIn = theApp.getServerInputStream();
 			if (dcsIn != null)
@@ -309,9 +310,9 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 		}
 	}
 	
-	private void handleOutputStreamCommRouting(byte[] buffer, int offset, int len, String caller) throws IOException
+	private void handleOutputStreamCommRouting(byte[] buffer, int offset, int len, boolean routeComm, String caller) throws IOException
 	{
-		if (theApp.routeComm())
+		if (routeComm)
 		{
 			OutputStream dcsOut = theApp.getServerOutputStream();
 			if (dcsOut != null)
