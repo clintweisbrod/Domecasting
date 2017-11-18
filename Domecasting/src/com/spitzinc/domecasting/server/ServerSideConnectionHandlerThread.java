@@ -134,16 +134,7 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 			String[] list = req.split("=");
 			boolean isDomecastIDUnique = listenerThread.isDomecastIDUnique(list[1]);
 			
-			// Respond to request
-			String reply = CommUtils.kIsDomecastIDUnique + "=" + Boolean.toString(isDomecastIDUnique);
-			byte[] replyBytes = reply.getBytes();
-			
-			// We're performing two writes to the OutputStream. They MUST be sequential.
-			synchronized (outputStreamLock)
-			{
-				CommUtils.writeHeader(out, outHdr, replyBytes.length, ClientHeader.kDCS, ClientHeader.kDCC, ClientHeader.kINFO);
-				CommUtils.writeOutputStream(out, replyBytes, 0, replyBytes.length);
-			}
+			sendBoolean(CommUtils.kIsDomecastIDUnique, isDomecastIDUnique);
 		}
 	}
 	
