@@ -191,7 +191,7 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 			// Build a reply to send back
 			String reply = null;
 			if (domecasts.isEmpty())
-				reply = CommUtils.kGetAvailableDomecasts + "=" + "<none>";
+				reply = CommUtils.kGetAvailableDomecasts + "=" + CommUtils.kNoAvailableDomecastIDs;
 			else
 			{
 				StringBuffer buf = new StringBuffer(CommUtils.kGetAvailableDomecasts + "=");

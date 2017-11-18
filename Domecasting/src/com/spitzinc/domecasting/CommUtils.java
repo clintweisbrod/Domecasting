@@ -27,6 +27,8 @@ public class CommUtils
 	public static final String kClientType = "clientType";
 	public static final String kHostReadyForDomecast = "hostReadyForDomecast";
 	
+	public static final String kNoAvailableDomecastIDs = "<none>";
+	
 	public static Socket connectToHost(String hostName, int port)
 	{
 		Socket result = null;

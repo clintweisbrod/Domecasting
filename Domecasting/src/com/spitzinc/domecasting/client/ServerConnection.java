@@ -212,7 +212,9 @@ public class ServerConnection
 			else if (list[0].equals(CommUtils.kIsDomecastIDUnique))
 			{
 				theApp.isDomecastIDUnique.set(Boolean.parseBoolean(list[1]));
-				theApp.isDomecastIDUnique.notify();	// Need this for wait() call in PresenterPanel.DomecastIDSendThread.
+				synchronized(theApp.isDomecastIDUnique) {
+					theApp.isDomecastIDUnique.notify();	// Need this for wait() call in PresenterPanel.DomecastIDSendThread.
+				}
 			}
 			else if (list[0].equals(CommUtils.kGetAvailableDomecasts))
 				theApp.availableDomecasts = list[1];
@@ -265,38 +267,38 @@ public class ServerConnection
 	}
 	
 	public void sendHostReadyToCast(boolean readyToCast) {
-		sendToServer(CommUtils.kHostReadyForDomecast + "=" + Boolean.toString(readyToCast));
+		sendToServer(CommUtils.kHostReadyForDomecast + "=" + Boolean.toString(readyToCast), ClientHeader.kINFO);
 	}
 	
 	public void isConnected() {
-		sendToServer(CommUtils.kIsConnected);
+		sendToServer(CommUtils.kIsConnected, ClientHeader.kREQU);
 	}
 	
 	public void isPeerPresent() {
-		sendToServer(CommUtils.kIsPeerPresent);
+		sendToServer(CommUtils.kIsPeerPresent, ClientHeader.kREQU);
 	}
 	
 	public void isPeerReady() {
-		sendToServer(CommUtils.kIsPeerReady);
+		sendToServer(CommUtils.kIsPeerReady, ClientHeader.kREQU);
 	}
 	
 	public void isDomecastIDUnique(String domecastID) {
-		sendToServer(CommUtils.kIsDomecastIDUnique + "=" + domecastID);
+		sendToServer(CommUtils.kIsDomecastIDUnique + "=" + domecastID, ClientHeader.kREQU);
 	}
 	
 	public void getAvailableDomecasts()	{
-		sendToServer(CommUtils.kGetAvailableDomecasts);
+		sendToServer(CommUtils.kGetAvailableDomecasts, ClientHeader.kREQU);
 	}
 	
 	public void sendDomecastID(String domecastID) {
-		sendToServer(CommUtils.kDomecastID + "=" + domecastID);
+		sendToServer(CommUtils.kDomecastID + "=" + domecastID, ClientHeader.kREQU);
 	}
 	
 	public void sendClientType(byte clientType)	{
-		sendToServer(CommUtils.kClientType + "=" + (char)clientType);
+		sendToServer(CommUtils.kClientType + "=" + (char)clientType, ClientHeader.kINFO);
 	}
 	
-	private void sendToServer(String serverCmd)
+	private void sendToServer(String serverCmd, String msgType)
 	{
 		if ((socket != null) && socket.isConnected())
 		{
@@ -306,7 +308,7 @@ public class ServerConnection
 			synchronized (outputStreamLock)
 			{
 				try {
-					CommUtils.writeHeader(out, outHdr, theBytes.length, ClientHeader.kDCC, ClientHeader.kDCS, ClientHeader.kINFO);
+					CommUtils.writeHeader(out, outHdr, theBytes.length, ClientHeader.kDCC, ClientHeader.kDCS, msgType);
 					CommUtils.writeOutputStream(out, theBytes, 0, theBytes.length);
 				} catch (IOException e) {
 					// TODO Auto-generated catch block

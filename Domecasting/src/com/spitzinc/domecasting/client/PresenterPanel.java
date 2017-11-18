@@ -70,11 +70,13 @@ public class PresenterPanel extends JPanel
 					// Ask server if the supplied domecastID is unique. This is not a synchronous call
 					// so we have to wait for ServerConnection.ServerInputHandlerThread to call notify().
 					inst.serverConnection.isDomecastIDUnique(domecastID);
-					try {
-						inst.isDomecastIDUnique.wait();
-					} catch (InterruptedException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
+					synchronized(inst.isDomecastIDUnique) {
+						try {
+							inst.isDomecastIDUnique.wait();
+						} catch (InterruptedException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
 					}
 					
 					if (inst.isDomecastIDUnique.get())

@@ -88,7 +88,8 @@ public class ClientAppFrame extends JFrame
 		protected void process(List<String> publishedItems)
 		{
 			String[] domecasts = null;
-			if (!theApp.availableDomecasts.isEmpty())
+			if ((theApp.availableDomecasts != null) && !theApp.availableDomecasts.isEmpty() &&
+				 !theApp.availableDomecasts.equals(CommUtils.kNoAvailableDomecastIDs))
 				domecasts = theApp.availableDomecasts.split("~");
 			
 			// Update the panel

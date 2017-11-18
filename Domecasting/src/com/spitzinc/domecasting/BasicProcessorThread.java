@@ -9,6 +9,7 @@ public class BasicProcessorThread extends Thread
 	public BasicProcessorThread()
 	{
 		this.stopped = new AtomicBoolean(true);
+		this.setName(getClass().getSimpleName());
 	}
 	
 	public boolean getStopped() {
