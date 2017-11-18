@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Properties;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.swing.*;
 
@@ -41,9 +42,14 @@ public class ClientApplication extends ApplicationBase implements WindowListener
 	
 	public ClientAppFrame appFrame;
 	private SNTCPPassThruServer snPassThru = null;
-	private ServerConnectionThread serverConnectionThread;
 	
-	public boolean isPeerReady = false;
+	public ServerConnection serverConnection;
+	public AtomicBoolean isConnected;
+	public AtomicBoolean isPeerPresent;
+	public AtomicBoolean isPeerReady;
+	public AtomicBoolean isDomecastIDUnique;
+	public String availableDomecasts;
+	
 	public byte clientType = CommUtils.kHostID;
 	
 	public ClientApplication()
@@ -54,10 +60,15 @@ public class ClientApplication extends ApplicationBase implements WindowListener
 		Log.inst().info("Starting instance of " + getClass().getSimpleName());
 		
 		readPrefs();
+
+		// Status from server
+		this.isConnected = new AtomicBoolean(false);
+		this.isPeerPresent = new AtomicBoolean(false);
+		this.isPeerReady = new AtomicBoolean(false);
+		this.isDomecastIDUnique = new AtomicBoolean(false);
 	
-		// Start thread to manage connection with server
-		serverConnectionThread = new ServerConnectionThread(this, domecastingServerHostname, domecastingServerPort);
-		serverConnectionThread.start();
+		// Create object to manage connection with server
+		serverConnection = new ServerConnection(this, domecastingServerHostname, domecastingServerPort);
 		
 		// Start threads to handle pass-thru of local SN comm. Both presenter and host modes
 		// of the client require these connections to be established.
@@ -119,13 +130,13 @@ public class ClientApplication extends ApplicationBase implements WindowListener
 		if (clientType == CommUtils.kPresenterID)
 		{
 			String domecastID = appFrame.presenterPanel.getDomecastID();
-			result = isPeerReady && (domecastID.length() >= PresenterPanel.kMinDomecastIDLength);
+			result = isPeerReady.get() && (domecastID.length() >= PresenterPanel.kMinDomecastIDLength);
 		}
 		else
 		{
 			String domecastID = appFrame.hostPanel.getDomecastID();
 			boolean domecastStarted = appFrame.hostPanel.domecastOn.get();
-			result = isPeerReady && domecastStarted && (domecastID.length() >= PresenterPanel.kMinDomecastIDLength);
+			result = isPeerReady.get() && domecastStarted && (domecastID.length() >= PresenterPanel.kMinDomecastIDLength);
 		}
 		
 		return result;
@@ -135,8 +146,8 @@ public class ClientApplication extends ApplicationBase implements WindowListener
 	{
 		InputStream result = null;
 		
-		if (serverConnectionThread != null)
-			result = serverConnectionThread.getInputStream();
+		if (serverConnection != null)
+			result = serverConnection.getInputStream();
 
 		return result;
 	}
@@ -145,118 +156,9 @@ public class ClientApplication extends ApplicationBase implements WindowListener
 	{
 		OutputStream result = null;
 		
-		if (serverConnectionThread != null)
-			result = serverConnectionThread.getOutputStream();
+		if (serverConnection != null)
+			result = serverConnection.getOutputStream();
 
-		return result;
-	}
-		
-	public void sendHostReadyToCast(boolean value)
-	{
-		if (serverConnectionThread != null)
-		{
-			synchronized (serverConnectionThread) {
-				serverConnectionThread.sendHostReadyToCast(value);
-			}
-		}
-	}
-	
-	public boolean isConnected()
-	{
-		boolean result = false;
-		
-		if (serverConnectionThread != null)
-		{
-			synchronized (serverConnectionThread) {
-				result = serverConnectionThread.isConnected();
-			}
-		}
-		
-		return result;
-	}
-	
-	public boolean isPeerPresent()
-	{
-		boolean result = false;
-		
-		if (serverConnectionThread != null)
-		{
-			synchronized (serverConnectionThread) {
-				result = serverConnectionThread.isPeerPresent();
-			}
-		}
-		
-		return result;
-	}
-	
-	public boolean isPeerReady()
-	{
-		boolean result = false;
-		
-		if (serverConnectionThread != null)
-		{
-			synchronized (serverConnectionThread) {
-				isPeerReady = result = serverConnectionThread.isPeerReady();
-			}
-		}
-		
-		return result;
-	}
-	
-	public boolean isDomecastIDUnique(String domecastID)
-	{
-		boolean result = false;
-
-		if (serverConnectionThread != null)
-		{
-			synchronized (serverConnectionThread) {
-				result = serverConnectionThread.isDomecastIDUnique(domecastID);
-			}
-		}
-		
-		return result;
-	}
-	
-	public String getAvailableDomecasts()
-	{
-		String result = null;
-		
-		if (serverConnectionThread != null)
-		{
-			synchronized (serverConnectionThread) {
-				result = serverConnectionThread.getAvailableDomecasts();
-			}
-		}
-		
-		return result;
-	}
-	
-	public boolean sendClientType(byte clientType)
-	{
-		boolean result = false;
-		
-		if (serverConnectionThread != null)
-		{
-			synchronized (serverConnectionThread) {
-				this.clientType = clientType; 
-				result = serverConnectionThread.sendClientType(clientType);
-			}
-		}
-		
-		return result;
-	}
-	
-	public boolean sendDomecastID(String domecastID)
-	{
-		boolean result = false;
-		
-		if (serverConnectionThread != null)
-		{
-			synchronized (serverConnectionThread) {
-				result = serverConnectionThread.sendDomecastID(domecastID);
-			}
-		}
-		
 		return result;
 	}
 
@@ -265,15 +167,8 @@ public class ClientApplication extends ApplicationBase implements WindowListener
 	{
 		appFrame.stopUpdateThread();
 
-		// Force the server connection thread to finish
-		serverConnectionThread.setStopped();
-		serverConnectionThread.interrupt();
-		try {
-			serverConnectionThread.join();
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+		// Force the server connection threads to finish
+		serverConnection.shutdown();
 		
 		if (snPassThru != null)
 			snPassThru.stop();

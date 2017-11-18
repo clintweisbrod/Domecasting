@@ -65,14 +65,24 @@ public class PresenterPanel extends JPanel
 			{
 				// First make sure the supplied domecastID is unique on the server
 				ClientApplication inst = (ClientApplication)ClientApplication.inst();
-				if (inst.isConnected())
+				if (inst.isConnected.get())
 				{
-					if (inst.isDomecastIDUnique(domecastID))
+					// Ask server if the supplied domecastID is unique. This is not a synchronous call
+					// so we have to wait for ServerConnection.ServerInputHandlerThread to call notify().
+					inst.serverConnection.isDomecastIDUnique(domecastID);
+					try {
+						inst.isDomecastIDUnique.wait();
+					} catch (InterruptedException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+					
+					if (inst.isDomecastIDUnique.get())
 					{
 						Log.inst().info("Sending " + domecastID);
 						
 						// Time to send the domecastID
-						inst.sendDomecastID(domecastID);
+						inst.serverConnection.sendDomecastID(domecastID);
 						
 						// Enable the button to upload assets
 						SwingUtilities.invokeLater(new Runnable() {

@@ -3,6 +3,12 @@ package com.spitzinc.domecasting;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.Socket;
+import java.net.SocketAddress;
+import java.net.SocketTimeoutException;
+import java.net.UnknownHostException;
 
 public class CommUtils
 {
@@ -21,7 +27,38 @@ public class CommUtils
 	public static final String kClientType = "clientType";
 	public static final String kHostReadyForDomecast = "hostReadyForDomecast";
 	
-	public static void readInputStream(InputStream is, byte[] buffer, int offset, int len, String caller) throws IOException
+	public static Socket connectToHost(String hostName, int port)
+	{
+		Socket result = null;
+		
+		// Attempt to connect to outbound host
+		try
+		{
+			final int kConnectionTimeoutMS = 1000;
+			InetAddress addr = InetAddress.getByName(hostName);
+			SocketAddress sockaddr = new InetSocketAddress(addr, port);
+	
+			result = new Socket();
+			result.setKeepAlive(true);
+			result.connect(sockaddr, kConnectionTimeoutMS);
+		}
+		catch (UnknownHostException e) {
+			result = null;
+			Log.inst().info("Unknown host: " + hostName);
+		}
+		catch (SocketTimeoutException e) {
+			result = null;
+			Log.inst().info("Connect timeout.");
+		}
+		catch (IOException e) {
+			result = null;
+			Log.inst().info("Connect failed.");
+		}
+		
+		return result;
+	}
+	
+	public static void readInputStream(InputStream is, byte[] buffer, int offset, int len) throws IOException
 	{
 		int bytesLeftToRead = len;
 		int totalBytesRead = 0;
@@ -38,20 +75,20 @@ public class CommUtils
 			}
 			
 		} catch (IOException e) {
-			throw new IOException(caller + ": " + e.getMessage());
+			throw new IOException(e.getMessage());
 		} catch (IndexOutOfBoundsException e) {
-			Log.inst().error(caller + ": IndexOutOfBoundsException reading InputStream" +
+			Log.inst().error("IndexOutOfBoundsException reading InputStream" +
 					". buffer.length=" + buffer.length +
 					", offset=" + offset +
 					", len=" + len +
 					", totalBytesRead=" + totalBytesRead +
 					", bytesLeftToRead=" + bytesLeftToRead +
 					".");
-			throw new IOException(caller + ": " + e.getMessage());
+			throw new IOException(e.getMessage());
 		}
 	}
 	
-	public static void writeOutputStream(OutputStream os, byte[] buffer, int offset, int len, String caller) throws IOException
+	public static void writeOutputStream(OutputStream os, byte[] buffer, int offset, int len) throws IOException
 	{
 		try
 		{
@@ -59,20 +96,19 @@ public class CommUtils
 //			Log.inst().info(caller + ": Wrote " + len + " bytes to socket.");
 		}
 		catch (IOException | IndexOutOfBoundsException | NullPointerException e) {
-			throw new IOException(caller + ": " + e.getMessage());
+			throw new IOException(e.getMessage());
 		}
 	}
 	
 	public static void writeHeader(OutputStream os, ClientHeader hdr,
-								   int msgLen, String msgSrc, String msgDst, String msgType,
-								   String caller) throws IOException
+								   int msgLen, String msgSrc, String msgDst, String msgType) throws IOException
 	{
 		hdr.messageLen = msgLen;
 		hdr.messageSource = msgSrc;
 		hdr.messageDestination = msgDst;
 		hdr.messageType = msgType;
 		hdr.buildHeaderBuffer();
-		writeOutputStream(os, hdr.bytes, 0, ClientHeader.kHdrByteCount, caller);
+		writeOutputStream(os, hdr.bytes, 0, ClientHeader.kHdrByteCount);
 	}
 	
 	/**

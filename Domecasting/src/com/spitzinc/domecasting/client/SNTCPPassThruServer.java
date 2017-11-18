@@ -23,12 +23,12 @@ public class SNTCPPassThruServer
 	{
 		// Launch the listener threads
 		sendListenerThread.start();
-		recvListenerThread.start();
+//		recvListenerThread.start();
 	}
 
 	public void stop()
 	{
 		sendListenerThread.interrupt();
-		recvListenerThread.interrupt();
+//		recvListenerThread.interrupt();
 	}
 }

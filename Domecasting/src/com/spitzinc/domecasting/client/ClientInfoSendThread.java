@@ -26,11 +26,11 @@ public class ClientInfoSendThread extends Thread
 		
 		ClientApplication inst = (ClientApplication) ClientApplication.inst();
 		if (clientType != null)
-			inst.sendClientType(clientType.byteValue());
+			inst.serverConnection.sendClientType(clientType.byteValue());
 		if (readyToCast != null)
-			inst.sendHostReadyToCast(readyToCast.booleanValue());
+			inst.serverConnection.sendHostReadyToCast(readyToCast.booleanValue());
 		if (domecastID != null)
-			inst.sendDomecastID(domecastID);
+			inst.serverConnection.sendDomecastID(domecastID);
 
 		Log.inst().info("Exiting.");
 	}

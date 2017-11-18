@@ -33,8 +33,7 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 	public SNTCPPassThruThread(ClientSideConnectionListenerThread owner, Socket inboundSocket, TCPNode outboundNode)
 	{
 		super(owner, inboundSocket);
-		
-		this.owner = owner;
+
 		this.outboundNode = outboundNode;
 		this.modifyReplyPort = (outboundNode.replyPort != -1);
 		this.inHdr = new ClientHeader();
@@ -62,7 +61,7 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 	{
 		// Attempt to connect to outbound host
 		Log.inst().info("Attempting to establish outbound connection.");
-		outboundSocket = TCPConnectionHandlerThread.connectToHost(outboundNode.hostname, outboundNode.port, this.getName());
+		outboundSocket = CommUtils.connectToHost(outboundNode.hostname, outboundNode.port);
 		if (outboundSocket != null)
 		{
 			Log.inst().info("Outbound connection established.");
@@ -163,13 +162,16 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 	 */
 	private void starryNightPassThru(byte[] buffer, boolean routeComm)
 	{
-		// If modifyReplyPort is true, this means we are dealing with communication that has
-		// originated from PF | ATM4. If theApp.routeComm is true, then we must
-		
+//		if (routeComm && !modifyReplyPort)
+//		{
+//			int i = 0;
+//			i++;
+//		}
+
 		// Read the SN header from the inbound socket
 		try
 		{
-			handleInputStreamCommRouting(buffer, 0, kSNHeaderLength, routeComm, getName());
+			handleInputStreamCommRouting(buffer, 0, kSNHeaderLength, routeComm);
 //			CommUtils.readInputStream(in, buffer, 0, kSNHeaderLength, getName());
 
 			// Get total length of incoming message and modify the replyToPort
@@ -199,7 +201,7 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 					clientAppName = new String(buffer, kSNHeaderClientAppNamePosition, kSNHeaderFieldLength).trim();
 
 				// Write the header to the outbound socket
-				handleOutputStreamCommRouting(buffer, 0, kSNHeaderLength, routeComm, getName());
+				handleOutputStreamCommRouting(buffer, 0, kSNHeaderLength, routeComm);
 //				CommUtils.writeOutputStream(out, buffer, 0, kSNHeaderLength, getName());
 			}
 
@@ -209,11 +211,11 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 			{
 				// Read as much of the message as our buffer will hold
 				int bytesToRead = Math.min(bytesLeftToReceive, buffer.length);
-				handleInputStreamCommRouting(buffer, 0, bytesToRead, routeComm, getName());
+				handleInputStreamCommRouting(buffer, 0, bytesToRead, routeComm);
 //				CommUtils.readInputStream(in, buffer, 0, bytesToRead, getName());
 
 				// Write the buffer
-				handleOutputStreamCommRouting(buffer, 0, bytesToRead, routeComm, getName());
+				handleOutputStreamCommRouting(buffer, 0, bytesToRead, routeComm);
 //				CommUtils.writeOutputStream(out, buffer, 0, bytesToRead, getName());
 
 				bytesLeftToReceive -= bytesToRead;
@@ -225,7 +227,7 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 		}
 	}
 	
-	private void handleInputStreamCommRouting(byte[] buffer, int offset, int len, boolean routeComm, String caller) throws IOException
+	private void handleInputStreamCommRouting(byte[] buffer, int offset, int len, boolean routeComm) throws IOException
 	{
 		if (routeComm)
 		{
@@ -237,7 +239,7 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 					if (modifyReplyPort)
 					{
 						// If we get here, this is the thread that reads data from PF or ATM4. Read the data.
-						CommUtils.readInputStream(in, buffer, 0, len, caller);
+						CommUtils.readInputStream(in, buffer, 0, len);
 					}
 					else
 					{
@@ -251,10 +253,10 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 						synchronized(dcsIn) {
 							do {
 								// Read header
-								CommUtils.readInputStream(dcsIn, inHdr.bytes, 0, ClientHeader.kHdrByteCount, caller);
+								CommUtils.readInputStream(dcsIn, inHdr.bytes, 0, ClientHeader.kHdrByteCount);
 								inHdr.parseHeaderBuffer();
 								// Read the data
-								CommUtils.readInputStream(dcsIn, buffer, 0, inHdr.messageLen, caller);
+								CommUtils.readInputStream(dcsIn, buffer, 0, inHdr.messageLen);
 								
 								if (!inHdr.messageType.equals(ClientHeader.kCOMM))
 									Log.inst().error("WHOA!!! Received " + inHdr.messageType + " header");
@@ -279,10 +281,10 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 						synchronized(dcsIn) {
 							do {
 								// Read header
-								CommUtils.readInputStream(dcsIn, inHdr.bytes, 0, ClientHeader.kHdrByteCount, caller);
+								CommUtils.readInputStream(dcsIn, inHdr.bytes, 0, ClientHeader.kHdrByteCount);
 								inHdr.parseHeaderBuffer();
 								// Read the data
-								CommUtils.readInputStream(dcsIn, buffer, 0, inHdr.messageLen, caller);
+								CommUtils.readInputStream(dcsIn, buffer, 0, inHdr.messageLen);
 								
 								if (!inHdr.messageType.equals(ClientHeader.kCOMM))
 									Log.inst().error("WHOA!!! Received " + inHdr.messageType + " header");
@@ -298,7 +300,7 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 					{
 						// If we get here, we're reading responses from the local RB. These responses must be
 						// sent back to the presenter so read them.
-						CommUtils.readInputStream(in, buffer, 0, len, caller);
+						CommUtils.readInputStream(in, buffer, 0, len);
 					}
 				}
 			}
@@ -306,11 +308,11 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 		else
 		{
 			// Do the usual read from PF or ATM4. This may be overwritten below
-			CommUtils.readInputStream(in, buffer, 0, len, caller);
+			CommUtils.readInputStream(in, buffer, 0, len);
 		}
 	}
 	
-	private void handleOutputStreamCommRouting(byte[] buffer, int offset, int len, boolean routeComm, String caller) throws IOException
+	private void handleOutputStreamCommRouting(byte[] buffer, int offset, int len, boolean routeComm) throws IOException
 	{
 		if (routeComm)
 		{
@@ -328,23 +330,23 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 						msgDst = ClientHeader.kSNRB;
 
 						synchronized(dcsOut) {
-							CommUtils.writeHeader(dcsOut, outHdr, len, msgSrc, msgDst, ClientHeader.kCOMM, caller);
-							CommUtils.writeOutputStream(dcsOut, buffer, 0, len, caller);
+							CommUtils.writeHeader(dcsOut, outHdr, len, msgSrc, msgDst, ClientHeader.kCOMM);
+							CommUtils.writeOutputStream(dcsOut, buffer, 0, len);
 							
-//							String sentData = new String(buffer, 0, len);
-//							Log.inst().info("Sent to local RB: ");
-//							Log.inst().info(sentData);
+							String sentData = new String(buffer, 0, len);
+							Log.inst().info("Sent to remote RB: ");
+							Log.inst().info(sentData);
 						}
 						
 						// Also do the usual pass-thru to the local RB
-						CommUtils.writeOutputStream(out, buffer, 0, len, caller);
+						CommUtils.writeOutputStream(out, buffer, 0, len);
 					}
 					else
 					{
 						// If we get here, this is the thread that handles responses from RB to either PF or ATM4.
 						// The local OutputStream (out) is a connection to either PF or ATM4. For presenters, we
 						// receive the remote RB's responses, not the local ones.
-						CommUtils.writeOutputStream(out, buffer, 0, len, caller);
+						CommUtils.writeOutputStream(out, buffer, 0, len);
 					}
 				}
 				else	// Host
@@ -355,7 +357,7 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 					if (modifyReplyPort)
 					{
 						// Just do the usual pass-thru
-						CommUtils.writeOutputStream(out, buffer, 0, len, caller);
+						CommUtils.writeOutputStream(out, buffer, 0, len);
 						
 //						String sentData = new String(buffer, 0, len);
 //						Log.inst().info("Sent to local RB: ");
@@ -369,12 +371,12 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 						msgDst = clientAppName;
 						
 						synchronized(dcsOut) {
-							CommUtils.writeHeader(dcsOut, outHdr, len, msgSrc, msgDst, ClientHeader.kCOMM, caller);
-							CommUtils.writeOutputStream(dcsOut, buffer, 0, len, caller);
+							CommUtils.writeHeader(dcsOut, outHdr, len, msgSrc, msgDst, ClientHeader.kCOMM);
+							CommUtils.writeOutputStream(dcsOut, buffer, 0, len);
 						}
 						
 						// Also do the usual pass-thru to the local PF or ATM4.
-						CommUtils.writeOutputStream(out, buffer, 0, len, caller);
+						CommUtils.writeOutputStream(out, buffer, 0, len);
 					}
 				}
 			}
@@ -382,7 +384,7 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 		else
 		{
 			// Just do the usual pass-thru
-			CommUtils.writeOutputStream(out, buffer, 0, len, caller);
+			CommUtils.writeOutputStream(out, buffer, 0, len);
 		}
 	}
 }

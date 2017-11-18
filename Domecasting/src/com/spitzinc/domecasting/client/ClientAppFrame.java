@@ -30,7 +30,7 @@ public class ClientAppFrame extends JFrame
 	// and updates the UI accordingly.
 	private class ServerStatusThread extends SwingWorker<Integer, String>
 	{
-		private static final int kPollIntervalSeconds = 3;
+		private static final int kPollIntervalSeconds = 4;
 		
 		public AtomicBoolean stopped;
 		
@@ -47,34 +47,28 @@ public class ClientAppFrame extends JFrame
 			} catch (InterruptedException e) {
 			}
 			
-			boolean isConnected, isPeerPresent, isPeerReady;
 			while (!stopped.get())
 			{
 				// Only do this if we're not routing comm
 				if (!theApp.routeComm())
 				{
 					// Get server status
-					isConnected = theApp.isConnected();
-					isPeerPresent = theApp.isPeerPresent();
-					isPeerReady = theApp.isPeerReady();
+					theApp.serverConnection.isConnected();
+					theApp.serverConnection.isPeerPresent();
+					theApp.serverConnection.isPeerReady();
 					
 					// Get list of domecasts currently connected to server
-					String domecasts = null;
 					if (theApp.clientType == CommUtils.kHostID)
-						domecasts = theApp.getAvailableDomecasts();
-					
-					// Publish the results
-					if ((domecasts != null) && !domecasts.equals("<none>"))
-						publish(domecasts);
-					publish(CommUtils.kIsConnected + "=" + Boolean.toString(isConnected));
-					publish(CommUtils.kIsPeerPresent + "=" + Boolean.toString(isPeerPresent));
-					publish(CommUtils.kIsPeerReady + "=" + Boolean.toString(isPeerReady));
+						theApp.serverConnection.getAvailableDomecasts();
 					
 					// Sleep for a few seconds
 					try {
 						Thread.sleep(kPollIntervalSeconds * 1000);
 					} catch (InterruptedException e) {
 					}
+					
+					// Call publish() so that we have an EDT to read the results and update controls
+					publish("Stuff");
 				}
 				else
 				{
@@ -93,32 +87,16 @@ public class ClientAppFrame extends JFrame
 		
 		protected void process(List<String> publishedItems)
 		{
-			boolean isConnected = false;
-			boolean isPeerPresent = false;
-			boolean isPeerReady = false;
 			String[] domecasts = null;
-			for (String item : publishedItems)
-			{
-				if (item.contains("="))
-				{
-					String[] nameValuePair = item.split("=");
-					if (nameValuePair[0].equals(CommUtils.kIsConnected))
-						isConnected = Boolean.parseBoolean(nameValuePair[1]);
-					if (nameValuePair[0].equals(CommUtils.kIsPeerPresent))
-						isPeerPresent = Boolean.parseBoolean(nameValuePair[1]);
-					if (nameValuePair[0].equals(CommUtils.kIsPeerReady))
-						isPeerReady = Boolean.parseBoolean(nameValuePair[1]);
-				}
-				else if (item.contains("~"))
-					domecasts = item.split("~");
-			}
+			if (!theApp.availableDomecasts.isEmpty())
+				domecasts = theApp.availableDomecasts.split("~");
 			
 			// Update the panel
-			if (!isConnected)
+			if (!theApp.isConnected.get())
 				setPanelStatus(ConnectionStatus.eNotConnected, domecasts);
 			else
 			{
-				if (!isPeerPresent)
+				if (!theApp.isPeerPresent.get())
 				{
 					if (domecasts != null)
 						setPanelStatus(ConnectionStatus.eConnectedPeersAvailable, domecasts);
@@ -127,7 +105,7 @@ public class ClientAppFrame extends JFrame
 				}
 				else
 				{
-					if (!isPeerReady)
+					if (!theApp.isPeerReady.get())
 						setPanelStatus(ConnectionStatus.eConnectedPeerNotReady, domecasts);
 					else
 						setPanelStatus(ConnectionStatus.eConnectedPeerReady, domecasts);
