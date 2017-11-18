@@ -203,21 +203,31 @@ public class ServerConnection
 			CommUtils.readInputStream(in, buffer, 0, hdr.messageLen);
 			String serverReply = new String(buffer, 0, hdr.messageLen);
 			String[] list = serverReply.split("=");
-			if (list[0].equals(CommUtils.kIsConnected))
-				theApp.isConnected.set(Boolean.parseBoolean(list[1]));
-			else if (list[0].equals(CommUtils.kIsPeerPresent))
-				theApp.isPeerPresent.set(Boolean.parseBoolean(list[1]));
-			else if (list[0].equals(CommUtils.kIsPeerReady))
-				theApp.isPeerReady.set(Boolean.parseBoolean(list[1]));
-			else if (list[0].equals(CommUtils.kIsDomecastIDUnique))
+			if (list[0].equals(CommUtils.kIsDomecastIDUnique))
 			{
 				theApp.isDomecastIDUnique.set(Boolean.parseBoolean(list[1]));
+				
+				// Notify PresenterPanel.DomecastIDSendThread
 				synchronized(theApp.isDomecastIDUnique) {
-					theApp.isDomecastIDUnique.notify();	// Need this for wait() call in PresenterPanel.DomecastIDSendThread.
+					theApp.isDomecastIDUnique.notify();
 				}
 			}
-			else if (list[0].equals(CommUtils.kGetAvailableDomecasts))
-				theApp.availableDomecasts = list[1];
+			else
+			{
+				if (list[0].equals(CommUtils.kIsConnected))
+					theApp.isConnected.set(Boolean.parseBoolean(list[1]));
+				else if (list[0].equals(CommUtils.kIsPeerPresent))
+					theApp.isPeerPresent.set(Boolean.parseBoolean(list[1]));
+				else if (list[0].equals(CommUtils.kIsPeerReady))
+					theApp.isPeerReady.set(Boolean.parseBoolean(list[1]));
+				else if (list[0].equals(CommUtils.kGetAvailableDomecasts))
+					theApp.availableDomecasts = list[1];
+				
+				// Notify the UI of changes
+				synchronized(theApp.appFrame.tabbedPane) {
+					theApp.appFrame.tabbedPane.notify();
+				}
+			}
 		}
 
 		private void handleCOMM(ClientHeader hdr) throws IOException
@@ -270,24 +280,12 @@ public class ServerConnection
 		sendToServer(CommUtils.kHostReadyForDomecast + "=" + Boolean.toString(readyToCast), ClientHeader.kINFO);
 	}
 	
-	public void isConnected() {
-		sendToServer(CommUtils.kIsConnected, ClientHeader.kREQU);
-	}
-	
-	public void isPeerPresent() {
-		sendToServer(CommUtils.kIsPeerPresent, ClientHeader.kREQU);
-	}
-	
-	public void isPeerReady() {
-		sendToServer(CommUtils.kIsPeerReady, ClientHeader.kREQU);
+	public boolean isConnected() {
+		return (socket != null);
 	}
 	
 	public void isDomecastIDUnique(String domecastID) {
 		sendToServer(CommUtils.kIsDomecastIDUnique + "=" + domecastID, ClientHeader.kREQU);
-	}
-	
-	public void getAvailableDomecasts()	{
-		sendToServer(CommUtils.kGetAvailableDomecasts, ClientHeader.kREQU);
 	}
 	
 	public void sendDomecastID(String domecastID) {

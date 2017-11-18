@@ -24,6 +24,18 @@ public class ServerSideConnectionListenerThread extends TCPConnectionListenerThr
 		thread.start();
 	}
 	
+	public void notifyHostsOfAvailableDomecasts() throws IOException
+	{
+		ArrayList<String> availableDomecasts = getAvailableDomecasts();
+		for (TCPConnectionHandlerThread aThread : connectionHandlerThreads)
+		{
+			ServerSideConnectionHandlerThread theThread = (ServerSideConnectionHandlerThread)aThread;
+			byte theClientType = theThread.getClientType();
+			if (theClientType == CommUtils.kHostID)
+				theThread.sendHostAvailableDomecasts(availableDomecasts);
+		}
+	}
+	
 	/**
 	 * Clients in host mode use a JComboBox to display all current domecasts.
 	 * This method returns a list of domecastIDs owned by presenter connections. 

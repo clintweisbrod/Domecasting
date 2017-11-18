@@ -86,17 +86,38 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 		String msg = new String(infoBytes);
 		Log.inst().info("Received: " + msg);
 		String[] list = msg.split("=");
-		if (list[0].equals(CommUtils.kDomecastID))
+		if (list[0].equals(CommUtils.kClientType))
+			clientType = (byte)list[1].charAt(0);
+		else if (list[0].equals(CommUtils.kDomecastID))
 		{
 			if (list.length == 2)
 				domecastID = list[1];
 			else
 				domecastID = null;
+			
+			// Notify other connected clients of this change
+			if (clientType == CommUtils.kPresenterID)
+			{
+				// As a presenter, we want to notify all hosts that we're present
+				listenerThread.notifyHostsOfAvailableDomecasts();
+			}
+			else
+			{
+				// As a host, we want to notify the peer connection that we're present
+				ServerSideConnectionHandlerThread peerThread = listenerThread.findPeerConnectionThread(this);
+				if (peerThread != null)
+					peerThread.sendBoolean(CommUtils.kIsPeerPresent, true);
+			}
 		}
-		else if (list[0].equals(CommUtils.kClientType))
-			clientType = (byte)list[1].charAt(0);
 		else if (list[0].equals(CommUtils.kHostReadyForDomecast))
+		{
 			hostReadyForDomecast = Boolean.parseBoolean(list[1]);
+			
+			// Notify peer with CommUtils.kIsPeerReady
+			ServerSideConnectionHandlerThread peerThread = listenerThread.findPeerConnectionThread(this);
+			if (peerThread != null)
+				peerThread.sendBoolean(CommUtils.kIsPeerReady, hostReadyForDomecast);
+		}
 	}
 	
 	private void handleREQU(ClientHeader hdr) throws IOException
@@ -108,66 +129,7 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 		String req = new String(requBytes);
 		Log.inst().info("Received: " + req);
 		
-		if (req.equals(CommUtils.kIsConnected))
-		{
-			// If we're executing this, then yes, we're connected
-			// Respond to request
-			String reply = CommUtils.kIsConnected + "=" + Boolean.toString(true);
-			byte[] replyBytes = reply.getBytes();
-			
-			// We're performing two writes to the OutputStream. They MUST be sequential.
-			synchronized (outputStreamLock)
-			{
-				CommUtils.writeHeader(out, outHdr, replyBytes.length, ClientHeader.kDCS, ClientHeader.kDCC, ClientHeader.kINFO);
-				CommUtils.writeOutputStream(out, replyBytes, 0, replyBytes.length);
-			}
-		}
-		
-		if (req.equals(CommUtils.kIsPeerPresent))
-		{
-			boolean isPeerPresent = false;
-			
-			// Look for peer connection on this server
-			peerConnectionThread = listenerThread.findPeerConnectionThread(this);
-			isPeerPresent = (peerConnectionThread != null);
-			
-			// Respond to request
-			String reply = CommUtils.kIsPeerPresent + "=" + Boolean.toString(isPeerPresent);
-			byte[] replyBytes = reply.getBytes();
-			
-			// We're performing two writes to the OutputStream. They MUST be sequential.
-			synchronized (outputStreamLock)
-			{
-				CommUtils.writeHeader(out, outHdr, replyBytes.length, ClientHeader.kDCS, ClientHeader.kDCC, ClientHeader.kINFO);
-				CommUtils.writeOutputStream(out, replyBytes, 0, replyBytes.length);
-			}
-		}
-		else if (req.equals(CommUtils.kIsPeerReady))
-		{
-			boolean isPeerReady = false;
-			
-			// Look for peer connection on this server
-			peerConnectionThread = listenerThread.findPeerConnectionThread(this);
-			if (peerConnectionThread != null)
-			{
-				if (peerConnectionThread.clientType == CommUtils.kHostID)
-					isPeerReady = peerConnectionThread.isHostReadyForDomecast();
-				else
-					isPeerReady = true;
-			}
-			
-			// Respond to request
-			String reply = CommUtils.kIsPeerReady + "=" + Boolean.toString(isPeerReady);
-			byte[] replyBytes = reply.getBytes();
-			
-			// We're performing two writes to the OutputStream. They MUST be sequential.
-			synchronized (outputStreamLock)
-			{
-				CommUtils.writeHeader(out, outHdr, replyBytes.length, ClientHeader.kDCS, ClientHeader.kDCC, ClientHeader.kINFO);
-				CommUtils.writeOutputStream(out, replyBytes, 0, replyBytes.length);
-			}
-		}
-		else if (req.startsWith(CommUtils.kIsDomecastIDUnique))
+		if (req.startsWith(CommUtils.kIsDomecastIDUnique))
 		{
 			String[] list = req.split("=");
 			boolean isDomecastIDUnique = listenerThread.isDomecastIDUnique(list[1]);
@@ -183,34 +145,45 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 				CommUtils.writeOutputStream(out, replyBytes, 0, replyBytes.length);
 			}
 		}
-		else if (req.equals(CommUtils.kGetAvailableDomecasts))
+	}
+	
+	public void sendBoolean(String name, boolean value) throws IOException
+	{
+		String reply = name + "=" + Boolean.toString(value);
+		byte[] replyBytes = reply.getBytes();
+		
+		// We're performing two writes to the OutputStream. They MUST be sequential.
+		synchronized (outputStreamLock)
 		{
-			// Obtain list of available domecasts
-			ArrayList<String> domecasts = listenerThread.getAvailableDomecasts();
-			
-			// Build a reply to send back
-			String reply = null;
-			if (domecasts.isEmpty())
-				reply = CommUtils.kGetAvailableDomecasts + "=" + CommUtils.kNoAvailableDomecastIDs;
-			else
+			CommUtils.writeHeader(out, outHdr, replyBytes.length, ClientHeader.kDCS, ClientHeader.kDCC, ClientHeader.kINFO);
+			CommUtils.writeOutputStream(out, replyBytes, 0, replyBytes.length);
+		}
+	}
+	
+	public void sendHostAvailableDomecasts(ArrayList<String> domecasts) throws IOException
+	{
+		// Build a reply to send back
+		String reply = null;
+		if (domecasts.isEmpty())
+			reply = CommUtils.kGetAvailableDomecasts + "=" + CommUtils.kNoAvailableDomecastIDs;
+		else
+		{
+			StringBuffer buf = new StringBuffer(CommUtils.kGetAvailableDomecasts + "=");
+			for (String domecast : domecasts)
 			{
-				StringBuffer buf = new StringBuffer(CommUtils.kGetAvailableDomecasts + "=");
-				for (String domecast : domecasts)
-				{
-					buf.append(domecast);
-					buf.append("~");
-				}
-				reply = buf.toString();
+				buf.append(domecast);
+				buf.append("~");
 			}
-			
-			byte[] replyBytes = reply.getBytes();
-			
-			// We're performing two writes to the OutputStream. They MUST be sequential.
-			synchronized (outputStreamLock)
-			{
-				CommUtils.writeHeader(out, outHdr, replyBytes.length, ClientHeader.kDCS, ClientHeader.kDCC, ClientHeader.kINFO);
-				CommUtils.writeOutputStream(out, replyBytes, 0, replyBytes.length);
-			}
+			reply = buf.toString();
+		}
+		
+		byte[] replyBytes = reply.getBytes();
+		
+		// We're performing two writes to the OutputStream. They MUST be sequential.
+		synchronized (outputStreamLock)
+		{
+			CommUtils.writeHeader(out, outHdr, replyBytes.length, ClientHeader.kDCS, ClientHeader.kDCC, ClientHeader.kINFO);
+			CommUtils.writeOutputStream(out, replyBytes, 0, replyBytes.length);
 		}
 	}
 	
@@ -268,6 +241,9 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 			String expectedSecurityCode = CommUtils.getDailySecurityCode();
 			if (!securityCode.equals(expectedSecurityCode))
 				throw new ParseException("Incorrect security code sent by client.", 0);
+			
+			// Send connection notice of connection
+			sendBoolean(CommUtils.kIsConnected, true);
 			
 			// We can now begin negotiating the client connection
 			beginHandlingClientCommands();

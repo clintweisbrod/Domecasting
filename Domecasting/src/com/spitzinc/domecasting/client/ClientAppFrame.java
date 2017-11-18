@@ -30,8 +30,6 @@ public class ClientAppFrame extends JFrame
 	// and updates the UI accordingly.
 	private class ServerStatusThread extends SwingWorker<Integer, String>
 	{
-		private static final int kPollIntervalSeconds = 4;
-		
 		public AtomicBoolean stopped;
 		
 		public ServerStatusThread()
@@ -41,45 +39,17 @@ public class ClientAppFrame extends JFrame
 		
 		protected Integer doInBackground() throws Exception
 		{
-			// Sleep for a second to allow for connection to occur before requesting server status.
-			try {
-				Thread.sleep(1000);
-			} catch (InterruptedException e) {
-			}
-			
 			while (!stopped.get())
 			{
-				// Only do this if we're not routing comm
-				if (!theApp.routeComm())
-				{
-					// Get server status
-					theApp.serverConnection.isConnected();
-					theApp.serverConnection.isPeerPresent();
-					theApp.serverConnection.isPeerReady();
-					
-					// Get list of domecasts currently connected to server
-					if (theApp.clientType == CommUtils.kHostID)
-						theApp.serverConnection.getAvailableDomecasts();
-					
-					// Sleep for a few seconds
+				// Wait here indefinitely until ServerConnection thread calls this thread's notify() method.
+				synchronized(tabbedPane) {
 					try {
-						Thread.sleep(kPollIntervalSeconds * 1000);
-					} catch (InterruptedException e) {
-					}
-					
-					// Call publish() so that we have an EDT to read the results and update controls
-					publish("Stuff");
+						tabbedPane.wait();
+					} catch (InterruptedException e) {}
 				}
-				else
-				{
-					// If domecast communication is in progress, we don't want this thread continually
-					// requesting info from the server.
-					synchronized(this) {
-						try {
-							wait();	// Wait here indefinitely until another thread calls this thread's notify() method.
-						} catch (InterruptedException e) {}
-					}
-				}
+				
+				// Call publish() so that we have an EDT to read the results and update controls
+				publish("Stuff");
 			}
 			
 			return 0;
