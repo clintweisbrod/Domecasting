@@ -32,11 +32,16 @@ public class ServerConnection
 	private byte[] buffer;
 
 	/*
-	 * This thread manages connection to domecast server
+	 * This thread manages connection to domecast server. Once server connection is established,
+	 * InputStream and OutputStream instances are created. The OutputStream instance (out) can
+	 * be written by any thread so long as it gains a lock on outputStreamLock first.
+	 * The InputStream instance (in) is read solely by an instance of ServerInputHandlerThread.
+	 * This is necessary because ALL communication from potentially ATM4, PF, and the remote
+	 * domecasting client instance come across this InputStream and in no predictable order.
 	 */
 	private class ConnectionEstablishThread extends BasicProcessorThread
 	{
-		private static final int kServerConnectionRetryIntervalSeconds = 5;
+		private static final int kServerConnectionRetryIntervalSeconds = 10;
 		
 		private String hostName;
 		private int port;
@@ -105,6 +110,7 @@ public class ServerConnection
 			{
 				serverInputHandlerThread.interrupt();
 				try {
+					Log.inst().info("Waiting for " + serverInputHandlerThread.getName() + " to end...");
 					serverInputHandlerThread.join();
 				} catch (InterruptedException e) {
 					// TODO Auto-generated catch block
@@ -170,6 +176,10 @@ public class ServerConnection
 		}
 	}
 	
+	/*
+	 * This thread is solely responsible for reading incoming communication packets from the domecasting
+	 * server and dealing with each packet appropriately.
+	 */
 	private class ServerInputHandlerThread extends BasicProcessorThread
 	{
 		public void run()
@@ -232,7 +242,7 @@ public class ServerConnection
 
 		private void handleCOMM(ClientHeader hdr) throws IOException
 		{
-			
+			// Inspect the header to determine where the message should go
 		}
 	}
 	
