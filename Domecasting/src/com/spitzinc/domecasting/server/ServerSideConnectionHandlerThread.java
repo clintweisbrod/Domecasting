@@ -87,7 +87,19 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 		Log.inst().info("Received: " + msg);
 		String[] list = msg.split("=");
 		if (list[0].equals(CommUtils.kClientType))
+		{
 			clientType = (byte)list[1].charAt(0);
+			
+			// Send the client back a notice of connection
+			sendBoolean(CommUtils.kIsConnected, true);
+
+			// If we're a host connection, send back available domecasts
+			if (clientType == CommUtils.kHostID)
+			{
+				ArrayList<String> domecasts = listenerThread.getAvailableDomecasts();
+				sendHostAvailableDomecasts(domecasts);
+			}
+		}
 		else if (list[0].equals(CommUtils.kDomecastID))
 		{
 			if (list.length == 2)
@@ -232,9 +244,6 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 			String expectedSecurityCode = CommUtils.getDailySecurityCode();
 			if (!securityCode.equals(expectedSecurityCode))
 				throw new ParseException("Incorrect security code sent by client.", 0);
-			
-			// Send connection notice of connection
-			sendBoolean(CommUtils.kIsConnected, true);
 			
 			// We can now begin negotiating the client connection
 			beginHandlingClientCommands();
