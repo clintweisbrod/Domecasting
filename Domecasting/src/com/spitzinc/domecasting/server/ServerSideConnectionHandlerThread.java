@@ -67,8 +67,6 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 				// Now look at hdr contents to decide what to do.
 				if (inHdr.messageType.equals(ClientHeader.kINFO))
 					handleINFO(inHdr);
-				else if (inHdr.messageType.equals(ClientHeader.kREQU))
-					handleREQU(inHdr);
 				else if (inHdr.messageType.equals(ClientHeader.kCOMM))
 					handleCOMM(inHdr);
 			}
@@ -121,6 +119,8 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 					peerThread.sendBoolean(CommUtils.kIsPeerPresent, true);
 			}
 		}
+		else if (list[0].equals(CommUtils.kIsDomecastIDUnique))
+			sendBoolean(CommUtils.kIsDomecastIDUnique, listenerThread.isDomecastIDUnique(list[1]));
 		else if (list[0].equals(CommUtils.kHostReadyForDomecast))
 		{
 			hostReadyForDomecast = Boolean.parseBoolean(list[1]);
@@ -129,24 +129,6 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 			ServerSideConnectionHandlerThread peerThread = listenerThread.findPeerConnectionThread(this);
 			if (peerThread != null)
 				peerThread.sendBoolean(CommUtils.kIsPeerReady, hostReadyForDomecast);
-		}
-	}
-	
-	private void handleREQU(ClientHeader hdr) throws IOException
-	{
-		byte[] requBytes = new byte[hdr.messageLen];
-		CommUtils.readInputStream(in, requBytes, 0, requBytes.length);
-		
-		// All REQU messages are of the form "request" and have varying responses
-		String req = new String(requBytes);
-		Log.inst().info("Received: " + req);
-		
-		if (req.startsWith(CommUtils.kIsDomecastIDUnique))
-		{
-			String[] list = req.split("=");
-			boolean isDomecastIDUnique = listenerThread.isDomecastIDUnique(list[1]);
-			
-			sendBoolean(CommUtils.kIsDomecastIDUnique, isDomecastIDUnique);
 		}
 	}
 	

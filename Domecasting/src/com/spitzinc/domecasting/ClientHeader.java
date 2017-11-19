@@ -27,7 +27,6 @@ public class ClientHeader
 	// Message type IDs
 	public static final String kCOMM = "COMM";	// TCP/IP communication routing
 	public static final String kINFO = "INFO";	// Domecasting-specific info
-	public static final String kREQU = "REQU";	// Domecasting-specific info request
 	public static final String kFILE = "FILE";	// File transfer
 	
 	

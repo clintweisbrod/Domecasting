@@ -301,11 +301,11 @@ public class ServerConnection
 	}
 	
 	public void isDomecastIDUnique(String domecastID) {
-		sendToServer(CommUtils.kIsDomecastIDUnique + "=" + domecastID, ClientHeader.kREQU);
+		sendToServer(CommUtils.kIsDomecastIDUnique + "=" + domecastID, ClientHeader.kINFO);
 	}
 	
 	public void sendDomecastID(String domecastID) {
-		sendToServer(CommUtils.kDomecastID + "=" + domecastID, ClientHeader.kREQU);
+		sendToServer(CommUtils.kDomecastID + "=" + domecastID, ClientHeader.kINFO);
 	}
 	
 	public void sendClientType(byte clientType)	{
