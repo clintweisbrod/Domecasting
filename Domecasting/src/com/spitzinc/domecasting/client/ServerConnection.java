@@ -242,7 +242,13 @@ public class ServerConnection
 
 		private void handleCOMM(ClientHeader hdr) throws IOException
 		{
-			// Inspect the header to determine where the message should go
+			// Inspect the header to determine where the message should go.
+			// We are dealing with incoming communication from the peer connection. There are
+			// two possibilities: If we're a host, the incoming comm is from the presenter's
+			// PF or ATM4. If we're a presenter, the incoming comm is from the host's RB. In
+			// both cases, hdr.messageSource will indicate this.
+			// So, we have no choice but to create ByteBuffer instances and throw them into
+			// the appropriate LinkedBlockingQueue configured with some reasonable capacity.
 		}
 	}
 	
