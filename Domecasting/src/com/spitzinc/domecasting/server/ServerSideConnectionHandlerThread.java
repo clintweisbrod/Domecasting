@@ -25,7 +25,7 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 	private byte[] commBuffer;
 	protected String domecastID;
 	protected byte clientType;
-	protected boolean isHostListening;	// Only valid for host connections
+	public boolean isHostListening;	// Only valid for host connections
 	
 	public ServerSideConnectionHandlerThread(TCPConnectionListenerThread owner, Socket inboundSocket)
 	{
@@ -122,6 +122,8 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 			ServerSideConnectionHandlerThread peerThread = listenerThread.findPeerConnectionThread(this);
 			if (peerThread != null)
 				peerThread.sendBoolean(CommUtils.kIsHostReady, isHostListening);
+			
+			listenerThread.sendStatusToThreads();
 		}
 	}
 	
@@ -183,6 +185,9 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 	 */
 	private void handleCOMM(ClientHeader hdr) throws IOException
 	{
+		if (peerConnectionThread == null)
+			peerConnectionThread = listenerThread.findPeerConnectionThread(this);
+
 //		String hdrString =  new String(hdr.bytes);
 //		Log.inst().info("Header:");
 //		Log.inst().info(hdrString);
@@ -195,13 +200,18 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 		
 		if (peerConnectionThread != null)
 		{
-			synchronized (peerConnectionThread.outputStreamLock)
+			// Only send the data if the host is "listening".
+			if (((clientType == CommUtils.kHostID) && this.isHostListening) ||
+				((clientType == CommUtils.kPresenterID) && peerConnectionThread.isHostListening))
 			{
-				// Write the header we've received
-				CommUtils.writeOutputStream(peerConnectionThread.out, hdr.bytes, 0, ClientHeader.kHdrByteCount);
-				
-				// Write the data we've received
-				CommUtils.writeOutputStream(peerConnectionThread.out, commBuffer, 0, hdr.messageLen);
+				synchronized (peerConnectionThread.outputStreamLock)
+				{
+					// Write the header we've received
+					CommUtils.writeOutputStream(peerConnectionThread.out, hdr.bytes, 0, ClientHeader.kHdrByteCount);
+					
+					// Write the data we've received
+					CommUtils.writeOutputStream(peerConnectionThread.out, commBuffer, 0, hdr.messageLen);
+				}
 			}
 		}
 	}
