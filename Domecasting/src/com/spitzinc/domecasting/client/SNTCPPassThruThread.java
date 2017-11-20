@@ -83,7 +83,7 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 				// Begin reading data from inbound stream and writing it to outbound stream in chunks
 				// of SN comm.
 				while (!stopped.get())
-					starryNightPassThru(buffer, theApp.routeComm());
+					starryNightPassThru(buffer);
 			}
 
 			// Close streams
@@ -160,18 +160,12 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 	 * @param buffer
 	 * @throws IOException 
 	 */
-	private void starryNightPassThru(byte[] buffer, boolean routeComm)
+	private void starryNightPassThru(byte[] buffer)
 	{
-//		if (routeComm && !modifyReplyPort)
-//		{
-//			int i = 0;
-//			i++;
-//		}
-
 		// Read the SN header from the inbound socket
 		try
 		{
-			handleInputStreamCommRouting(buffer, 0, kSNHeaderLength, routeComm);
+			handleInputStreamCommRouting(buffer, 0, kSNHeaderLength);
 //			CommUtils.readInputStream(in, buffer, 0, kSNHeaderLength, getName());
 
 			// Get total length of incoming message and modify the replyToPort
@@ -201,7 +195,7 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 					clientAppName = new String(buffer, kSNHeaderClientAppNamePosition, kSNHeaderFieldLength).trim();
 
 				// Write the header to the outbound socket
-				handleOutputStreamCommRouting(buffer, 0, kSNHeaderLength, routeComm);
+				handleOutputStreamCommRouting(buffer, 0, kSNHeaderLength);
 //				CommUtils.writeOutputStream(out, buffer, 0, kSNHeaderLength, getName());
 			}
 
@@ -211,11 +205,11 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 			{
 				// Read as much of the message as our buffer will hold
 				int bytesToRead = Math.min(bytesLeftToReceive, buffer.length);
-				handleInputStreamCommRouting(buffer, 0, bytesToRead, routeComm);
+				handleInputStreamCommRouting(buffer, 0, bytesToRead);
 //				CommUtils.readInputStream(in, buffer, 0, bytesToRead, getName());
 
 				// Write the buffer
-				handleOutputStreamCommRouting(buffer, 0, bytesToRead, routeComm);
+				handleOutputStreamCommRouting(buffer, 0, bytesToRead);
 //				CommUtils.writeOutputStream(out, buffer, 0, bytesToRead, getName());
 
 				bytesLeftToReceive -= bytesToRead;
@@ -227,7 +221,7 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 		}
 	}
 	
-	private void handleInputStreamCommRouting(byte[] buffer, int offset, int len, boolean routeComm) throws IOException
+	private void handleInputStreamCommRouting(byte[] buffer, int offset, int len) throws IOException
 	{
 		if (routeComm)
 		{
@@ -312,7 +306,7 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 		}
 	}
 	
-	private void handleOutputStreamCommRouting(byte[] buffer, int offset, int len, boolean routeComm) throws IOException
+	private void handleOutputStreamCommRouting(byte[] buffer, int offset, int len) throws IOException
 	{
 		if (routeComm)
 		{
