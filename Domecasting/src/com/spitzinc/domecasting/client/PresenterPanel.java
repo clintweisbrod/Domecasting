@@ -179,7 +179,7 @@ public class PresenterPanel extends JPanel
 		gbc_btnUploadAssets.gridy = 1;
 		add(btnUploadAssets, gbc_btnUploadAssets);
 		
-		lblStatusText = new JLabel("Server Status");
+		lblStatusText = new JLabel("");
 		GridBagConstraints gbc_lblStatusText = new GridBagConstraints();
 		gbc_lblStatusText.gridwidth = 2;
 		gbc_lblStatusText.insets = new Insets(10, 0, 10, 0);
@@ -189,26 +189,10 @@ public class PresenterPanel extends JPanel
 
 	}
 	
-	public void setPanelStatus(ClientAppFrame.ConnectionStatus status)
+	public void setPanelStatus(String statusText)
 	{
 		if (lblStatusText != null)
-		{
-			switch (status)
-			{
-			case eNotConnected:
-				lblStatusText.setText("Spitz domecasting server not available.");
-				break;
-			case eConnectedNoPeer:
-				lblStatusText.setText("Waiting for domecasting host to connect...");
-				break;
-			case eConnectedPeerNotReady:
-				lblStatusText.setText("Waiting for connected host to start domecast...");
-				break;
-			case eConnectedPeerReady:
-				lblStatusText.setText("Domecast in progress.");
-				break;
-			}
-		}
+			lblStatusText.setText(statusText);
 	}
 	
 	public String getDomecastID() {

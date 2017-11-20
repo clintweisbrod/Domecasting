@@ -10,13 +10,13 @@ public class ClientInfoSendThread extends Thread
 {
 	private Byte clientType;
 	private String domecastID;
-	private Boolean readyToCast;
+	private Boolean isHostListening;
 		
-	public ClientInfoSendThread(Byte clientType, String domecastID, Boolean readyToCast)
+	public ClientInfoSendThread(Byte clientType, String domecastID, Boolean isHostListening)
 	{
 		this.clientType = clientType;
 		this.domecastID = domecastID;
-		this.readyToCast = readyToCast;
+		this.isHostListening = isHostListening;
 		this.setName(getClass().getSimpleName());
 	}
 	
@@ -29,8 +29,8 @@ public class ClientInfoSendThread extends Thread
 		{
 			if (clientType != null)
 				inst.serverConnection.sendClientType(clientType.byteValue());
-			if (readyToCast != null)
-				inst.serverConnection.sendHostReadyToCast(readyToCast.booleanValue());
+			if (isHostListening != null)
+				inst.serverConnection.sendIsHostListening(isHostListening.booleanValue());
 			if (domecastID != null)
 				inst.serverConnection.sendDomecastID(domecastID);
 		}

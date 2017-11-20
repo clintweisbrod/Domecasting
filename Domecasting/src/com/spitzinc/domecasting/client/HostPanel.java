@@ -119,7 +119,7 @@ public class HostPanel extends JPanel
 		gbc_btnWaitForPresentation.gridy = 3;
 		add(btnPresentationControl, gbc_btnWaitForPresentation);
 		
-		lblStatusText = new JLabel("Server Status");
+		lblStatusText = new JLabel("");
 		GridBagConstraints gbc_lblStatusText = new GridBagConstraints();
 		gbc_lblStatusText.insets = new Insets(10, 0, 10, 0);
 		gbc_lblStatusText.gridx = 0;
@@ -128,33 +128,10 @@ public class HostPanel extends JPanel
 
 	}
 
-	public void setPanelStatus(ClientAppFrame.ConnectionStatus status, String[] domecasts)
+	public void setPanelStatus(String statusText, String[] domecasts)
 	{
 		if (lblStatusText != null)
-		{
-			switch (status)
-			{
-			case eNotConnected:
-				lblStatusText.setText("Spitz domecasting server not available.");
-				btnPresentationControl.setEnabled(false);
-				break;
-			case eConnectedNoPeer:
-				lblStatusText.setText("Waiting for domecasting presenter to connect...");
-				btnPresentationControl.setEnabled(false);
-				break;
-			case eConnectedPeersAvailable:
-				lblStatusText.setText("Domecasting presenter(s) available.");
-				btnPresentationControl.setEnabled(false);
-				break;
-			case eConnectedPeerReady:
-				if (btnPresentationControl.getText() == "Start Domecast")
-					lblStatusText.setText("Domecast is paused.");
-				else
-					lblStatusText.setText("Domecast in progress.");
-				btnPresentationControl.setEnabled(true);
-				break;
-			}
-		}
+			lblStatusText.setText(statusText);
 		
 		// Update the combobox with the hosts that are currently connected
 		if (availableDomecasts != null)

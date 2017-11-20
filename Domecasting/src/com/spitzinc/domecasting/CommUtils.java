@@ -25,7 +25,8 @@ public class CommUtils
 	public static final String kGetAvailableDomecasts = "getAvailableDomecasts";
 	public static final String kDomecastID = "domecastID";
 	public static final String kClientType = "clientType";
-	public static final String kHostReadyForDomecast = "hostReadyForDomecast";
+	public static final String kIsHostListening = "isHostListening";
+	public static final String kStatusText = "statusText";
 	
 	public static final String kNoAvailableDomecastIDs = "<none>";
 	

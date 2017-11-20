@@ -25,7 +25,7 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 	private byte[] commBuffer;
 	protected String domecastID;
 	protected byte clientType;
-	protected boolean hostReadyForDomecast;	// Only valid for host connections
+	protected boolean isHostListening;	// Only valid for host connections
 	
 	public ServerSideConnectionHandlerThread(TCPConnectionListenerThread owner, Socket inboundSocket)
 	{
@@ -36,8 +36,9 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 		this.outHdr = new ClientHeader();
 		this.inHdr = new ClientHeader();
 		this.commBuffer = new byte[CommUtils.kCommBufferSize];
+		this.domecastID = null;
 		this.listenerThread = (ServerSideConnectionListenerThread)owner;
-		this.hostReadyForDomecast = false;
+		this.isHostListening = false;
 	}
 	
 	public String getDomecastID() {
@@ -48,8 +49,8 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 		return clientType;
 	}
 	
-	public boolean isHostReadyForDomecast() {
-		return hostReadyForDomecast;
+	public boolean isHostListening() {
+		return isHostListening;
 	}
 	
 	private void beginHandlingClientCommands()
@@ -121,20 +122,33 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 		}
 		else if (list[0].equals(CommUtils.kIsDomecastIDUnique))
 			sendBoolean(CommUtils.kIsDomecastIDUnique, listenerThread.isDomecastIDUnique(list[1]));
-		else if (list[0].equals(CommUtils.kHostReadyForDomecast))
+		else if (list[0].equals(CommUtils.kIsHostListening))
 		{
-			hostReadyForDomecast = Boolean.parseBoolean(list[1]);
+			isHostListening = Boolean.parseBoolean(list[1]);
 			
 			// Notify peer with CommUtils.kIsPeerReady
 			ServerSideConnectionHandlerThread peerThread = listenerThread.findPeerConnectionThread(this);
 			if (peerThread != null)
-				peerThread.sendBoolean(CommUtils.kIsPeerReady, hostReadyForDomecast);
+				peerThread.sendBoolean(CommUtils.kIsPeerReady, isHostListening);
 		}
 	}
 	
 	public void sendBoolean(String name, boolean value) throws IOException
 	{
 		String reply = name + "=" + Boolean.toString(value);
+		byte[] replyBytes = reply.getBytes();
+		
+		// We're performing two writes to the OutputStream. They MUST be sequential.
+		synchronized (outputStreamLock)
+		{
+			CommUtils.writeHeader(out, outHdr, replyBytes.length, ClientHeader.kDCS, ClientHeader.kDCC, ClientHeader.kINFO);
+			CommUtils.writeOutputStream(out, replyBytes, 0, replyBytes.length);
+		}
+	}
+	
+	public void sendText(String name, String value) throws IOException
+	{
+		String reply = name + "=" + value;
 		byte[] replyBytes = reply.getBytes();
 		
 		// We're performing two writes to the OutputStream. They MUST be sequential.
@@ -267,7 +281,7 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 		buf.append("domecastID=" + domecastID + ", ");
 		buf.append("clientType=" + (char)clientType + ", ");
 		if (clientType == CommUtils.kHostID)
-			buf.append("hostReadyForDomecast=" + Boolean.toString(hostReadyForDomecast));
+			buf.append(CommUtils.kIsHostListening + Boolean.toString(isHostListening));
 		
 		return buf.toString();
 	}

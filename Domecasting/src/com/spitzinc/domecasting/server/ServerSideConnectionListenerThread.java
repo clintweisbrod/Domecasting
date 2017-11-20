@@ -114,6 +114,79 @@ public class ServerSideConnectionListenerThread extends TCPConnectionListenerThr
 		return result;
 	}
 	
+	public void threadDying(TCPConnectionHandlerThread thread)
+	{
+		super.threadDying(thread);
+		
+		try {
+			sendStatusToThreads();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
+	public void sendStatusToThreads() throws IOException
+	{
+		for (TCPConnectionHandlerThread aThread1 : connectionHandlerThreads)
+		{
+			String status = null;
+			
+			ServerSideConnectionHandlerThread theThread1 = (ServerSideConnectionHandlerThread)aThread1;
+			String theDomecastID = theThread1.getDomecastID();
+			
+			if ((theThread1.getClientType() == CommUtils.kPresenterID))
+			{
+				// Count how many host connection with domecastID equal to theDomecastID
+				int numHostsListening = 0;
+				int numHostsPaused = 0;
+				for (TCPConnectionHandlerThread aThread2 : connectionHandlerThreads)
+				{
+					if (aThread2 == aThread1)
+						continue;
+
+					ServerSideConnectionHandlerThread theThread2 = (ServerSideConnectionHandlerThread)aThread2;
+					if (theDomecastID.equals(theThread2.getDomecastID()))
+					{
+						if (theThread2.isHostListening())
+							numHostsListening++;
+						else
+							numHostsPaused++;
+					}
+				}
+				
+				// Build status text message
+				status = numHostsListening + " hosts are listening. " + numHostsPaused + " hosts are paused.";
+			}
+			else
+			{
+				// Determine if any presenters are available
+				ArrayList<String> domecasts = getAvailableDomecasts();
+				
+				if (domecasts.isEmpty())
+					status = "No available domecasts.";
+				else 
+				{
+					if (theDomecastID == null)
+						status = "Domecast(s) available.";
+					else
+					{
+						if (domecasts.contains(theDomecastID))
+						{
+							if (theThread1.isHostListening())
+								status = "Listening to domecast.";
+							else
+								status = "Ignoring domecast.";
+						}
+					}
+				}
+			}
+			
+			// Send the status
+			theThread1.sendText(CommUtils.kStatusText, status);
+		}
+	}
+	
 	/**
 	 * Displays vitals of each connection in the server application window.
 	 */

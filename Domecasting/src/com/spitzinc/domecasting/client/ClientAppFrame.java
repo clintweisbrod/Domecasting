@@ -18,8 +18,6 @@ public class ClientAppFrame extends JFrame
 {
 	private static final long serialVersionUID = 1L;
 	
-	public enum ConnectionStatus {eNotConnected, eConnectedNoPeer, eConnectedPeerNotReady, eConnectedPeersAvailable, eConnectedPeerReady};
-	
 	private ClientApplication theApp;
 	public JTabbedPane tabbedPane;
 	public HostPanel hostPanel;
@@ -62,26 +60,7 @@ public class ClientAppFrame extends JFrame
 				 !theApp.availableDomecasts.equals(CommUtils.kNoAvailableDomecastIDs))
 				domecasts = theApp.availableDomecasts.split("~");
 			
-			// Update the panel
-			if (!theApp.isConnected.get())
-				setPanelStatus(ConnectionStatus.eNotConnected, domecasts);
-			else
-			{
-				if (!theApp.isPeerPresent.get())
-				{
-					if (domecasts != null)
-						setPanelStatus(ConnectionStatus.eConnectedPeersAvailable, domecasts);
-					else
-						setPanelStatus(ConnectionStatus.eConnectedNoPeer, domecasts);
-				}
-				else
-				{
-					if (!theApp.isPeerReady.get())
-						setPanelStatus(ConnectionStatus.eConnectedPeerNotReady, domecasts);
-					else
-						setPanelStatus(ConnectionStatus.eConnectedPeerReady, domecasts);
-				}
-			}
+			setPanelStatus(theApp.statusText.get(), domecasts);
 		}
 	}
 
@@ -141,12 +120,12 @@ public class ClientAppFrame extends JFrame
 	}
 	
 	// Called by the ServerStatusThread.process() on the EDT.
-	public void setPanelStatus(ConnectionStatus status, String[] domecasts)
+	public void setPanelStatus(String statusText, String[] domecasts)
 	{
 		if (hostPanel != null)
-			hostPanel.setPanelStatus(status, domecasts);
+			hostPanel.setPanelStatus(statusText, domecasts);
 		if (presenterPanel != null)
-			presenterPanel.setPanelStatus(status);
+			presenterPanel.setPanelStatus(statusText);
 	}
 	
 	public void infoBox(String infoMessage, String titleBar)

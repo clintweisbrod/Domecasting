@@ -8,6 +8,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 import javax.swing.*;
 
@@ -44,8 +45,8 @@ public class ClientApplication extends ApplicationBase implements WindowListener
 	private SNTCPPassThruServer snPassThru = null;
 	
 	public ServerConnection serverConnection;
+	public AtomicReference<String> statusText;
 	public AtomicBoolean isConnected;
-	public AtomicBoolean isPeerPresent;
 	public AtomicBoolean isPeerReady;
 	public AtomicBoolean isDomecastIDUnique;
 	public String availableDomecasts;
@@ -62,8 +63,8 @@ public class ClientApplication extends ApplicationBase implements WindowListener
 		readPrefs();
 
 		// Status from server
+		this.statusText = new AtomicReference<String>();
 		this.isConnected = new AtomicBoolean(false);
-		this.isPeerPresent = new AtomicBoolean(false);
 		this.isPeerReady = new AtomicBoolean(false);
 		this.isDomecastIDUnique = new AtomicBoolean(false);
 	
@@ -120,6 +121,16 @@ public class ClientApplication extends ApplicationBase implements WindowListener
 		appFrame.pack();
 		appFrame.setResizable(false);
 		appFrame.setVisible(true);
+	}
+	
+	public void updateStatusText(String inStatusText)
+	{
+		statusText.set(inStatusText);
+
+		// Notify the UI of changes
+		synchronized(appFrame.tabbedPane) {
+			appFrame.tabbedPane.notify();
+		}
 	}
 	
 	public synchronized boolean routeComm()

@@ -93,6 +93,8 @@ public class ServerConnection
 				else
 					clientType = CommUtils.kPresenterID;
 				sendClientType(clientType);
+				
+				theApp.updateStatusText("Connection established with Spitz Domecasting server.");
 			}
 			catch (IOException e) {
 				e.printStackTrace();
@@ -101,6 +103,7 @@ public class ServerConnection
 		
 		private void handleConnectionLost()
 		{
+			theApp.updateStatusText("Spitz Domecasting server not available.");
 			Log.inst().info("Server connection lost.");
 			
 			// If we get here, the server connection has been lost.
@@ -141,6 +144,7 @@ public class ServerConnection
 			{
 				if (socket == null)
 				{
+					theApp.updateStatusText("Attempting to connect with Spitz Domecasting server...");
 					Log.inst().info("Attempting server connection...");
 					socket = CommUtils.connectToHost(hostName, port);
 					if (socket != null)
@@ -224,10 +228,10 @@ public class ServerConnection
 			}
 			else
 			{
-				if (list[0].equals(CommUtils.kIsConnected))
+				if (list[0].equals(CommUtils.kStatusText))
+					theApp.statusText.set(list[1]);
+				else if (list[0].equals(CommUtils.kIsConnected))
 					theApp.isConnected.set(Boolean.parseBoolean(list[1]));
-				else if (list[0].equals(CommUtils.kIsPeerPresent))
-					theApp.isPeerPresent.set(Boolean.parseBoolean(list[1]));
 				else if (list[0].equals(CommUtils.kIsPeerReady))
 					theApp.isPeerReady.set(Boolean.parseBoolean(list[1]));
 				else if (list[0].equals(CommUtils.kGetAvailableDomecasts))
@@ -292,8 +296,8 @@ public class ServerConnection
 		return out;
 	}
 	
-	public void sendHostReadyToCast(boolean readyToCast) {
-		sendToServer(CommUtils.kHostReadyForDomecast + "=" + Boolean.toString(readyToCast), ClientHeader.kINFO);
+	public void sendIsHostListening(boolean isHostListening) {
+		sendToServer(CommUtils.kIsHostListening + "=" + Boolean.toString(isHostListening), ClientHeader.kINFO);
 	}
 	
 	public boolean isConnected() {
