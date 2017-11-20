@@ -83,7 +83,7 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 		
 		// All INFO messages are of the form "variable=value".
 		String msg = new String(infoBytes);
-		Log.inst().info("Received: " + msg);
+		Log.inst().debug("Received: " + msg);
 		String[] list = msg.split("=");
 		if (list[0].equals(CommUtils.kClientType))
 		{
@@ -106,19 +106,11 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 			else
 				domecastID = null;
 			
-			// Notify other connected clients of this change
+			// As a presenter, we want to notify all hosts that we're present
 			if (clientType == CommUtils.kPresenterID)
-			{
-				// As a presenter, we want to notify all hosts that we're present
 				listenerThread.notifyHostsOfAvailableDomecasts();
-			}
-			else
-			{
-				// As a host, we want to notify the peer connection that we're present
-				ServerSideConnectionHandlerThread peerThread = listenerThread.findPeerConnectionThread(this);
-				if (peerThread != null)
-					peerThread.sendBoolean(CommUtils.kIsPeerPresent, true);
-			}
+			
+			listenerThread.sendStatusToThreads();
 		}
 		else if (list[0].equals(CommUtils.kIsDomecastIDUnique))
 			sendBoolean(CommUtils.kIsDomecastIDUnique, listenerThread.isDomecastIDUnique(list[1]));
@@ -126,10 +118,10 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 		{
 			isHostListening = Boolean.parseBoolean(list[1]);
 			
-			// Notify peer with CommUtils.kIsPeerReady
+			// Notify presenter with CommUtils.kIsHostReady
 			ServerSideConnectionHandlerThread peerThread = listenerThread.findPeerConnectionThread(this);
 			if (peerThread != null)
-				peerThread.sendBoolean(CommUtils.kIsPeerReady, isHostListening);
+				peerThread.sendBoolean(CommUtils.kIsHostReady, isHostListening);
 		}
 	}
 	

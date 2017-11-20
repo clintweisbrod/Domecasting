@@ -119,6 +119,14 @@ public class ClientAppFrame extends JFrame
 		
 	}
 	
+	public void resetUI()
+	{
+		if (hostPanel != null)
+			hostPanel.resetUI();
+		if (presenterPanel != null)
+			presenterPanel.resetUI();
+	}
+	
 	// Called by the ServerStatusThread.process() on the EDT.
 	public void setPanelStatus(String statusText, String[] domecasts)
 	{

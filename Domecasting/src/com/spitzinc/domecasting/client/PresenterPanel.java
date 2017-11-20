@@ -189,6 +189,12 @@ public class PresenterPanel extends JPanel
 
 	}
 	
+	public void resetUI()
+	{
+		txtDomecastID.setText("");
+		btnUploadAssets.setEnabled(false);
+	}
+	
 	public void setPanelStatus(String statusText)
 	{
 		if (lblStatusText != null)

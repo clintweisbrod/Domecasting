@@ -137,6 +137,9 @@ public class ServerSideConnectionListenerThread extends TCPConnectionListenerThr
 			
 			if ((theThread1.getClientType() == CommUtils.kPresenterID))
 			{
+				if (theDomecastID == null)
+					continue;
+
 				// Count how many host connection with domecastID equal to theDomecastID
 				int numHostsListening = 0;
 				int numHostsPaused = 0;
@@ -156,7 +159,27 @@ public class ServerSideConnectionListenerThread extends TCPConnectionListenerThr
 				}
 				
 				// Build status text message
-				status = numHostsListening + " hosts are listening. " + numHostsPaused + " hosts are paused.";
+				StringBuffer buf = new StringBuffer();
+				if (numHostsListening > 0)
+				{
+					if (numHostsListening == 1)
+						buf.append("One host is ");
+					else
+						buf.append(numHostsListening + " hosts are ");
+					buf.append("listening. ");
+				}
+				if (numHostsPaused > 0)
+				{
+					if (numHostsPaused == 1)
+						buf.append("One host is ");
+					else
+						buf.append(numHostsPaused + " hosts are ");
+					buf.append("paused.");
+				}
+				if (buf.length() == 0)
+					status = "No hosts present.";
+				else
+					status = buf.toString();
 			}
 			else
 			{
@@ -176,7 +199,7 @@ public class ServerSideConnectionListenerThread extends TCPConnectionListenerThr
 							if (theThread1.isHostListening())
 								status = "Listening to domecast.";
 							else
-								status = "Ignoring domecast.";
+								status = "Currently not listening to domecast.";
 						}
 					}
 				}

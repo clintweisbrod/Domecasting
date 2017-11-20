@@ -20,6 +20,7 @@ public class TCPConnectionHandlerThread extends BasicProcessorThread
 
 		if (socket != null)
 			try {
+				Log.inst().debug("Closing socket.");
 				socket.close();
 			} catch (IOException e) {
 			}

@@ -45,6 +45,7 @@ public class ServerConnection
 		
 		private String hostName;
 		private int port;
+		public AtomicBoolean disconnected;
 
 		private ConnectionEstablishThread(String hostName, int port)
 		{
@@ -52,6 +53,7 @@ public class ServerConnection
 			this.port = port;
 
 			this.stopped = new AtomicBoolean(false);
+			this.disconnected = new AtomicBoolean(false);
 			this.setName(getClass().getSimpleName() + "_" + hostName + "_" + port);
 		}
 		
@@ -72,6 +74,7 @@ public class ServerConnection
 		
 		private void handleConnectionEstablished()
 		{
+			disconnected.set(false);
 			Log.inst().info("Server connection established.");
 			
 			// If we get here, we've established a connection with the server.
@@ -103,18 +106,17 @@ public class ServerConnection
 		
 		private void handleConnectionLost()
 		{
-			theApp.updateStatusText("Spitz Domecasting server not available.");
-			Log.inst().info("Server connection lost.");
-			
 			// If we get here, the server connection has been lost.
+			theApp.handleServerDisconnect();
 			
 			// Shutdown the ServerInputHandlerThread instance
 			if ((serverInputHandlerThread != null) && serverInputHandlerThread.isAlive())
 			{
 				serverInputHandlerThread.interrupt();
 				try {
-					Log.inst().info("Waiting for " + serverInputHandlerThread.getName() + " to end...");
+					Log.inst().debug("Waiting for " + serverInputHandlerThread.getName() + " to end...");
 					serverInputHandlerThread.join();
+					Log.inst().debug(serverInputHandlerThread.getName() + " finished.");
 				} catch (InterruptedException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
@@ -171,7 +173,7 @@ public class ServerConnection
 					}
 					
 					// Check to see if socket is still connected
-					if (!socket.isConnected())
+					if (disconnected.get() || !socket.isConnected())
 						handleConnectionLost();
 				}
 			}
@@ -204,9 +206,19 @@ public class ServerConnection
  						handleCOMM(inHdr);
 				}
 			}
-			catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+			catch (IOException e)
+			{
+				// If we get here, the server connection has been lost. Notify the ConnectionEstablishThread.
+				try {
+					connectThread.disconnected.set(true);
+					socket.close();
+				} catch (IOException e1) {
+					// TODO Auto-generated catch block
+					e1.printStackTrace();
+				}
+				synchronized(connectThread) {
+					connectThread.notify();
+				}
 			}
 
 			Log.inst().info("Exiting thread.");
@@ -216,6 +228,7 @@ public class ServerConnection
 		{
 			CommUtils.readInputStream(in, buffer, 0, hdr.messageLen);
 			String serverReply = new String(buffer, 0, hdr.messageLen);
+			Log.inst().debug("Received: " + serverReply);
 			String[] list = serverReply.split("=");
 			if (list[0].equals(CommUtils.kIsDomecastIDUnique))
 			{
@@ -230,11 +243,11 @@ public class ServerConnection
 			{
 				if (list[0].equals(CommUtils.kStatusText))
 					theApp.statusText.set(list[1]);
-				else if (list[0].equals(CommUtils.kIsConnected))
+				else if (list[0].equals(CommUtils.kIsConnected))			// Received by both presenter and host
 					theApp.isConnected.set(Boolean.parseBoolean(list[1]));
-				else if (list[0].equals(CommUtils.kIsPeerReady))
+				else if (list[0].equals(CommUtils.kIsHostReady))			// Only received by presenter
 					theApp.isPeerReady.set(Boolean.parseBoolean(list[1]));
-				else if (list[0].equals(CommUtils.kGetAvailableDomecasts))
+				else if (list[0].equals(CommUtils.kGetAvailableDomecasts))	// Only received by host
 					theApp.availableDomecasts = list[1];
 				
 				// Notify the UI of changes

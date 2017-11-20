@@ -133,6 +133,14 @@ public class ClientApplication extends ApplicationBase implements WindowListener
 		}
 	}
 	
+	public void handleServerDisconnect()
+	{
+		Log.inst().info("Server connection lost.");
+		availableDomecasts = null;
+		updateStatusText("Spitz Domecasting server not available.");
+		appFrame.resetUI();
+	}
+	
 	public synchronized boolean routeComm()
 	{
 		// Decide if the necessary conditions are in place to begin routing comm

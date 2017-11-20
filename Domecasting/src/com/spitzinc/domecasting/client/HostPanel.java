@@ -21,9 +21,10 @@ public class HostPanel extends JPanel
 	public AtomicBoolean domecastOn;
 	
 	private boolean ignoreDomecastComboboxChanges;
-	private JButton btnPresentationControl;
+	private JButton btnGetPresentationAssets;
+	private JButton btnDomecastListen;
 	private JLabel lblStatusText;
-	private JComboBox<String> availableDomecasts;
+	private JComboBox<String> cmbAvailableDomecasts;
 	private JLabel lblNewLabel;
 
 	/**
@@ -48,8 +49,8 @@ public class HostPanel extends JPanel
 		gbc_lblNewLabel.gridy = 0;
 		add(lblNewLabel, gbc_lblNewLabel);
 		
-		availableDomecasts = new JComboBox<String>();
-		availableDomecasts.addItemListener(new ItemListener() {
+		cmbAvailableDomecasts = new JComboBox<String>();
+		cmbAvailableDomecasts.addItemListener(new ItemListener() {
 			public void itemStateChanged(ItemEvent event) {
 				if (event.getStateChange() == ItemEvent.SELECTED)
 				{
@@ -58,6 +59,9 @@ public class HostPanel extends JPanel
 						String domecastID = (String)event.getItem();
 						ClientInfoSendThread sendThread = new ClientInfoSendThread(null, domecastID, null);
 						sendThread.start();
+						
+						// Enable the button to listen to domecast
+						btnDomecastListen.setEnabled(true);
 					}
 				}
 			}
@@ -66,9 +70,9 @@ public class HostPanel extends JPanel
 		gbc_availableDomecasts.insets = new Insets(0, 0, 5, 0);
 		gbc_availableDomecasts.gridx = 0;
 		gbc_availableDomecasts.gridy = 1;
-		add(availableDomecasts, gbc_availableDomecasts);
+		add(cmbAvailableDomecasts, gbc_availableDomecasts);
 		
-		JButton btnGetPresentationAssets = new JButton("Download Presentation Assets...");
+		btnGetPresentationAssets = new JButton("Download Presentation Assets...");
 		btnGetPresentationAssets.setEnabled(false);
 		GridBagConstraints gbc_btnGetPresentationAssets = new GridBagConstraints();
 		gbc_btnGetPresentationAssets.insets = new Insets(0, 0, 5, 0);
@@ -76,9 +80,9 @@ public class HostPanel extends JPanel
 		gbc_btnGetPresentationAssets.gridy = 2;
 		add(btnGetPresentationAssets, gbc_btnGetPresentationAssets);
 		
-		btnPresentationControl = new JButton("Start Domecast");
-		btnPresentationControl.setEnabled(false);
-		btnPresentationControl.addActionListener(new ActionListener() {
+		btnDomecastListen = new JButton("Listen to Domecast");
+		btnDomecastListen.setEnabled(false);
+		btnDomecastListen.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				ClientApplication inst = (ClientApplication) ClientApplication.inst();
 				if (!domecastOn.get())
@@ -90,11 +94,11 @@ public class HostPanel extends JPanel
 					sendThread.start();
 					
 					// Disable controls so that only the btnPresentationControl is enabled
-					availableDomecasts.setEnabled(false);
+					cmbAvailableDomecasts.setEnabled(false);
 					inst.appFrame.tabbedPane.setEnabled(false);
 					
 					// Change the button text
-					btnPresentationControl.setText("Stop Domecast");
+					btnDomecastListen.setText("Stop Listening to Domecast");
 				}
 				else
 				{
@@ -105,11 +109,11 @@ public class HostPanel extends JPanel
 					sendThread.start();
 					
 					// Enable controls we disabled
-					availableDomecasts.setEnabled(true);
+					cmbAvailableDomecasts.setEnabled(true);
 					inst.appFrame.tabbedPane.setEnabled(true);
 					
 					// Change the button text
-					btnPresentationControl.setText("Start Domecast");
+					btnDomecastListen.setText("Listen to Domecast");
 				}
 			}
 		});
@@ -117,7 +121,7 @@ public class HostPanel extends JPanel
 		gbc_btnWaitForPresentation.insets = new Insets(0, 0, 5, 0);
 		gbc_btnWaitForPresentation.gridx = 0;
 		gbc_btnWaitForPresentation.gridy = 3;
-		add(btnPresentationControl, gbc_btnWaitForPresentation);
+		add(btnDomecastListen, gbc_btnWaitForPresentation);
 		
 		lblStatusText = new JLabel("");
 		GridBagConstraints gbc_lblStatusText = new GridBagConstraints();
@@ -127,6 +131,13 @@ public class HostPanel extends JPanel
 		add(lblStatusText, gbc_lblStatusText);
 
 	}
+	
+	public void resetUI()
+	{
+		btnGetPresentationAssets.setEnabled(false);
+		btnDomecastListen.setEnabled(false);
+		cmbAvailableDomecasts.removeAllItems();
+	}
 
 	public void setPanelStatus(String statusText, String[] domecasts)
 	{
@@ -134,12 +145,13 @@ public class HostPanel extends JPanel
 			lblStatusText.setText(statusText);
 		
 		// Update the combobox with the hosts that are currently connected
-		if (availableDomecasts != null)
+		String selectedItem = null;
+		if (cmbAvailableDomecasts != null)
 		{
 			ignoreDomecastComboboxChanges = true;
 
 			// Remember selected item
-			String selectedItem = (String)availableDomecasts.getSelectedItem();
+			selectedItem = (String)cmbAvailableDomecasts.getSelectedItem();
 			
 			// It's tempting to just call removeAllItems() and add the domecasts, but this causes bad behavior when 
 			// the dropdown list is visible. So, we just add/remove items from the list as needed.
@@ -149,24 +161,24 @@ public class HostPanel extends JPanel
 				for (String domecast : domecasts)
 				{
 					boolean hostExistsInList = false;
-					for (int i = 0; i < availableDomecasts.getItemCount(); i++)
+					for (int i = 0; i < cmbAvailableDomecasts.getItemCount(); i++)
 					{
-						if (domecast.equals(availableDomecasts.getItemAt(i)))
+						if (domecast.equals(cmbAvailableDomecasts.getItemAt(i)))
 						{
 							hostExistsInList = true;
 							break;
 						}
 					}
 					if (!hostExistsInList)
-						availableDomecasts.addItem(domecast);
+						cmbAvailableDomecasts.addItem(domecast);
 				}
 				
 				// Remove items from the list that are not in hosts
-				while (availableDomecasts.getItemCount() > domecasts.length)
+				while (cmbAvailableDomecasts.getItemCount() > domecasts.length)
 				{
-					for (int i = 0; i < availableDomecasts.getItemCount(); i++)
+					for (int i = 0; i < cmbAvailableDomecasts.getItemCount(); i++)
 					{
-						String item = availableDomecasts.getItemAt(i);
+						String item = cmbAvailableDomecasts.getItemAt(i);
 						boolean itemFoundInHosts = false;
 						for (String domecast : domecasts)
 						{
@@ -178,7 +190,7 @@ public class HostPanel extends JPanel
 						}
 						if (!itemFoundInHosts)
 						{
-							availableDomecasts.removeItem(item);
+							cmbAvailableDomecasts.removeItem(item);
 							break;
 						}
 					}
@@ -186,18 +198,35 @@ public class HostPanel extends JPanel
 			}
 			
 			// Re-select the item that was selected before we screwed with the list
-			availableDomecasts.setSelectedItem(selectedItem);
+			cmbAvailableDomecasts.setSelectedItem(selectedItem);
 			
 			ignoreDomecastComboboxChanges = false;
 		}
+
+		// Enable domecast button accordingly.
+		boolean enable = false;
+		if (selectedItem != null)
+		{
+			// If the previously selected item still exist in the list ov available domecasts, we
+			// can enable the button.
+			for (String domecast:domecasts)
+			{
+				if (domecast.equals(selectedItem))
+				{
+					enable = true;
+					break;
+				}
+			}
+		}
+		btnDomecastListen.setEnabled(enable);
 	}
 	
 	public String getDomecastID()
 	{
 		String result = "";
 
-		if ((availableDomecasts.getItemCount() > 0) && (availableDomecasts.getSelectedIndex() >= 0))
-			result = (String)availableDomecasts.getSelectedItem();
+		if ((cmbAvailableDomecasts.getItemCount() > 0) && (cmbAvailableDomecasts.getSelectedIndex() >= 0))
+			result = (String)cmbAvailableDomecasts.getSelectedItem();
 		
 		return result;
 	}
