@@ -19,7 +19,6 @@ public class CommUtils
 	
 	// Commands sent between client and server
 	public static final String kIsConnected = "isConnected";
-	public static final String kIsHostReady = "isHostReady";
 	public static final String kIsDomecastIDUnique = "isDomecastIDUnique";
 	public static final String kGetAvailableDomecasts = "getAvailableDomecasts";
 	public static final String kDomecastID = "domecastID";

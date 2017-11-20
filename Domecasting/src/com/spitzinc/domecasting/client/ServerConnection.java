@@ -90,12 +90,7 @@ public class ServerConnection
 				
 				// Send initial handshake to server
 				writeSecurityCode();
-				byte clientType;
-				if (theApp.appFrame.tabbedPane.getSelectedIndex() == 0)
-					clientType = CommUtils.kHostID;
-				else
-					clientType = CommUtils.kPresenterID;
-				sendClientType(clientType);
+				sendClientType(theApp.clientType);
 				
 				theApp.updateStatusText("Connection established with Spitz Domecasting server.");
 			}
@@ -245,8 +240,6 @@ public class ServerConnection
 					theApp.statusText.set(list[1]);
 				else if (list[0].equals(CommUtils.kIsConnected))			// Received by both presenter and host
 					theApp.isConnected.set(Boolean.parseBoolean(list[1]));
-				else if (list[0].equals(CommUtils.kIsHostReady))			// Only received by presenter
-					theApp.isPeerReady.set(Boolean.parseBoolean(list[1]));
 				else if (list[0].equals(CommUtils.kGetAvailableDomecasts))	// Only received by host
 					theApp.availableDomecasts = list[1];
 				
@@ -266,6 +259,14 @@ public class ServerConnection
 			// both cases, hdr.messageSource will indicate this.
 			// So, we have no choice but to create ByteBuffer instances and throw them into
 			// the appropriate LinkedBlockingQueue configured with some reasonable capacity.
+			if (theApp.clientType == CommUtils.kHostID)
+			{
+				
+			}
+			else
+			{
+				
+			}
 		}
 	}
 	

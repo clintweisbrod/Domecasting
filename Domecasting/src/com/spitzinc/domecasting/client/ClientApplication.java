@@ -47,7 +47,6 @@ public class ClientApplication extends ApplicationBase implements WindowListener
 	public ServerConnection serverConnection;
 	public AtomicReference<String> statusText;
 	public AtomicBoolean isConnected;
-	public AtomicBoolean isPeerReady;
 	public AtomicBoolean isDomecastIDUnique;
 	public String availableDomecasts;
 	
@@ -65,7 +64,6 @@ public class ClientApplication extends ApplicationBase implements WindowListener
 		// Status from server
 		this.statusText = new AtomicReference<String>();
 		this.isConnected = new AtomicBoolean(false);
-		this.isPeerReady = new AtomicBoolean(false);
 		this.isDomecastIDUnique = new AtomicBoolean(false);
 	
 		// Create object to manage connection with server
@@ -139,26 +137,6 @@ public class ClientApplication extends ApplicationBase implements WindowListener
 		availableDomecasts = null;
 		updateStatusText("Spitz Domecasting server not available.");
 		appFrame.resetUI();
-	}
-	
-	public synchronized boolean routeComm()
-	{
-		// Decide if the necessary conditions are in place to begin routing comm
-		boolean result = false;
-		
-		if (clientType == CommUtils.kPresenterID)
-		{
-			String domecastID = appFrame.presenterPanel.getDomecastID();
-			result = isPeerReady.get() && (domecastID.length() >= PresenterPanel.kMinDomecastIDLength);
-		}
-		else
-		{
-			String domecastID = appFrame.hostPanel.getDomecastID();
-			boolean domecastStarted = appFrame.hostPanel.domecastOn.get();
-			result = isPeerReady.get() && domecastStarted && (domecastID.length() >= PresenterPanel.kMinDomecastIDLength);
-		}
-		
-		return result;
 	}
 	
 	public InputStream getServerInputStream()

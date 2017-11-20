@@ -117,12 +117,6 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 		else if (list[0].equals(CommUtils.kIsHostListening))
 		{
 			isHostListening = Boolean.parseBoolean(list[1]);
-			
-			// Notify presenter with CommUtils.kIsHostReady
-			ServerSideConnectionHandlerThread peerThread = listenerThread.findPeerConnectionThread(this);
-			if (peerThread != null)
-				peerThread.sendBoolean(CommUtils.kIsHostReady, isHostListening);
-			
 			listenerThread.sendStatusToThreads();
 		}
 	}
