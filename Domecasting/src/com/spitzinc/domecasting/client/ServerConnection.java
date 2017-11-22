@@ -11,6 +11,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
+import java.nio.ByteBuffer;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.spitzinc.domecasting.BasicProcessorThread;
@@ -20,6 +23,8 @@ import com.spitzinc.domecasting.Log;
 
 public class ServerConnection
 {
+	private static final int kMaxServerInputQueueSize = 20;
+	
 	private ClientApplication theApp;
 	private Object outputStreamLock;	// This must be used from SNTCPPassThruThread!!!
 	private ClientHeader inHdr;
@@ -29,7 +34,8 @@ public class ServerConnection
 	private InputStream in;
 	private OutputStream out;
 	private Socket socket;
-	private byte[] buffer;
+	private byte[] infoBuffer;
+	private ConcurrentHashMap<String, LinkedBlockingQueue<ByteBuffer>> inputQueues;
 
 	/*
 	 * This thread manages connection to domecast server. Once server connection is established,
@@ -221,8 +227,8 @@ public class ServerConnection
 		
 		private void handleINFO(ClientHeader hdr) throws IOException
 		{
-			CommUtils.readInputStream(in, buffer, 0, hdr.messageLen);
-			String serverReply = new String(buffer, 0, hdr.messageLen);
+			CommUtils.readInputStream(in, infoBuffer, 0, hdr.messageLen);
+			String serverReply = new String(infoBuffer, 0, hdr.messageLen);
 			Log.inst().debug("Received: " + serverReply);
 			String[] list = serverReply.split("=");
 			if (list[0].equals(CommUtils.kIsDomecastIDUnique))
@@ -236,12 +242,14 @@ public class ServerConnection
 			}
 			else
 			{
-				if (list[0].equals(CommUtils.kStatusText))
+				if (list[0].equals(CommUtils.kStatusText))					// Received by both presenter and host
 					theApp.statusText.set(list[1]);
 				else if (list[0].equals(CommUtils.kIsConnected))			// Received by both presenter and host
 					theApp.isConnected.set(Boolean.parseBoolean(list[1]));
 				else if (list[0].equals(CommUtils.kGetAvailableDomecasts))	// Only received by host
 					theApp.availableDomecasts = list[1];
+				else if (list[0].equals(CommUtils.kIsHostListening))		// Only received by presenter. Host sets this locally.
+					theApp.isHostListening.set(Boolean.parseBoolean(list[1]));
 				
 				// Notify the UI of changes
 				synchronized(theApp.appFrame.tabbedPane) {
@@ -259,13 +267,26 @@ public class ServerConnection
 			// both cases, hdr.messageSource will indicate this.
 			// So, we have no choice but to create ByteBuffer instances and throw them into
 			// the appropriate LinkedBlockingQueue configured with some reasonable capacity.
-			if (theApp.clientType == CommUtils.kHostID)
+			
+			// Get the correct queue
+			LinkedBlockingQueue<ByteBuffer> theQueue = inputQueues.get(hdr.messageSource);
+			if (theQueue != null)
 			{
+				// Allocate a byte array large enough to hold the entire message
+				byte[] buffer = new byte[inHdr.messageLen];
 				
-			}
-			else
-			{
+				// Read the entire message
+				CommUtils.readInputStream(in, buffer, 0, inHdr.messageLen);
 				
+				// Wrap the byte array in a new ByteBuffer object (I hate we have to do this)
+				ByteBuffer theBuffer = ByteBuffer.wrap(buffer);
+				
+				// Push the new ByteBuffer into the queue
+				if (!theQueue.offer(theBuffer))
+				{
+					// If we get here, the queue is already filled with kMaxServerInputQueueSize items
+					Log.inst().error(hdr.messageSource + " input queue is full! Ignoring further received communication.");
+				}
 			}
 		}
 	}
@@ -278,7 +299,15 @@ public class ServerConnection
 		this.outputStreamLock = new Object();
 		this.inHdr = new ClientHeader();
 		this.outHdr = new ClientHeader();
-		this.buffer = new byte[CommUtils.kCommBufferSize];	// Allocate byte buffer to handle reading InputStream
+		this.infoBuffer = new byte[1024];	// Allocate byte buffer to handle reading InputStream for INFO messages
+		
+		// Allocate a map to hold queues to store incoming data from server. We need a queue for each possible
+		// type of client connection supported by domecasting. For now, that is SNPF and ATM4. When we extend our
+		// domecasting solution to support TLE and and Zygote, we will need a map capacity of 4. I don't see any
+		// harm in allocating that extra space now.
+		this.inputQueues = new ConcurrentHashMap<String, LinkedBlockingQueue<ByteBuffer>>(4);
+		this.inputQueues.put(ClientHeader.kSNPF, new LinkedBlockingQueue<ByteBuffer>(kMaxServerInputQueueSize));
+		this.inputQueues.put(ClientHeader.kATM4, new LinkedBlockingQueue<ByteBuffer>(kMaxServerInputQueueSize));
 		
 		// Launch thread to establish/re-establish connection to server
 		this.connectThread = new ConnectionEstablishThread(hostName, port);
@@ -300,14 +329,34 @@ public class ServerConnection
 				e.printStackTrace();
 			}
 		}
-	}
-	
-	public InputStream getInputStream() {
-		return in;
+		
+		// Clean up the input queues
+		for (LinkedBlockingQueue<ByteBuffer> queue : inputQueues.values())
+			queue.clear();
+		inputQueues.clear();
+		
 	}
 	
 	public OutputStream getOutputStream() {
 		return out;
+	}
+	
+	public ByteBuffer getInputStreamData(String src)
+	{
+		ByteBuffer result = null;
+		
+		LinkedBlockingQueue<ByteBuffer> theQueue = inputQueues.get(src);
+		if (theQueue != null)
+		{
+			try {
+				result = theQueue.take();	// This call will block until there is data in the queue.
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+		
+		return result;
 	}
 	
 	public void sendIsHostListening(boolean isHostListening) {

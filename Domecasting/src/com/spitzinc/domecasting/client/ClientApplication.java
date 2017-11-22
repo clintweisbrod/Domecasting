@@ -47,8 +47,9 @@ public class ClientApplication extends ApplicationBase implements WindowListener
 	public ServerConnection serverConnection;
 	public AtomicReference<String> statusText;
 	public AtomicBoolean isConnected;
-	public AtomicBoolean isDomecastIDUnique;
-	public String availableDomecasts;
+	public AtomicBoolean isDomecastIDUnique;	// Relevant only for presenter
+	public String availableDomecasts;			// Relevant only for hosts
+	public AtomicBoolean isHostListening;		// Relevant for both host and presenter.
 	
 	public byte clientType = CommUtils.kHostID;
 	
@@ -65,6 +66,7 @@ public class ClientApplication extends ApplicationBase implements WindowListener
 		this.statusText = new AtomicReference<String>();
 		this.isConnected = new AtomicBoolean(false);
 		this.isDomecastIDUnique = new AtomicBoolean(false);
+		this.isHostListening = new AtomicBoolean(false);
 	
 		// Create object to manage connection with server
 		serverConnection = new ServerConnection(this, domecastingServerHostname, domecastingServerPort);
@@ -137,16 +139,6 @@ public class ClientApplication extends ApplicationBase implements WindowListener
 		availableDomecasts = null;
 		updateStatusText("Spitz Domecasting server not available.");
 		appFrame.resetUI();
-	}
-	
-	public InputStream getServerInputStream()
-	{
-		InputStream result = null;
-		
-		if (serverConnection != null)
-			result = serverConnection.getInputStream();
-
-		return result;
 	}
 	
 	public OutputStream getServerOutputStream()

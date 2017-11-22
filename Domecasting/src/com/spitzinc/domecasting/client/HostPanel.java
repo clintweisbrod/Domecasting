@@ -18,8 +18,6 @@ public class HostPanel extends JPanel
 {
 	private static final long serialVersionUID = 1L;
 	
-	public AtomicBoolean domecastOn;
-	
 	private boolean ignoreDomecastComboboxChanges;
 	private JButton btnGetPresentationAssets;
 	private JButton btnDomecastListen;
@@ -32,7 +30,6 @@ public class HostPanel extends JPanel
 	 */
 	public HostPanel()
 	{
-		this.domecastOn = new AtomicBoolean(false);
 		this.ignoreDomecastComboboxChanges = true;
 		
 		GridBagLayout gridBagLayout = new GridBagLayout();
@@ -85,9 +82,9 @@ public class HostPanel extends JPanel
 		btnDomecastListen.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				ClientApplication inst = (ClientApplication) ClientApplication.inst();
-				if (!domecastOn.get())
+				if (!inst.isHostListening.get())
 				{
-					domecastOn.set(true);
+					inst.isHostListening.set(true);
 					
 					// Tell the server we're ready to be controlled by presenter
 					ClientInfoSendThread sendThread = new ClientInfoSendThread(null, null, true);
@@ -102,7 +99,7 @@ public class HostPanel extends JPanel
 				}
 				else
 				{
-					domecastOn.set(false);
+					inst.isHostListening.set(false);
 					
 					// Tell the server we're not ready to be controlled by presenter
 					ClientInfoSendThread sendThread = new ClientInfoSendThread(null, null, false);

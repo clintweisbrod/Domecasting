@@ -85,7 +85,7 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 		String msg = new String(infoBytes);
 		Log.inst().debug("Received: " + msg);
 		String[] list = msg.split("=");
-		if (list[0].equals(CommUtils.kClientType))
+		if (list[0].equals(CommUtils.kClientType))			// Sent from both host and presenter
 		{
 			clientType = (byte)list[1].charAt(0);
 			
@@ -99,7 +99,7 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 				sendHostAvailableDomecasts(domecasts);
 			}
 		}
-		else if (list[0].equals(CommUtils.kDomecastID))
+		else if (list[0].equals(CommUtils.kDomecastID))		// Sent from both host and presenter
 		{
 			if (list.length == 2)
 				domecastID = list[1];
@@ -112,11 +112,17 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 			
 			listenerThread.sendStatusToThreads();
 		}
-		else if (list[0].equals(CommUtils.kIsDomecastIDUnique))
+		else if (list[0].equals(CommUtils.kIsDomecastIDUnique))	// Sent only from presenter
 			sendBoolean(CommUtils.kIsDomecastIDUnique, listenerThread.isDomecastIDUnique(list[1]));
-		else if (list[0].equals(CommUtils.kIsHostListening))
+		else if (list[0].equals(CommUtils.kIsHostListening))	// Sent only from host
 		{
 			isHostListening = Boolean.parseBoolean(list[1]);
+			
+			// Notify presenter of this change
+			if (peerConnectionThread == null)
+				peerConnectionThread = listenerThread.findPeerConnectionThread(this);
+			peerConnectionThread.sendBoolean(CommUtils.kIsHostListening, isHostListening);
+			
 			listenerThread.sendStatusToThreads();
 		}
 	}
