@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
+import java.nio.ByteBuffer;
 
 import com.spitzinc.domecasting.ClientHeader;
 import com.spitzinc.domecasting.CommUtils;
@@ -82,8 +83,21 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 
 				// Begin reading data from inbound stream and writing it to outbound stream in chunks
 				// of SN comm.
-				while (!stopped.get())
-					starryNightPassThru(buffer);
+				try
+				{
+					while (!stopped.get())
+					{
+						if (theApp.isHostListening.get())
+							performDomecastRouting(buffer);
+						else
+							starryNightPassThru(buffer);
+					}
+				}
+				catch (IOException e1) {
+					// TODO Auto-generated catch block
+					stopped.set(true);
+					e1.printStackTrace();
+				}
 			}
 
 			// Close streams
@@ -160,225 +174,175 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 	 * @param buffer
 	 * @throws IOException 
 	 */
-	private void starryNightPassThru(byte[] buffer)
+	private void starryNightPassThru(byte[] buffer) throws IOException
 	{
+		// Get total length of incoming message and modify the replyToPort
+		int messageLength = readSNHeader(buffer);
+
+		// Write the header to the outbound socket
+		CommUtils.writeOutputStream(out, buffer, 0, kSNHeaderLength);
+
+		// Now read/write the remainder of the message
+		int bytesLeftToReceive = messageLength - kSNHeaderLength;
+		while (bytesLeftToReceive > 0)
+		{
+			// Read as much of the message as our buffer will hold
+			int bytesToRead = Math.min(bytesLeftToReceive, buffer.length);
+			CommUtils.readInputStream(in, buffer, 0, bytesToRead);
+	
+			// Write the buffer
+			CommUtils.writeOutputStream(out, buffer, 0, bytesToRead);
+
+			bytesLeftToReceive -= bytesToRead;
+		}
+	}
+	
+	private int readSNHeader(byte[] buffer) throws IOException
+	{
+		int result = 0;
+		
 		// Read the SN header from the inbound socket
-		try
-		{
-			handleInputStreamCommRouting(buffer, 0, kSNHeaderLength);
-//			CommUtils.readInputStream(in, buffer, 0, kSNHeaderLength, getName());
+		CommUtils.readInputStream(in, buffer, 0, kSNHeaderLength);
 
-			// Get total length of incoming message and modify the replyToPort
-			int messageLength = 0;
-			if (!stopped.get())
-			{
-				// Get the total length of the message that we are receiving.
-				String messageLengthStr = new String(buffer, 0, kSNHeaderFieldLength).trim();
-				try {
-					messageLength = Integer.parseInt(messageLengthStr);
-				} catch (NumberFormatException e) {
-					Log.inst().error("messageLengthStr: " + messageLengthStr);
-					throw new IOException(e.getMessage());
-				}
-//				Log.inst().info("Parsed messageLength = " + messageLength);
-
-				if (modifyReplyPort)
-				{
-					// Change the buffer so that the return port is set to outboundNode.replyPort
-					// The return port digits start at pos 50 in the buffer.
-					if (replyPortBytes != null)
-						System.arraycopy(replyPortBytes, 0, buffer, kSNHeaderReplyPortPosition, replyPortBytes.length);
-				}
-				
-				// Obtain the clientAppName from the header
-				if (clientAppName == null)
-					clientAppName = new String(buffer, kSNHeaderClientAppNamePosition, kSNHeaderFieldLength).trim();
-
-				// Write the header to the outbound socket
-				handleOutputStreamCommRouting(buffer, 0, kSNHeaderLength);
-//				CommUtils.writeOutputStream(out, buffer, 0, kSNHeaderLength, getName());
-			}
-
-			// Now read/write the remainder of the message
-			int bytesLeftToReceive = messageLength - kSNHeaderLength;
-			while (!stopped.get() && (bytesLeftToReceive > 0))
-			{
-				// Read as much of the message as our buffer will hold
-				int bytesToRead = Math.min(bytesLeftToReceive, buffer.length);
-				handleInputStreamCommRouting(buffer, 0, bytesToRead);
-//				CommUtils.readInputStream(in, buffer, 0, bytesToRead, getName());
-
-				// Write the buffer
-				handleOutputStreamCommRouting(buffer, 0, bytesToRead);
-//				CommUtils.writeOutputStream(out, buffer, 0, bytesToRead, getName());
-
-				bytesLeftToReceive -= bytesToRead;
-			}
-		} catch (IOException e1) {
-			// TODO Auto-generated catch block
-			stopped.set(true);
-			e1.printStackTrace();
+		// Get the total length of the message that we are receiving.
+		String messageLengthStr = new String(buffer, 0, kSNHeaderFieldLength).trim();
+		try {
+			result = Integer.parseInt(messageLengthStr);
+		} catch (NumberFormatException e) {
+			Log.inst().error("messageLengthStr: " + messageLengthStr);
+			throw new IOException(e.getMessage());
 		}
-	}
-	
-	private void handleInputStreamCommRouting(byte[] buffer, int offset, int len) throws IOException
-	{
-		if (routeComm)
-		{
-			InputStream dcsIn = theApp.getServerInputStream();
-			if (dcsIn != null)
-			{
-				if (theApp.clientType == CommUtils.kPresenterID)
-				{
-					if (modifyReplyPort)
-					{
-						// If we get here, this is the thread that reads data from PF or ATM4. Read the data.
-						CommUtils.readInputStream(in, buffer, 0, len);
-					}
-					else
-					{
-						// If we get here, this is the thread that reads responses from the local RB. We want to read
-						// the response from the remote RB.
-						
-						// This is not the data we want during comm routing
-//						CommUtils.readInputStream(in, buffer, 0, len, caller);
+//		Log.inst().info("Parsed messageLength = " + messageLength);
 
-						// Read and parse the header
-						synchronized(dcsIn) {
-							do {
-								// Read header
-								CommUtils.readInputStream(dcsIn, inHdr.bytes, 0, ClientHeader.kHdrByteCount);
-								inHdr.parseHeaderBuffer();
-								// Read the data
-								CommUtils.readInputStream(dcsIn, buffer, 0, inHdr.messageLen);
-								
-								if (!inHdr.messageType.equals(ClientHeader.kCOMM))
-									Log.inst().error("WHOA!!! Received " + inHdr.messageType + " header");
-								
-							} while (!inHdr.messageType.equals(ClientHeader.kCOMM));
-							
-//							String receivedData = new String(buffer, 0, inHdr.messageLen);
-//							Log.inst().info("Received from server: ");
-//							Log.inst().info(receivedData);
-						}
-					}
-				}
-				else	// Host
-				{
-					if (modifyReplyPort)
-					{
-						// This is not the data we want during comm routing
-//						CommUtils.readInputStream(in, buffer, 0, len, caller);
-						
-						// If we get here, we're reading data from PF or ATM4. We want to read the data from the remote PF or ATM4.
-						// Read and parse the header
-						synchronized(dcsIn) {
-							do {
-								// Read header
-								CommUtils.readInputStream(dcsIn, inHdr.bytes, 0, ClientHeader.kHdrByteCount);
-								inHdr.parseHeaderBuffer();
-								// Read the data
-								CommUtils.readInputStream(dcsIn, buffer, 0, inHdr.messageLen);
-								
-								if (!inHdr.messageType.equals(ClientHeader.kCOMM))
-									Log.inst().error("WHOA!!! Received " + inHdr.messageType + " header");
-								
-							} while (!inHdr.messageType.equals(ClientHeader.kCOMM));
-							
-//							String receivedData = new String(buffer, 0, inHdr.messageLen);
-//							Log.inst().info("Received from server: ");
-//							Log.inst().info(receivedData);
-						}
-					}
-					else
-					{
-						// If we get here, we're reading responses from the local RB. These responses must be
-						// sent back to the presenter so read them.
-						CommUtils.readInputStream(in, buffer, 0, len);
-					}
-				}
+		if (modifyReplyPort)
+		{
+			// Change the buffer so that the return port is set to outboundNode.replyPort
+			// The return port digits start at pos 50 in the buffer.
+			if (replyPortBytes != null)
+				System.arraycopy(replyPortBytes, 0, buffer, kSNHeaderReplyPortPosition, replyPortBytes.length);
+		}
+		
+		// Obtain the clientAppName from the header
+		if (clientAppName == null)
+			clientAppName = new String(buffer, kSNHeaderClientAppNamePosition, kSNHeaderFieldLength).trim();
+		
+		return result;
+	}
+
+	private void performDomecastRouting(byte[] buffer) throws IOException
+	{
+		OutputStream dcsOut = theApp.getServerOutputStream();
+		if (dcsOut == null)
+			return;
+
+		if (theApp.clientType == CommUtils.kPresenterID)
+		{
+			if (modifyReplyPort)
+			{
+				// If we get here, this is the thread that reads data from the local PF or ATM4.
+				// Do the usual pass-thru but also write the incoming data to the domecast server.
+				writeSNPacketToServer(buffer, dcsOut, clientAppName, ClientHeader.kSNRB);
+			}
+			else
+			{
+				// If we get here, this is the thread that, during pass-thru, reads responses from the local RB.
+				// We read this data but it will not be routed anywhere. We then route the data that is available
+				// from the domecast server to our local OutputStream.
+				readSNPacketFromServer(buffer);
 			}
 		}
 		else
 		{
-			// Do the usual read from PF or ATM4. This may be overwritten below
-			CommUtils.readInputStream(in, buffer, 0, len);
+			if (modifyReplyPort)
+			{
+				// If we get here, this is the thread that, during pass-thru, reads data from the local PF or ATM4.
+				// We read this data but it will not be routed anywhere. We then route the data that is available
+				// from the domecast server to our local OutputStream.
+				readSNPacketFromServer(buffer);
+			}
+			else
+			{
+				// If we get here, this is the thread that reads data from the local RB.
+				// Do the usual pass-thru but also write the incoming data to the domecast server.
+				writeSNPacketToServer(buffer, dcsOut, ClientHeader.kSNRB, clientAppName);
+			}
 		}
 	}
 	
-	private void handleOutputStreamCommRouting(byte[] buffer, int offset, int len) throws IOException
+	private void readSNDataToNowhere(byte[] buffer, int messageLength) throws IOException
 	{
-		if (routeComm)
+		int bytesLeftToReceive = messageLength - kSNHeaderLength;
+		while (bytesLeftToReceive > 0)
 		{
-			OutputStream dcsOut = theApp.getServerOutputStream();
-			if (dcsOut != null)
-			{
-				String msgSrc, msgDst;
-				if (theApp.clientType == CommUtils.kPresenterID)
-				{
-					// The thread that has modifyReplyPort set is the one sending data from PF or ATM4 to RB. As a presenter,
-					// and during comm routing, we want to send this data across the server connection as well as to the local RB.
-					if (modifyReplyPort)
-					{
-						msgSrc = clientAppName;
-						msgDst = ClientHeader.kSNRB;
+			// Read as much of the message as our buffer will hold
+			int bytesToRead = Math.min(bytesLeftToReceive, buffer.length);
+			CommUtils.readInputStream(in, buffer, 0, bytesToRead);
 
-						synchronized(dcsOut) {
-							CommUtils.writeHeader(dcsOut, outHdr, len, msgSrc, msgDst, ClientHeader.kCOMM);
-							CommUtils.writeOutputStream(dcsOut, buffer, 0, len);
-							
-							String sentData = new String(buffer, 0, len);
-							Log.inst().info("Sent to remote RB: ");
-							Log.inst().info(sentData);
-						}
-						
-						// Also do the usual pass-thru to the local RB
-						CommUtils.writeOutputStream(out, buffer, 0, len);
-					}
-					else
-					{
-						// If we get here, this is the thread that handles responses from RB to either PF or ATM4.
-						// The local OutputStream (out) is a connection to either PF or ATM4. For presenters, we
-						// receive the remote RB's responses, not the local ones.
-						CommUtils.writeOutputStream(out, buffer, 0, len);
-					}
-				}
-				else	// Host
-				{
-					// The thread that has modifyReplyPort set is the one sending data from PF or ATM4 to RB. As a host,
-					// and during comm routing, we still write the contents of the buffer to the local OutputStream but
-					// the buffer contents have been filled with data from the remote PF or ATM4.
-					if (modifyReplyPort)
-					{
-						// Just do the usual pass-thru
-						CommUtils.writeOutputStream(out, buffer, 0, len);
-						
-//						String sentData = new String(buffer, 0, len);
-//						Log.inst().info("Sent to local RB: ");
-//						Log.inst().info(sentData);
-					}
-					else
-					{
-						// If we get here, this is the thread that is reading responses from the host RB. We want to write
-						// these responses to both the local PF (or ATM-4) AND send this data across the server connection.
-						msgSrc = ClientHeader.kSNRB;
-						msgDst = clientAppName;
-						
-						synchronized(dcsOut) {
-							CommUtils.writeHeader(dcsOut, outHdr, len, msgSrc, msgDst, ClientHeader.kCOMM);
-							CommUtils.writeOutputStream(dcsOut, buffer, 0, len);
-						}
-						
-						// Also do the usual pass-thru to the local PF or ATM4.
-						CommUtils.writeOutputStream(out, buffer, 0, len);
-					}
-				}
-			}
+			bytesLeftToReceive -= bytesToRead;
 		}
-		else
+	}
+	
+	/*
+	 * A "SN packet" is understood as the data containing both SN header and the stream
+	 * of data following it. This is what theApp.serverConnection stores as ByteBuffer
+	 * instances in one of two queues.
+	 */
+	private void readSNPacketFromServer(byte[] buffer) throws IOException
+	{
+		// We still have to read what the local InputStream has for us, but the data is ignored.
+		int messageLength = readSNHeader(buffer);
+		readSNDataToNowhere(buffer, messageLength);
+		
+		// We want to read the data sent to us from the domecast server.
+		ByteBuffer nextPacket = theApp.serverConnection.getInputStreamData(clientAppName);
+		if (nextPacket != null)
 		{
-			// Just do the usual pass-thru
-			CommUtils.writeOutputStream(out, buffer, 0, len);
+			byte[] receivedBuffer = nextPacket.array();
+			
+			// Send all this data to the local OutputStream
+			CommUtils.writeOutputStream(out, receivedBuffer, 0, receivedBuffer.length);
+		}
+	}
+	
+	private void writeSNPacketToServer(byte[] buffer, OutputStream dcsOut, String msgSrc, String msgDst) throws IOException
+	{
+		int messageLength = readSNHeader(buffer);
+		
+		// Write the SN header to the outbound socket
+		CommUtils.writeOutputStream(out, buffer, 0, kSNHeaderLength);
+		
+		// Now we write to the domecast server OutputStream.
+		// We must write the client header, then the SN header in buffer, read the rest of the packet from the local InputStream
+		// and write it to the domecast server OutputStream while we have exclusive access to the
+		// domecast server OutputStream.
+		synchronized(dcsOut) {
+			// Write the client header
+			CommUtils.writeHeader(dcsOut, outHdr, kSNHeaderLength, msgSrc, msgDst, ClientHeader.kCOMM);
+			
+			// Write the SN header currently in buffer
+			CommUtils.writeOutputStream(dcsOut, buffer, 0, kSNHeaderLength);
+			
+			// Read/write the remainder of the data
+			readSNDataToOutputStreams(buffer, messageLength, dcsOut);
+		}
+	}
+	
+	private void readSNDataToOutputStreams(byte[] buffer, int messageLength, OutputStream serverOutputStream) throws IOException
+	{
+		int bytesLeftToReceive = messageLength - kSNHeaderLength;
+		while (bytesLeftToReceive > 0)
+		{
+			// Read as much of the message as our buffer will hold
+			int bytesToRead = Math.min(bytesLeftToReceive, buffer.length);
+			CommUtils.readInputStream(in, buffer, 0, bytesToRead);
+	
+			// Write the buffer to the local OutputStream
+			CommUtils.writeOutputStream(out, buffer, 0, bytesToRead);
+			
+			// Also write the buffer to the domecast server OutputStream
+			CommUtils.writeOutputStream(serverOutputStream, buffer, 0, bytesToRead);
+
+			bytesLeftToReceive -= bytesToRead;
 		}
 	}
 }
