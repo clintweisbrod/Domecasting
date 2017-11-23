@@ -30,7 +30,10 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 					int messageLength = readSNHeader(buffer);
 					readSNDataToNowhere(buffer, messageLength);
 					Log.inst().info("Read " + messageLength + " bytes.");
-				} catch (IOException e) {
+					
+					// Sleep for a bit
+					sleep(500);
+				} catch (IOException | InterruptedException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
