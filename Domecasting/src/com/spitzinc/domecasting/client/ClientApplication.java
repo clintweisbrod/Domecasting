@@ -4,8 +4,7 @@ import java.awt.Dimension;
 import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -141,9 +140,9 @@ public class ClientApplication extends ApplicationBase implements WindowListener
 		appFrame.resetUI();
 	}
 	
-	public OutputStream getServerOutputStream()
+	public OutputStreamWriter getServerOutputStream()
 	{
-		OutputStream result = null;
+		OutputStreamWriter result = null;
 		
 		if (serverConnection != null)
 			result = serverConnection.getOutputStream();
