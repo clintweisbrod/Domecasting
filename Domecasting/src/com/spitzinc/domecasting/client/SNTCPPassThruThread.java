@@ -224,7 +224,10 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 		
 		// Obtain the clientAppName from the header
 		if (clientAppName == null)
+		{
 			clientAppName = new String(buffer, kSNHeaderClientAppNamePosition, kSNHeaderFieldLength).trim();
+			Log.inst().debug("clientAppName parsed from SN header: " + clientAppName);
+		}
 		
 		return result;
 	}
@@ -290,6 +293,7 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 	private void readSNPacketFromServer(byte[] buffer) throws IOException
 	{
 		// We still have to read what the local InputStream has for us, but the data is ignored.
+		// THIS CAN BLOCK IF THERE'S NO DATA TO READ!!!
 		int messageLength = readSNHeader(buffer);
 		readSNDataToNowhere(buffer, messageLength);
 		
@@ -317,7 +321,7 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 		// domecast server OutputStream.
 		synchronized(dcsOut) {
 			// Write the client header
-			CommUtils.writeHeader(dcsOut, outHdr, kSNHeaderLength, msgSrc, msgDst, ClientHeader.kCOMM);
+			CommUtils.writeHeader(dcsOut, outHdr, messageLength, msgSrc, msgDst, ClientHeader.kCOMM);
 			
 			// Write the SN header currently in buffer
 			CommUtils.writeOutputStream(dcsOut, buffer, 0, kSNHeaderLength);
