@@ -13,7 +13,7 @@ import java.net.UnknownHostException;
 public class CommUtils
 {
 	public static final int kSecurityCodeLength = 20;
-	public static final int kCommBufferSize = 16 * 1024;
+	public static final int kCommBufferSize = 120 * 1024;	// This should be enough for all SNF files
 	public static final byte kHostID = 'H';
 	public static final byte kPresenterID = 'P';
 	
@@ -85,6 +85,7 @@ public class CommUtils
 					", totalBytesRead=" + totalBytesRead +
 					", bytesLeftToRead=" + bytesLeftToRead +
 					".");
+			e.printStackTrace();
 			throw new IOException(e.getMessage());
 		}
 	}

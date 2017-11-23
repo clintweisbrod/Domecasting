@@ -195,6 +195,10 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 //		Log.inst().info("Header:");
 //		Log.inst().info(hdrString);
 		
+		// Make sure our buffer is big enough
+		if (hdr.messageLen > commBuffer.length)
+			commBuffer = new char[(int)(hdr.messageLen * 1.25)];	// Make new commBuffer 25% larger than what we need.
+		
 		// Read the data after the header
 		CommUtils.readInputStream(in, commBuffer, 0, hdr.messageLen);
 //		String bodyString =  new String(commBuffer, 0, hdr.messageLen);
