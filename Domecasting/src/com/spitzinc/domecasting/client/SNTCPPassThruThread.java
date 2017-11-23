@@ -344,7 +344,7 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 			{
 				// If we get here, this is the thread that reads data from the local RB.
 				// Do the usual pass-thru but also write the incoming data to the domecast server.
-				writeSNPacketToServer(buffer, dcsOut, ClientHeader.kSNRB, clientAppName);
+				writeSNPacketToServer(buffer, dcsOut, clientAppName, ClientHeader.kSNRB);
 			}
 		}
 	}
