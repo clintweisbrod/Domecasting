@@ -8,10 +8,10 @@
 package com.spitzinc.domecasting.client;
 
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.Socket;
-import java.nio.CharBuffer;
+import java.nio.ByteBuffer;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -31,11 +31,11 @@ public class ServerConnection
 	private ClientHeader outHdr;
 	private ConnectionEstablishThread connectThread;
 	private ServerInputHandlerThread serverInputHandlerThread;
-	private InputStreamReader in;
-	private OutputStreamWriter out;
+	private InputStream in;
+	private OutputStream out;
 	private Socket socket;
-	private char[] infoBuffer;
-	private ConcurrentHashMap<String, LinkedBlockingQueue<CharBuffer>> inputQueues;
+	private byte[] infoBuffer;
+	private ConcurrentHashMap<String, LinkedBlockingQueue<ByteBuffer>> inputQueues;
 
 	/*
 	 * This thread manages connection to domecast server. Once server connection is established,
@@ -66,11 +66,11 @@ public class ServerConnection
 		private void writeSecurityCode() throws IOException
 		{
 			// Allocate byte buffer for security code
-			char[] buffer = new char[CommUtils.kSecurityCodeLength];
+			byte[] buffer = new byte[CommUtils.kSecurityCodeLength];
 			
 			// Insert daily security code in buffer
 			String securityCode = CommUtils.getDailySecurityCode();
-			securityCode.getChars(0, securityCode.length(), buffer, 0);
+			System.arraycopy(securityCode.getBytes(), 0, buffer, 0, securityCode.length());
 		
 			// Writing to the connectionThread output stream must be thread synchronized
 			synchronized (outputStreamLock) {
@@ -87,8 +87,8 @@ public class ServerConnection
 			try
 			{
 				// Obtain streams to read/write
-				in = new InputStreamReader(socket.getInputStream());
-				out = new OutputStreamWriter(socket.getOutputStream());
+				in = socket.getInputStream();
+				out = socket.getOutputStream();
 				
 				// Launch another thread to read the InputStream and process the data.
 				serverInputHandlerThread = new ServerInputHandlerThread();
@@ -196,7 +196,7 @@ public class ServerConnection
 				while (!stopped.get())
 				{
 					// Read and parse the header
-					CommUtils.readInputStream(in, inHdr.chars, 0, ClientHeader.kHdrCharCount);
+					CommUtils.readInputStream(in, inHdr.bytes, 0, ClientHeader.kHdrByteCount);
  					if (!inHdr.parseHeaderBuffer())
 						break;
  					
@@ -269,17 +269,17 @@ public class ServerConnection
 			// the appropriate LinkedBlockingQueue configured with some reasonable capacity.
 			
 			// Get the correct queue
-			LinkedBlockingQueue<CharBuffer> theQueue = inputQueues.get(hdr.messageSource);
+			LinkedBlockingQueue<ByteBuffer> theQueue = inputQueues.get(hdr.messageSource);
 			if (theQueue != null)
 			{
 				// Allocate a byte array large enough to hold the entire message
-				char[] buffer = new char[inHdr.messageLen];
+				byte[] buffer = new byte[inHdr.messageLen];
 				
 				// Read the entire message
 				CommUtils.readInputStream(in, buffer, 0, inHdr.messageLen);
 				
 				// Wrap the byte array in a new ByteBuffer object (I hate we have to do this)
-				CharBuffer theBuffer = CharBuffer.wrap(buffer);
+				ByteBuffer theBuffer = ByteBuffer.wrap(buffer);
 				
 				// Push the new ByteBuffer into the queue
 				if (!theQueue.offer(theBuffer))
@@ -299,15 +299,15 @@ public class ServerConnection
 		this.outputStreamLock = new Object();
 		this.inHdr = new ClientHeader();
 		this.outHdr = new ClientHeader();
-		this.infoBuffer = new char[1024];	// Allocate byte buffer to handle reading InputStream for INFO messages
+		this.infoBuffer = new byte[1024];	// Allocate byte buffer to handle reading InputStream for INFO messages
 		
 		// Allocate a map to hold queues to store incoming data from server. We need a queue for each possible
 		// type of client connection supported by domecasting. For now, that is SNPF and ATM4. When we extend our
 		// domecasting solution to support TLE and and Zygote, we will need a map capacity of 4. I don't see any
 		// harm in allocating that extra space now.
-		this.inputQueues = new ConcurrentHashMap<String, LinkedBlockingQueue<CharBuffer>>(4);
-		this.inputQueues.put(ClientHeader.kSNPF, new LinkedBlockingQueue<CharBuffer>(kMaxServerInputQueueSize));
-		this.inputQueues.put(ClientHeader.kATM4, new LinkedBlockingQueue<CharBuffer>(kMaxServerInputQueueSize));
+		this.inputQueues = new ConcurrentHashMap<String, LinkedBlockingQueue<ByteBuffer>>(4);
+		this.inputQueues.put(ClientHeader.kSNPF, new LinkedBlockingQueue<ByteBuffer>(kMaxServerInputQueueSize));
+		this.inputQueues.put(ClientHeader.kATM4, new LinkedBlockingQueue<ByteBuffer>(kMaxServerInputQueueSize));
 		
 		// Launch thread to establish/re-establish connection to server
 		this.connectThread = new ConnectionEstablishThread(hostName, port);
@@ -331,21 +331,21 @@ public class ServerConnection
 		}
 		
 		// Clean up the input queues
-		for (LinkedBlockingQueue<CharBuffer> queue : inputQueues.values())
+		for (LinkedBlockingQueue<ByteBuffer> queue : inputQueues.values())
 			queue.clear();
 		inputQueues.clear();
 		
 	}
 	
-	public OutputStreamWriter getOutputStream() {
+	public OutputStream getOutputStream() {
 		return out;
 	}
 	
-	public CharBuffer getInputStreamData(String src)
+	public ByteBuffer getInputStreamData(String src)
 	{
-		CharBuffer result = null;
+		ByteBuffer result = null;
 		
-		LinkedBlockingQueue<CharBuffer> theQueue = inputQueues.get(src);
+		LinkedBlockingQueue<ByteBuffer> theQueue = inputQueues.get(src);
 		if (theQueue != null)
 		{
 			try {
@@ -383,15 +383,14 @@ public class ServerConnection
 	{
 		if ((socket != null) && socket.isConnected())
 		{
-			char[] theChars = new char[serverCmd.length()];
-			serverCmd.getChars(0, serverCmd.length(), theChars, 0);
+			byte[] theBytes = serverCmd.getBytes();
 			
 			// We're performing two writes to the OutputStream. They MUST be sequential.
 			synchronized (outputStreamLock)
 			{
 				try {
-					CommUtils.writeHeader(out, outHdr, theChars.length, ClientHeader.kDCC, ClientHeader.kDCS, msgType);
-					CommUtils.writeOutputStream(out, theChars, 0, theChars.length);
+					CommUtils.writeHeader(out, outHdr, theBytes.length, ClientHeader.kDCC, ClientHeader.kDCS, msgType);
+					CommUtils.writeOutputStream(out, theBytes, 0, theBytes.length);
 				} catch (IOException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();

@@ -1,10 +1,10 @@
 package com.spitzinc.domecasting.client;
 
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.Socket;
-import java.nio.CharBuffer;
+import java.nio.ByteBuffer;
 
 import com.spitzinc.domecasting.ClientHeader;
 import com.spitzinc.domecasting.CommUtils;
@@ -20,14 +20,15 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 	
 	protected Socket outboundSocket = null;
 	private TCPNode outboundNode;
-	private char[] replyPortBytes = null;
+	private byte[] replyPortBytes = null;
 	private String clientAppName = null;
 	private ClientApplication theApp;
 	private boolean modifyReplyPort;
 
-	protected InputStreamReader in;
-	protected OutputStreamWriter out;
+	protected InputStream in;
+	protected OutputStream out;
 	
+	private ClientHeader inHdr;
 	private ClientHeader outHdr;
 	
 	public SNTCPPassThruThread(ClientSideConnectionListenerThread owner, Socket inboundSocket, TCPNode outboundNode)
@@ -36,6 +37,7 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 
 		this.outboundNode = outboundNode;
 		this.modifyReplyPort = (outboundNode.replyPort != -1);
+		this.inHdr = new ClientHeader();
 		this.outHdr = new ClientHeader();
 
 		// Build a byte buffer to replace the contents of the replyPort field in a SN TCP message header
@@ -48,8 +50,7 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 			replyPortStr = String.format("%1$-" + kSNHeaderFieldLength + "s", replyPortStr);
 
 			// Convert string to bytes
-			replyPortBytes = new char[replyPortStr.length()];
-			replyPortStr.getChars(0, replyPortStr.length(), replyPortBytes, 0);
+			replyPortBytes = replyPortStr.getBytes();
 		}
 		
 		this.theApp = (ClientApplication)ClientApplication.inst();
@@ -68,8 +69,8 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 
 			try
 			{
-				in = new InputStreamReader(socket.getInputStream());
-				out = new OutputStreamWriter(outboundSocket.getOutputStream());
+				in = socket.getInputStream();
+				out = outboundSocket.getOutputStream();
 			}
 			catch (IOException e) {
 				e.printStackTrace();
@@ -78,7 +79,7 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 			if ((in != null) && (out != null))
 			{
 				// Allocate byte buffer to handle comm
-				char[] buffer = new char[CommUtils.kCommBufferSize];
+				byte[] buffer = new byte[CommUtils.kCommBufferSize];
 
 				// Begin reading data from inbound stream and writing it to outbound stream in chunks
 				// of SN comm.
@@ -173,7 +174,7 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 	 * @param buffer
 	 * @throws IOException 
 	 */
-	private void starryNightPassThru(char[] buffer) throws IOException
+	private void starryNightPassThru(byte[] buffer) throws IOException
 	{
 		// Get total length of incoming message and modify the replyToPort
 		int messageLength = readSNHeader(buffer);
@@ -196,7 +197,7 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 		}
 	}
 	
-	private int readSNHeader(char[] buffer) throws IOException
+	private int readSNHeader(byte[] buffer) throws IOException
 	{
 		int result = 0;
 		
@@ -231,9 +232,9 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 		return result;
 	}
 
-	private void performDomecastRouting(char[] buffer) throws IOException
+	private void performDomecastRouting(byte[] buffer) throws IOException
 	{
-		OutputStreamWriter dcsOut = theApp.getServerOutputStream();
+		OutputStream dcsOut = theApp.getServerOutputStream();
 		if (dcsOut == null)
 			return;
 
@@ -271,7 +272,7 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 		}
 	}
 	
-	private void readSNDataToNowhere(char[] buffer, int messageLength) throws IOException
+	private void readSNDataToNowhere(byte[] buffer, int messageLength) throws IOException
 	{
 		int bytesLeftToReceive = messageLength - kSNHeaderLength;
 		while (bytesLeftToReceive > 0)
@@ -289,28 +290,25 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 	 * of data following it. This is what theApp.serverConnection stores as ByteBuffer
 	 * instances in one of two queues.
 	 */
-	private void readSNPacketFromServer(char[] buffer) throws IOException
+	private void readSNPacketFromServer(byte[] buffer) throws IOException
 	{
 		// We still have to read what the local InputStream has for us, but the data is ignored.
 		// THIS CAN BLOCK IF THERE'S NO DATA TO READ!!!
-		if (in.ready())
+		int messageLength = readSNHeader(buffer);
+		readSNDataToNowhere(buffer, messageLength);
+		
+		// We want to read the data sent to us from the domecast server.
+		ByteBuffer nextPacket = theApp.serverConnection.getInputStreamData(clientAppName);
+		if (nextPacket != null)
 		{
-			int messageLength = readSNHeader(buffer);
-			readSNDataToNowhere(buffer, messageLength);
+			byte[] receivedBuffer = nextPacket.array();
 			
-			// We want to read the data sent to us from the domecast server.
-			CharBuffer nextPacket = theApp.serverConnection.getInputStreamData(clientAppName);
-			if (nextPacket != null)
-			{
-				char[] receivedBuffer = nextPacket.array();
-				
-				// Send all this data to the local OutputStream
-				CommUtils.writeOutputStream(out, receivedBuffer, 0, receivedBuffer.length);
-			}
+			// Send all this data to the local OutputStream
+			CommUtils.writeOutputStream(out, receivedBuffer, 0, receivedBuffer.length);
 		}
 	}
 	
-	private void writeSNPacketToServer(char[] buffer, OutputStreamWriter dcsOut, String msgSrc, String msgDst) throws IOException
+	private void writeSNPacketToServer(byte[] buffer, OutputStream dcsOut, String msgSrc, String msgDst) throws IOException
 	{
 		int messageLength = readSNHeader(buffer);
 		
@@ -333,7 +331,7 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 		}
 	}
 	
-	private void readSNDataToOutputStreams(char[] buffer, int messageLength, OutputStreamWriter serverOutputStream) throws IOException
+	private void readSNDataToOutputStreams(byte[] buffer, int messageLength, OutputStream serverOutputStream) throws IOException
 	{
 		int bytesLeftToReceive = messageLength - kSNHeaderLength;
 		while (bytesLeftToReceive > 0)

@@ -1,8 +1,8 @@
 package com.spitzinc.domecasting;
 
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
@@ -59,7 +59,7 @@ public class CommUtils
 		return result;
 	}
 	
-	public static void readInputStream(InputStreamReader isw, char[] buffer, int offset, int len) throws IOException
+	public static void readInputStream(InputStream is, byte[] buffer, int offset, int len) throws IOException
 	{
 		int bytesLeftToRead = len;
 		int totalBytesRead = 0;
@@ -67,7 +67,7 @@ public class CommUtils
 		{
 			while (bytesLeftToRead > 0)
 			{
-				int bytesRead = isw.read(buffer, offset + totalBytesRead, bytesLeftToRead);
+				int bytesRead = is.read(buffer, offset + totalBytesRead, bytesLeftToRead);
 				if (bytesRead == -1)
 					throw new IOException("Connection lost.");
 //				Log.inst().info(caller + ": Read " + bytesRead + " bytes from socket.");
@@ -90,12 +90,11 @@ public class CommUtils
 		}
 	}
 	
-	public static void writeOutputStream(OutputStreamWriter osw, char[] buffer, int offset, int len) throws IOException
+	public static void writeOutputStream(OutputStream os, byte[] buffer, int offset, int len) throws IOException
 	{
 		try
 		{
-			osw.write(buffer, offset, len);
-			osw.flush();	// This is necessary otherwise we get major delays in communication
+			os.write(buffer, offset, len);
 //			Log.inst().info(caller + ": Wrote " + len + " bytes to socket.");
 		}
 		catch (IOException | IndexOutOfBoundsException | NullPointerException e) {
@@ -103,7 +102,7 @@ public class CommUtils
 		}
 	}
 	
-	public static void writeHeader(OutputStreamWriter osw, ClientHeader hdr,
+	public static void writeHeader(OutputStream os, ClientHeader hdr,
 								   int msgLen, String msgSrc, String msgDst, String msgType) throws IOException
 	{
 		hdr.messageLen = msgLen;
@@ -111,7 +110,7 @@ public class CommUtils
 		hdr.messageDestination = msgDst;
 		hdr.messageType = msgType;
 		hdr.buildHeaderBuffer();
-		writeOutputStream(osw, hdr.chars, 0, ClientHeader.kHdrCharCount);
+		writeOutputStream(os, hdr.bytes, 0, ClientHeader.kHdrByteCount);
 	}
 	
 	/**

@@ -1,8 +1,8 @@
 package com.spitzinc.domecasting.server;
 
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.Socket;
 import java.text.ParseException;
 import java.util.ArrayList;
@@ -17,12 +17,12 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 {
 	protected ServerSideConnectionListenerThread listenerThread;
 	protected ServerSideConnectionHandlerThread peerConnectionThread;
-	public InputStreamReader in;
-	public OutputStreamWriter out;
+	public InputStream in;
+	public OutputStream out;
 	public Object outputStreamLock;
 	private ClientHeader outHdr;
 	private ClientHeader inHdr;
-	private char[] commBuffer;
+	private byte[] commBuffer;
 	protected String domecastID;
 	protected byte clientType;
 	public boolean isHostListening;	// Only valid for host connections
@@ -35,7 +35,7 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 		this.outputStreamLock = new Object();
 		this.outHdr = new ClientHeader();
 		this.inHdr = new ClientHeader();
-		this.commBuffer = new char[CommUtils.kCommBufferSize];
+		this.commBuffer = new byte[CommUtils.kCommBufferSize];
 		this.domecastID = null;
 		this.listenerThread = (ServerSideConnectionListenerThread)owner;
 		this.isHostListening = false;
@@ -61,7 +61,7 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 			while (!stopped.get())
 			{
 				// Read and parse the header
-				CommUtils.readInputStream(in, inHdr.chars, 0, ClientHeader.kHdrCharCount);
+				CommUtils.readInputStream(in, inHdr.bytes, 0, ClientHeader.kHdrByteCount);
 				if (!inHdr.parseHeaderBuffer())
 					break;
 				
@@ -78,11 +78,11 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 	
 	private void handleINFO(ClientHeader hdr) throws IOException
 	{
-		char[] infoChars = new char[hdr.messageLen];
-		CommUtils.readInputStream(in, infoChars, 0, infoChars.length);
+		byte[] infoBytes = new byte[hdr.messageLen];
+		CommUtils.readInputStream(in, infoBytes, 0, infoBytes.length);
 		
 		// All INFO messages are of the form "variable=value".
-		String msg = new String(infoChars);
+		String msg = new String(infoBytes);
 		Log.inst().debug("Received: " + msg);
 		String[] list = msg.split("=");
 		if (list[0].equals(CommUtils.kClientType))			// Sent from both host and presenter
@@ -130,28 +130,26 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 	public void sendBoolean(String name, boolean value) throws IOException
 	{
 		String reply = name + "=" + Boolean.toString(value);
-		char[] replyChars = new char[reply.length()];
-		reply.getChars(0, reply.length(), replyChars, 0);
+		byte[] replyBytes = reply.getBytes();
 		
 		// We're performing two writes to the OutputStream. They MUST be sequential.
 		synchronized (outputStreamLock)
 		{
-			CommUtils.writeHeader(out, outHdr, replyChars.length, ClientHeader.kDCS, ClientHeader.kDCC, ClientHeader.kINFO);
-			CommUtils.writeOutputStream(out, replyChars, 0, replyChars.length);
+			CommUtils.writeHeader(out, outHdr, replyBytes.length, ClientHeader.kDCS, ClientHeader.kDCC, ClientHeader.kINFO);
+			CommUtils.writeOutputStream(out, replyBytes, 0, replyBytes.length);
 		}
 	}
 	
 	public void sendText(String name, String value) throws IOException
 	{
 		String reply = name + "=" + value;
-		char[] replyChars = new char[reply.length()];
-		reply.getChars(0, reply.length(), replyChars, 0);
+		byte[] replyBytes = reply.getBytes();
 		
 		// We're performing two writes to the OutputStream. They MUST be sequential.
 		synchronized (outputStreamLock)
 		{
-			CommUtils.writeHeader(out, outHdr, replyChars.length, ClientHeader.kDCS, ClientHeader.kDCC, ClientHeader.kINFO);
-			CommUtils.writeOutputStream(out, replyChars, 0, replyChars.length);
+			CommUtils.writeHeader(out, outHdr, replyBytes.length, ClientHeader.kDCS, ClientHeader.kDCC, ClientHeader.kINFO);
+			CommUtils.writeOutputStream(out, replyBytes, 0, replyBytes.length);
 		}
 	}
 	
@@ -172,14 +170,13 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 			reply = buf.toString();
 		}
 		
-		char[] replyChars = new char[reply.length()];
-		reply.getChars(0, reply.length(), replyChars, 0);
+		byte[] replyBytes = reply.getBytes();
 		
 		// We're performing two writes to the OutputStream. They MUST be sequential.
 		synchronized (outputStreamLock)
 		{
-			CommUtils.writeHeader(out, outHdr, replyChars.length, ClientHeader.kDCS, ClientHeader.kDCC, ClientHeader.kINFO);
-			CommUtils.writeOutputStream(out, replyChars, 0, replyChars.length);
+			CommUtils.writeHeader(out, outHdr, replyBytes.length, ClientHeader.kDCS, ClientHeader.kDCC, ClientHeader.kINFO);
+			CommUtils.writeOutputStream(out, replyBytes, 0, replyBytes.length);
 		}
 	}
 	
@@ -214,7 +211,7 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 				synchronized (peerConnectionThread.outputStreamLock)
 				{
 					// Write the header we've received
-					CommUtils.writeOutputStream(peerConnectionThread.out, hdr.chars, 0, ClientHeader.kHdrCharCount);
+					CommUtils.writeOutputStream(peerConnectionThread.out, hdr.bytes, 0, ClientHeader.kHdrByteCount);
 					
 					// Write the data we've received
 					CommUtils.writeOutputStream(peerConnectionThread.out, commBuffer, 0, hdr.messageLen);
@@ -230,15 +227,15 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 		// - A 20-character security code that will change everyday. If the code is
 		//   incorrect, the connection will be refused by this server.
 		try {
-			in = new InputStreamReader(socket.getInputStream());
-			out = new OutputStreamWriter(socket.getOutputStream());
+			in = socket.getInputStream();
+			out = socket.getOutputStream();
 		} catch (IOException e) {
 			e.printStackTrace();
 			return;
 		}
 
 		// Allocate byte buffer to handle initial handshake communication
-		char[] buffer = new char[CommUtils.kSecurityCodeLength];		
+		byte[] buffer = new byte[CommUtils.kSecurityCodeLength];		
 		try
 		{
 			// Read off kSecurityCodeLength bytes. This is the security code.
