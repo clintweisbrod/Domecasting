@@ -6,6 +6,7 @@ import java.io.OutputStream;
 import java.net.Socket;
 import java.nio.ByteBuffer;
 
+import com.spitzinc.domecasting.BasicProcessorThread;
 import com.spitzinc.domecasting.ClientHeader;
 import com.spitzinc.domecasting.CommUtils;
 import com.spitzinc.domecasting.Log;
@@ -13,22 +14,42 @@ import com.spitzinc.domecasting.TCPConnectionHandlerThread;
 
 public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 {
-	final static int kSNHeaderFieldLength = 10;
-	final static int kSNHeaderLength = 120;
-	final static int kSNHeaderReplyPortPosition = 50;
-	final static int kSNHeaderClientAppNamePosition = 60;
+	private final static int kSNHeaderFieldLength = 10;
+	private final static int kSNHeaderLength = 120;
+	private final static int kSNHeaderReplyPortPosition = 50;
+	private final static int kSNHeaderClientAppNamePosition = 60;
 	
-	protected Socket outboundSocket = null;
+	private class ReadIgnoredInputStreamThread extends BasicProcessorThread
+	{
+		public void run()
+		{
+			byte[] buffer = new byte[16 * 1024];
+			while (!getStopped())
+			{
+				try {
+					int messageLength = readSNHeader(buffer);
+					readSNDataToNowhere(buffer, messageLength);
+					Log.inst().info("Read " + messageLength + " bytes.");
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+			
+			Log.inst().info("Exiting thread.");
+		}
+	}
+	
+	private Socket outboundSocket = null;
 	private TCPNode outboundNode;
 	private byte[] replyPortBytes = null;
 	private String clientAppName = null;
 	private ClientApplication theApp;
 	private boolean modifyReplyPort;
-
-	protected InputStream in;
-	protected OutputStream out;
-	
+	private InputStream in;
+	private OutputStream out;
 	private ClientHeader outHdr;
+	private ReadIgnoredInputStreamThread readIgnoredStreamThread;
 	
 	public SNTCPPassThruThread(ClientSideConnectionListenerThread owner, Socket inboundSocket, TCPNode outboundNode)
 	{
@@ -39,7 +60,7 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 		this.outHdr = new ClientHeader();
 
 		// Build a byte buffer to replace the contents of the replyPort field in a SN TCP message header
-		if (outboundNode.replyPort != -1)
+		if (modifyReplyPort)
 		{
 			// Get string representation of integer port
 			String replyPortStr = Integer.toString(outboundNode.replyPort);
@@ -52,6 +73,7 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 		}
 		
 		this.theApp = (ClientApplication)ClientApplication.inst();
+		this.readIgnoredStreamThread = null;
 
 		this.setName(getClass().getSimpleName() + "_" + inboundSocket.getLocalPort() + "->" + outboundNode.port);	
 	}
@@ -85,10 +107,18 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 				{
 					while (!stopped.get())
 					{
-						if (theApp.isHostListening.get())
+						boolean lastIsHostListening = theApp.isHostListening.get();
+						
+						if (lastIsHostListening)
 							performDomecastRouting(buffer);
 						else
 							starryNightPassThru(buffer);
+						
+						boolean isHostListening = theApp.isHostListening.get();
+						
+						// Check if we need to switch comm modes.
+						if (isHostListening != lastIsHostListening)
+							switchCommModes(isHostListening);
 					}
 				}
 				catch (IOException e1) {
@@ -123,10 +153,53 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 		catch (IOException e) {
 		}
 		
+		// Stop the thread that might be reading InputStream
+		stopReadIgnoredStreamThread();
+		
 		// Notify owner this thread is dying.
 		owner.threadDying(this);
 
 		Log.inst().info("Exiting thread.");
+	}
+	
+	private void stopReadIgnoredStreamThread()
+	{
+		// Stop the thread we created to read InputStream we were ignoring.
+		if ((readIgnoredStreamThread != null) && readIgnoredStreamThread.isAlive())
+		{
+			Log.inst().info("Stopping ReadIgnoredInputStreamThread.");
+			
+			// Signal this thread to stop...
+			readIgnoredStreamThread.interrupt();
+			try {
+				// ...and wait for it to die
+				readIgnoredStreamThread.join();
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+	}
+	
+	private void switchCommModes(boolean isHostListening)
+	{
+		if (((theApp.clientType == CommUtils.kPresenterID) && !modifyReplyPort) ||
+			((theApp.clientType == CommUtils.kHostID) && modifyReplyPort))
+		{
+			if (isHostListening)
+			{
+				Log.inst().info("Starting ReadIgnoredInputStreamThread.");
+				
+				// Create a thread to read the InputStream we are about to ignore when we begin routing comm
+				readIgnoredStreamThread = new ReadIgnoredInputStreamThread();
+				readIgnoredStreamThread.start();
+			}
+			else
+			{
+				// Stop the thread we created to read InputStream we were ignoring.
+				stopReadIgnoredStreamThread();
+			}
+		}
 	}
 	
 	/**
@@ -292,8 +365,8 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 	{
 		// We still have to read what the local InputStream has for us, but the data is ignored.
 		// THIS CAN BLOCK IF THERE'S NO DATA TO READ!!!
-		int messageLength = readSNHeader(buffer);
-		readSNDataToNowhere(buffer, messageLength);
+//		int messageLength = readSNHeader(buffer);
+//		readSNDataToNowhere(buffer, messageLength);
 		
 		// We want to read the data sent to us from the domecast server.
 		ByteBuffer nextPacket = theApp.serverConnection.getInputStreamData(clientAppName);
