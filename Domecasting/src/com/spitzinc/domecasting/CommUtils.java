@@ -103,11 +103,10 @@ public class CommUtils
 	}
 	
 	public static void writeHeader(OutputStream os, ClientHeader hdr,
-								   int msgLen, String msgSrc, String msgDst, String msgType) throws IOException
+								   int msgLen, String msgSrc, String msgType) throws IOException
 	{
 		hdr.messageLen = msgLen;
 		hdr.messageSource = msgSrc;
-		hdr.messageDestination = msgDst;
 		hdr.messageType = msgType;
 		hdr.buildHeaderBuffer();
 		writeOutputStream(os, hdr.bytes, 0, ClientHeader.kHdrByteCount);

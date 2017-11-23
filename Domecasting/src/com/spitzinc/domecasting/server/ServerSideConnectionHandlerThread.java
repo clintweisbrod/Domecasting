@@ -135,7 +135,7 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 		// We're performing two writes to the OutputStream. They MUST be sequential.
 		synchronized (outputStreamLock)
 		{
-			CommUtils.writeHeader(out, outHdr, replyBytes.length, ClientHeader.kDCS, ClientHeader.kDCC, ClientHeader.kINFO);
+			CommUtils.writeHeader(out, outHdr, replyBytes.length, ClientHeader.kDCS, ClientHeader.kINFO);
 			CommUtils.writeOutputStream(out, replyBytes, 0, replyBytes.length);
 		}
 	}
@@ -148,7 +148,7 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 		// We're performing two writes to the OutputStream. They MUST be sequential.
 		synchronized (outputStreamLock)
 		{
-			CommUtils.writeHeader(out, outHdr, replyBytes.length, ClientHeader.kDCS, ClientHeader.kDCC, ClientHeader.kINFO);
+			CommUtils.writeHeader(out, outHdr, replyBytes.length, ClientHeader.kDCS, ClientHeader.kINFO);
 			CommUtils.writeOutputStream(out, replyBytes, 0, replyBytes.length);
 		}
 	}
@@ -175,7 +175,7 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 		// We're performing two writes to the OutputStream. They MUST be sequential.
 		synchronized (outputStreamLock)
 		{
-			CommUtils.writeHeader(out, outHdr, replyBytes.length, ClientHeader.kDCS, ClientHeader.kDCC, ClientHeader.kINFO);
+			CommUtils.writeHeader(out, outHdr, replyBytes.length, ClientHeader.kDCS, ClientHeader.kINFO);
 			CommUtils.writeOutputStream(out, replyBytes, 0, replyBytes.length);
 		}
 	}
@@ -188,20 +188,13 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 		if (peerConnectionThread == null)
 			peerConnectionThread = listenerThread.findPeerConnectionThread(this);
 
-//		String hdrString =  new String(hdr.bytes);
-//		Log.inst().info("Header:");
-//		Log.inst().info(hdrString);
-		
 		// Make sure our buffer is big enough
 		if (hdr.messageLen > commBuffer.length)
 			commBuffer = new byte[(int)(hdr.messageLen * 1.25)];	// Make new commBuffer 25% larger than what we need.
 		
 		// Read the data after the header
 		CommUtils.readInputStream(in, commBuffer, 0, hdr.messageLen);
-//		String bodyString =  new String(commBuffer, 0, hdr.messageLen);
-//		Log.inst().info("Body:");
-//		Log.inst().info(bodyString);
-		
+
 		if (peerConnectionThread != null)
 		{
 			// Only send the data if the host is "listening".

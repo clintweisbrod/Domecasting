@@ -389,7 +389,7 @@ public class ServerConnection
 			synchronized (outputStreamLock)
 			{
 				try {
-					CommUtils.writeHeader(out, outHdr, theBytes.length, ClientHeader.kDCC, ClientHeader.kDCS, msgType);
+					CommUtils.writeHeader(out, outHdr, theBytes.length, ClientHeader.kDCC, msgType);
 					CommUtils.writeOutputStream(out, theBytes, 0, theBytes.length);
 				} catch (IOException e) {
 					// TODO Auto-generated catch block

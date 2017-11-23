@@ -4,16 +4,14 @@ public class ClientHeader
 {
 	private static final int kFieldLength_MessageLength = 10;
 	private static final int kFieldLength_MessageSource = 5;
-	private static final int kFieldLength_MessageDestination = 5;
 	private static final int kFieldLength_MessageType = 5;
 	
 	public static final int kHdrByteCount = kFieldLength_MessageLength + kFieldLength_MessageSource +
-											kFieldLength_MessageDestination + kFieldLength_MessageType;
+											kFieldLength_MessageType;
 	
 	private static final int kFieldPos_MessageLength = 0;
 	private static final int kFieldPos_MessageSource = kFieldPos_MessageLength + kFieldLength_MessageLength;
-	private static final int kFieldPos_MessageDestination = kFieldPos_MessageSource + kFieldLength_MessageSource;
-	private static final int kFieldPos_MessageType = kFieldPos_MessageDestination + kFieldLength_MessageDestination;
+	private static final int kFieldPos_MessageType = kFieldPos_MessageSource + kFieldLength_MessageSource;
 	
 	// Message source/destination IDs
 	public static final String kDCC = "DCC";	// Domecasting client
@@ -32,7 +30,6 @@ public class ClientHeader
 	
 	public int messageLen;	// This is interpreted as the number of bytes to receive AFTER the header
 	public String messageSource;
-	public String messageDestination;
 	public String messageType;
 	public byte[] bytes;
 	
@@ -62,9 +59,6 @@ public class ClientHeader
 		// message source
 		messageSource = new String(bytes, kFieldPos_MessageSource, kFieldLength_MessageSource).trim();
 		
-		// message destination
-		messageDestination = new String(bytes, kFieldPos_MessageDestination, kFieldLength_MessageDestination).trim();
-		
 		// message type
 		messageType = new String(bytes, kFieldPos_MessageType, kFieldLength_MessageType).trim();
 		
@@ -74,8 +68,6 @@ public class ClientHeader
 	public boolean buildHeaderBuffer()
 	{
 		if (messageSource.length() > kFieldLength_MessageSource)
-			return false;
-		if (messageDestination.length() > kFieldLength_MessageDestination)
 			return false;
 		if (messageType.length() > kFieldLength_MessageType)
 			return false;
@@ -90,9 +82,6 @@ public class ClientHeader
 		
 		// message source
 		System.arraycopy(messageSource.getBytes(), 0, bytes, kFieldPos_MessageSource, messageSource.length());
-		
-		// message destination
-		System.arraycopy(messageDestination.getBytes(), 0, bytes, kFieldPos_MessageDestination, messageDestination.length());
 		
 		// message type
 		System.arraycopy(messageType.getBytes(), 0, bytes, kFieldPos_MessageType, messageType.length());

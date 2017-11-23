@@ -321,7 +321,7 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 			{
 				// If we get here, this is the thread that reads data from the local PF or ATM4.
 				// Do the usual pass-thru but also write the incoming data to the domecast server.
-				writeSNPacketToServer(buffer, dcsOut, clientAppName, ClientHeader.kSNRB);
+				writeSNPacketToServer(buffer, dcsOut, clientAppName);
 			}
 			else
 			{
@@ -344,7 +344,7 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 			{
 				// If we get here, this is the thread that reads data from the local RB.
 				// Do the usual pass-thru but also write the incoming data to the domecast server.
-				writeSNPacketToServer(buffer, dcsOut, clientAppName, ClientHeader.kSNRB);
+				writeSNPacketToServer(buffer, dcsOut, clientAppName);
 			}
 		}
 	}
@@ -380,7 +380,7 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 		}
 	}
 	
-	private void writeSNPacketToServer(byte[] buffer, OutputStream dcsOut, String msgSrc, String msgDst) throws IOException
+	private void writeSNPacketToServer(byte[] buffer, OutputStream dcsOut, String msgSrc) throws IOException
 	{
 		int messageLength = readSNHeader(buffer);
 		
@@ -393,7 +393,7 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 		// domecast server OutputStream.
 		synchronized(theApp.serverConnection.outputStreamLock) {
 			// Write the client header
-			CommUtils.writeHeader(dcsOut, outHdr, messageLength, msgSrc, msgDst, ClientHeader.kCOMM);
+			CommUtils.writeHeader(dcsOut, outHdr, messageLength, msgSrc, ClientHeader.kCOMM);
 			
 			// Write the SN header currently in buffer
 			CommUtils.writeOutputStream(dcsOut, buffer, 0, kSNHeaderLength);
