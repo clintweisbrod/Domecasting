@@ -299,7 +299,10 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 		// Obtain the clientAppName from the header
 		if (clientAppName == null)
 		{
-			clientAppName = new String(buffer, kSNHeaderClientAppNamePosition, kSNHeaderFieldLength).trim();
+			byte[] hdrCopy = new byte[kSNHeaderFieldLength];
+			System.arraycopy(buffer, kSNHeaderClientAppNamePosition, hdrCopy, 0, hdrCopy.length);
+			clientAppName = new String(hdrCopy).trim();
+//			clientAppName = new String(buffer, kSNHeaderClientAppNamePosition, kSNHeaderFieldLength).trim();
 			Log.inst().debug("clientAppName parsed from SN header: " + clientAppName);
 		}
 		
