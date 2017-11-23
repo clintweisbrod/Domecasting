@@ -28,7 +28,6 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 	protected InputStream in;
 	protected OutputStream out;
 	
-	private ClientHeader inHdr;
 	private ClientHeader outHdr;
 	
 	public SNTCPPassThruThread(ClientSideConnectionListenerThread owner, Socket inboundSocket, TCPNode outboundNode)
@@ -37,7 +36,6 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 
 		this.outboundNode = outboundNode;
 		this.modifyReplyPort = (outboundNode.replyPort != -1);
-		this.inHdr = new ClientHeader();
 		this.outHdr = new ClientHeader();
 
 		// Build a byte buffer to replace the contents of the replyPort field in a SN TCP message header
