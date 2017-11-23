@@ -26,7 +26,7 @@ public class ServerConnection
 	private static final int kMaxServerInputQueueSize = 20;
 	
 	private ClientApplication theApp;
-	private Object outputStreamLock;	// This must be used from SNTCPPassThruThread!!!
+	public Object outputStreamLock;	// This must be used from SNTCPPassThruThread!!!
 	private ClientHeader inHdr;
 	private ClientHeader outHdr;
 	private ConnectionEstablishThread connectThread;

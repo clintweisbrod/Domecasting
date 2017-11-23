@@ -369,11 +369,6 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 	 */
 	private void readSNPacketFromServer(byte[] buffer) throws IOException
 	{
-		// We still have to read what the local InputStream has for us, but the data is ignored.
-		// THIS CAN BLOCK IF THERE'S NO DATA TO READ!!!
-//		int messageLength = readSNHeader(buffer);
-//		readSNDataToNowhere(buffer, messageLength);
-		
 		// We want to read the data sent to us from the domecast server.
 		ByteBuffer nextPacket = theApp.serverConnection.getInputStreamData(clientAppName);
 		if (nextPacket != null)
@@ -396,7 +391,7 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 		// We must write the client header, then the SN header in buffer, read the rest of the packet from the local InputStream
 		// and write it to the domecast server OutputStream while we have exclusive access to the
 		// domecast server OutputStream.
-		synchronized(dcsOut) {
+		synchronized(theApp.serverConnection.outputStreamLock) {
 			// Write the client header
 			CommUtils.writeHeader(dcsOut, outHdr, messageLength, msgSrc, msgDst, ClientHeader.kCOMM);
 			
