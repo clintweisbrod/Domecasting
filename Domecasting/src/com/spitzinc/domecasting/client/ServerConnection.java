@@ -250,8 +250,14 @@ public class ServerConnection
 					theApp.availableDomecasts = list[1];
 				else if (list[0].equals(CommUtils.kIsHostListening))		// Only received by presenter. Host sets this locally.
 				{
-					theApp.isHostListening.set(Boolean.parseBoolean(list[1]));
-					theApp.snPassThru.notifyThreadsOfCommModeChange();
+					// Only set the value if it's different
+					boolean oldValue = theApp.isHostListening.get();
+					boolean newValue = Boolean.parseBoolean(list[1]);
+					if (newValue != oldValue)
+					{
+						theApp.isHostListening.set(Boolean.parseBoolean(list[1]));
+						theApp.snPassThru.notifyThreadsOfCommModeChange();
+					}
 				}
 				
 				// Notify the UI of changes

@@ -16,7 +16,7 @@ import com.spitzinc.domecasting.TCPConnectionListenerThread;
 public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThread
 {
 	protected ServerSideConnectionListenerThread listenerThread;
-	protected ServerSideConnectionHandlerThread peerConnectionThread;
+	protected ArrayList<ServerSideConnectionHandlerThread> peerConnectionThreads;
 	public InputStream in;
 	public OutputStream out;
 	public Object outputStreamLock;
@@ -31,7 +31,7 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 	{
 		super(owner, inboundSocket);
 		
-		this.peerConnectionThread = null;
+		this.peerConnectionThreads = null;
 		this.outputStreamLock = new Object();
 		this.outHdr = new ClientHeader();
 		this.inHdr = new ClientHeader();
@@ -119,9 +119,10 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 			isHostListening = Boolean.parseBoolean(list[1]);
 			
 			// Notify presenter of this change
-			if (peerConnectionThread == null)
-				peerConnectionThread = listenerThread.findPeerConnectionThread(this);
-			peerConnectionThread.sendBoolean(CommUtils.kIsHostListening, isHostListening);
+			// Should only find one presenter 
+			peerConnectionThreads = listenerThread.findPeerConnectionThreads(this);
+			if (!peerConnectionThreads.isEmpty())
+				peerConnectionThreads.get(0).sendBoolean(CommUtils.kIsHostListening, isHostListening);
 			
 			listenerThread.sendStatusToThreads();
 		}
@@ -185,8 +186,10 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 	 */
 	private void handleCOMM(ClientHeader hdr) throws IOException
 	{
-		if (peerConnectionThread == null)
-			peerConnectionThread = listenerThread.findPeerConnectionThread(this);
+		// Host connections will already have peerConnectionThreads initialized.
+		// Presenter connections may have more than one peer.
+		if (clientType == CommUtils.kPresenterID)
+			peerConnectionThreads = listenerThread.findPeerConnectionThreads(this);
 
 		// Make sure our buffer is big enough
 		if (hdr.messageLen > commBuffer.length)
@@ -194,16 +197,17 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 		
 		// Read the data after the header
 		CommUtils.readInputStream(in, commBuffer, 0, hdr.messageLen);
-
-		if (peerConnectionThread != null)
+		
+		// Write to each peer
+		for (ServerSideConnectionHandlerThread peer : peerConnectionThreads)
 		{
-			synchronized (peerConnectionThread.outputStreamLock)
+			synchronized (peer.outputStreamLock)
 			{
 				// Write the header we've received
-				CommUtils.writeOutputStream(peerConnectionThread.out, hdr.bytes, 0, ClientHeader.kHdrByteCount);
+				CommUtils.writeOutputStream(peer.out, hdr.bytes, 0, ClientHeader.kHdrByteCount);
 				
 				// Write the data we've received
-				CommUtils.writeOutputStream(peerConnectionThread.out, commBuffer, 0, hdr.messageLen);
+				CommUtils.writeOutputStream(peer.out, commBuffer, 0, hdr.messageLen);
 			}
 		}
 	}

@@ -63,14 +63,15 @@ public class ServerSideConnectionListenerThread extends TCPConnectionListenerThr
 	 * Given a ServerSideConnectionHandlerThread instance, returns the ServerSideConnectionHandlerThread
 	 * instance with the same domecastID but opposite clientType (if one exists).
 	 */
-	public ServerSideConnectionHandlerThread findPeerConnectionThread(ServerSideConnectionHandlerThread inThread)
+	public ArrayList<ServerSideConnectionHandlerThread> findPeerConnectionThreads(ServerSideConnectionHandlerThread inThread)
 	{
-		ServerSideConnectionHandlerThread result = null;
+		ArrayList<ServerSideConnectionHandlerThread> result = new ArrayList<ServerSideConnectionHandlerThread>();
 
 		byte clientType = inThread.getClientType();
 		String domecastID = inThread.getDomecastID();
 		if (domecastID != null)
 		{
+			// Find the one presenter with the same domecastID
 			for (TCPConnectionHandlerThread aThread : connectionHandlerThreads)
 			{
 				if (aThread != inThread)
@@ -80,11 +81,15 @@ public class ServerSideConnectionListenerThread extends TCPConnectionListenerThr
 					if (otherDomecastID == null)
 						continue;
 					
-					byte otherClientType = otherThread.getClientType();
-					if ((otherClientType != clientType) && domecastID.equals(otherDomecastID))
+					if (domecastID.equals(otherDomecastID))
 					{
-						result = otherThread;
-						break;
+						if ((clientType == CommUtils.kHostID) && (otherThread.getClientType() == CommUtils.kPresenterID))
+						{
+							result.add(otherThread);
+							break;
+						}
+						if ((clientType == CommUtils.kPresenterID) && (otherThread.getClientType() == CommUtils.kHostID))
+							result.add(otherThread);
 					}
 				}
 			}
