@@ -5,6 +5,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
 import java.nio.ByteBuffer;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.spitzinc.domecasting.BasicProcessorThread;
 import com.spitzinc.domecasting.ClientHeader;
@@ -19,24 +20,43 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 	private final static int kSNHeaderReplyPortPosition = 50;
 	private final static int kSNHeaderClientAppNamePosition = 60;
 	
+	/*
+	 * This thread is necessary to periodically read data off the connected InputStream
+	 * that is being ignored during comm routing through the domecast server. If we don't
+	 * do this, the connection will get lost.
+	 */
 	private class ReadIgnoredInputStreamThread extends BasicProcessorThread
 	{
+		private static final int kReadIntervalMilliseconds = 500; 
 		public void run()
 		{
 			byte[] buffer = new byte[16 * 1024];
 			while (!getStopped())
 			{
 				try {
+					// Read the next SN header
 					int messageLength = readSNHeader(buffer);
-					readSNDataToNowhere(buffer, messageLength);
-					Log.inst().info("Read " + messageLength + " bytes.");
 					
-					// Sleep for a bit
-					sleep(500);
-				} catch (IOException | InterruptedException e) {
+					// Read the data
+					readSNDataToNowhere(buffer, messageLength);
+					
+					Log.inst().info("Read " + messageLength + " bytes.");
+				} catch (IOException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
+				
+				// Sleep for a bit
+				try {
+					sleep(kReadIntervalMilliseconds);
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				
+				// Exit if host is no longer listening
+				if (!theApp.isHostListening.get())
+					break;
 			}
 			
 			Log.inst().info("Exiting thread.");
@@ -53,6 +73,7 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 	private OutputStream out;
 	private ClientHeader outHdr;
 	private ReadIgnoredInputStreamThread readIgnoredStreamThread;
+	private AtomicBoolean commModeChanged;
 	
 	public SNTCPPassThruThread(ClientSideConnectionListenerThread owner, Socket inboundSocket, TCPNode outboundNode)
 	{
@@ -77,8 +98,15 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 		
 		this.theApp = (ClientApplication)ClientApplication.inst();
 		this.readIgnoredStreamThread = null;
+		this.commModeChanged = new AtomicBoolean(false);
 
 		this.setName(getClass().getSimpleName() + "_" + inboundSocket.getLocalPort() + "->" + outboundNode.port);	
+	}
+	
+	public void setCommModeChanged()
+	{
+		Log.inst().debug("Setting " + this.getName() + ".commModeChanged to true.");
+		commModeChanged.set(true);
 	}
 	
 	public void run()
@@ -104,24 +132,31 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 				// Allocate byte buffer to handle comm
 				byte[] buffer = new byte[CommUtils.kCommBufferSize];
 
-				// Begin reading data from inbound stream and writing it to outbound stream in chunks
-				// of SN comm.
+				// Begin reading data from inbound stream and writing it to outbound stream in chunks of SN comm.
 				try
 				{
 					while (!stopped.get())
 					{
-						boolean lastIsHostListening = theApp.isHostListening.get();
+						// Depending on whether host is listening, we perform communication differently
+						boolean isHostListening = theApp.isHostListening.get();
 						
-						if (lastIsHostListening)
+						// If theApp.isHostListening was changed, we have to either launch or kill a thread
+						// that reads data off the InputStream that is ignored when we're routing comm through
+						// the domecast server.
+						if (commModeChanged.get())
+						{
+							Log.inst().debug("Calling switchCommModes().");
+							switchCommModes(isHostListening);
+							commModeChanged.set(false);
+						}
+						
+						// Perform routing of a single SN header and data.
+						if (isHostListening)
 							performDomecastRouting(buffer);
 						else
 							starryNightPassThru(buffer);
 						
-						boolean isHostListening = theApp.isHostListening.get();
-						
-						// Check if we need to switch comm modes.
-						if (isHostListening != lastIsHostListening)
-							switchCommModes(isHostListening);
+						Log.inst().debug("Handled comm.");
 					}
 				}
 				catch (IOException e1) {
@@ -172,15 +207,21 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 		{
 			Log.inst().info("Stopping ReadIgnoredInputStreamThread.");
 			
-			// Signal this thread to stop...
-			readIgnoredStreamThread.interrupt();
+			// Signal this thread to stop without forcing an interrupt. If we call interrupt() on a thread
+			// that is blocked on a socket read, it will cause the socket connection to be closed. We don't
+			// want that.
+			readIgnoredStreamThread.setStopped();
+			
+			// Wait for ReadIgnoredInputStreamThread to stop
 			try {
-				// ...and wait for it to die
+				Log.inst().debug("Waiting for " + readIgnoredStreamThread.getName() + " to exit...");
 				readIgnoredStreamThread.join();
 			} catch (InterruptedException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
+			
+			readIgnoredStreamThread = null;
 		}
 	}
 	
@@ -191,48 +232,15 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 		{
 			if (isHostListening)
 			{
-				Log.inst().info("Starting ReadIgnoredInputStreamThread.");
-				
 				// Create a thread to read the InputStream we are about to ignore when we begin routing comm
 				readIgnoredStreamThread = new ReadIgnoredInputStreamThread();
 				readIgnoredStreamThread.start();
 			}
 			else
-			{
-				// Stop the thread we created to read InputStream we were ignoring.
 				stopReadIgnoredStreamThread();
-			}
 		}
 	}
 	
-	/**
-	 * Just read bytes from the InputStream and write them to the OutputStream.
-	 */
-/*
-	private void simplePassThru(byte[] buffer)
-	{
-		// Read data from inbound socket
-		int count = 0;
-		try
-		{
-			count = in.read(buffer);
-			if (count == -1)
-				stopped.set(true);
-			Log.inst().info(getName() + ": Read " + count + " bytes from inbound socket.");
-		}
-		catch (IOException e) {
-			stopped.set(true);
-			Log.inst().info(getName() + ": Failed reading inbound socket.");
-		}
-
-		// Write data to outbound socket
-		if (!stopped.get())
-		{
-			if (!CommUtils.writeOutputStream(out, buffer, 0, count, getName()))
-				stopped.set(true);
-		}
-	}
-*/	
 	/**
 	 * What's the deal with this method? SNTCPPassThruServer is essentially concerned with acting as a man-in-the-middle
 	 * for the TCP communication that occurs between Preflight and Renderbox. The SN communication protocol involves
@@ -286,7 +294,7 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 			Log.inst().error("messageLengthStr: " + messageLengthStr);
 			throw new IOException(e.getMessage());
 		}
-//		Log.inst().info("Parsed messageLength = " + messageLength);
+//		Log.inst().debug("Parsed messageLength = " + result);
 
 		if (modifyReplyPort)
 		{
@@ -302,7 +310,6 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 			byte[] hdrCopy = new byte[kSNHeaderFieldLength];
 			System.arraycopy(buffer, kSNHeaderClientAppNamePosition, hdrCopy, 0, hdrCopy.length);
 			clientAppName = new String(hdrCopy).trim();
-//			clientAppName = new String(buffer, kSNHeaderClientAppNamePosition, kSNHeaderFieldLength).trim();
 			Log.inst().debug("clientAppName parsed from SN header: " + clientAppName);
 		}
 		

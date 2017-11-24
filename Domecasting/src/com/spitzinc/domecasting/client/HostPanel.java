@@ -17,6 +17,9 @@ public class HostPanel extends JPanel
 {
 	private static final long serialVersionUID = 1L;
 	
+	private static final String buttonTextListenToDomecast = "Listen to Domecast";
+	private static final String buttonTextStopListeningToDomecast = "Stop Listening to Domecast";
+	
 	private boolean ignoreDomecastComboboxChanges;
 	private JButton btnGetPresentationAssets;
 	private JButton btnDomecastListen;
@@ -76,7 +79,7 @@ public class HostPanel extends JPanel
 		gbc_btnGetPresentationAssets.gridy = 2;
 		add(btnGetPresentationAssets, gbc_btnGetPresentationAssets);
 		
-		btnDomecastListen = new JButton("Listen to Domecast");
+		btnDomecastListen = new JButton(buttonTextListenToDomecast);
 		btnDomecastListen.setEnabled(false);
 		btnDomecastListen.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
@@ -84,6 +87,7 @@ public class HostPanel extends JPanel
 				if (!inst.isHostListening.get())
 				{
 					inst.isHostListening.set(true);
+					inst.snPassThru.notifyThreadsOfCommModeChange();
 					
 					// Tell the server we're ready to be controlled by presenter
 					ClientInfoSendThread sendThread = new ClientInfoSendThread(null, null, true);
@@ -94,11 +98,12 @@ public class HostPanel extends JPanel
 					inst.appFrame.tabbedPane.setEnabled(false);
 					
 					// Change the button text
-					btnDomecastListen.setText("Stop Listening to Domecast");
+					btnDomecastListen.setText(buttonTextStopListeningToDomecast);
 				}
 				else
 				{
 					inst.isHostListening.set(false);
+					inst.snPassThru.notifyThreadsOfCommModeChange();
 					
 					// Tell the server we're not ready to be controlled by presenter
 					ClientInfoSendThread sendThread = new ClientInfoSendThread(null, null, false);
@@ -109,7 +114,7 @@ public class HostPanel extends JPanel
 					inst.appFrame.tabbedPane.setEnabled(true);
 					
 					// Change the button text
-					btnDomecastListen.setText("Listen to Domecast");
+					btnDomecastListen.setText(buttonTextListenToDomecast);
 				}
 			}
 		});

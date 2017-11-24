@@ -17,7 +17,7 @@ public abstract class TCPConnectionListenerThread extends Thread
 	protected AtomicBoolean stopped;
 	protected int maxConnections;
 	protected ServerSocket serverSocket;
-	protected ArrayList<TCPConnectionHandlerThread> connectionHandlerThreads;
+	public ArrayList<TCPConnectionHandlerThread> connectionHandlerThreads;
 	
 	public TCPConnectionListenerThread(int inPortToListenOn, int maxConnections) throws IOException
 	{

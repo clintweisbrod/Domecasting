@@ -249,7 +249,10 @@ public class ServerConnection
 				else if (list[0].equals(CommUtils.kGetAvailableDomecasts))	// Only received by host
 					theApp.availableDomecasts = list[1];
 				else if (list[0].equals(CommUtils.kIsHostListening))		// Only received by presenter. Host sets this locally.
+				{
 					theApp.isHostListening.set(Boolean.parseBoolean(list[1]));
+					theApp.snPassThru.notifyThreadsOfCommModeChange();
+				}
 				
 				// Notify the UI of changes
 				synchronized(theApp.appFrame.tabbedPane) {

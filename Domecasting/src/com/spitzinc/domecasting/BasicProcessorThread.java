@@ -22,7 +22,7 @@ public class BasicProcessorThread extends Thread
 	
 	public void start() throws IllegalThreadStateException
 	{
-		Log.inst().info("Starting thread.");
+		Log.inst().info("Starting thread: " + getName() + ".");
 		stopped.set(false);
 		
 		super.start();

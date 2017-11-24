@@ -197,18 +197,13 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 
 		if (peerConnectionThread != null)
 		{
-			// Only send the data if the host is "listening".
-			if (((clientType == CommUtils.kHostID) && this.isHostListening) ||
-				((clientType == CommUtils.kPresenterID) && peerConnectionThread.isHostListening))
+			synchronized (peerConnectionThread.outputStreamLock)
 			{
-				synchronized (peerConnectionThread.outputStreamLock)
-				{
-					// Write the header we've received
-					CommUtils.writeOutputStream(peerConnectionThread.out, hdr.bytes, 0, ClientHeader.kHdrByteCount);
-					
-					// Write the data we've received
-					CommUtils.writeOutputStream(peerConnectionThread.out, commBuffer, 0, hdr.messageLen);
-				}
+				// Write the header we've received
+				CommUtils.writeOutputStream(peerConnectionThread.out, hdr.bytes, 0, ClientHeader.kHdrByteCount);
+				
+				// Write the data we've received
+				CommUtils.writeOutputStream(peerConnectionThread.out, commBuffer, 0, hdr.messageLen);
 			}
 		}
 	}

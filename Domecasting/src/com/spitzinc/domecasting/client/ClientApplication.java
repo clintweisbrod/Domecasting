@@ -41,7 +41,7 @@ public class ClientApplication extends ApplicationBase implements WindowListener
 	public int passThruReceiveListenerPort = 56898;
 	
 	public ClientAppFrame appFrame;
-	private SNTCPPassThruServer snPassThru = null;
+	public SNTCPPassThruServer snPassThru = null;
 	
 	public ServerConnection serverConnection;
 	public AtomicReference<String> statusText;
