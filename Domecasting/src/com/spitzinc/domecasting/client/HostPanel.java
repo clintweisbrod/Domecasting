@@ -1,6 +1,9 @@
 package com.spitzinc.domecasting.client;
 
 import javax.swing.JPanel;
+
+import com.spitzinc.domecasting.Log;
+
 import javax.swing.JLabel;
 import java.awt.GridBagLayout;
 import java.awt.GridBagConstraints;
@@ -10,7 +13,11 @@ import javax.swing.JButton;
 import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
 import java.awt.event.ActionEvent;
 import javax.swing.JComboBox;
 import javax.swing.JFileChooser;
@@ -82,11 +89,15 @@ public class HostPanel extends JPanel
 		btnGetPresentationAssets.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0)
 			{
-				// Display modal file chooser dialog
+				// Attempt to initialize file chooser dialog to correct folder
 				ClientApplication inst = (ClientApplication)ClientApplication.inst();
-				if (inst.lastAssetsSaveFolder != null)
-					fileChooser.setCurrentDirectory(new File(inst.lastAssetsSaveFolder));
-				
+				String currentDirectory = parsePackagedShowFolderFromSiteConfigFile();
+				if ((currentDirectory == null) && (inst.lastAssetsSaveFolder != null))
+					currentDirectory = inst.lastAssetsSaveFolder;
+				if (currentDirectory != null)
+					fileChooser.setCurrentDirectory(new File(currentDirectory));
+			
+				// Display modal file chooser dialog
 				int returnValue = fileChooser.showOpenDialog(HostPanel.this);
 				if (returnValue == JFileChooser.APPROVE_OPTION)
 				{
@@ -254,6 +265,64 @@ public class HostPanel extends JPanel
 
 		if ((cmbAvailableDomecasts.getItemCount() > 0) && (cmbAvailableDomecasts.getSelectedIndex() >= 0))
 			result = (String)cmbAvailableDomecasts.getSelectedItem();
+		
+		return result;
+	}
+	
+	/*
+	 * Attempt to locate a config line called "PackagedShowDirectory"
+	 */
+	private String parsePackagedShowFolderFromSiteConfigFile()
+	{
+		String result = null;
+		
+		// Attempt to parse the folder location where ShowPack.exe-generated ZIPs should
+		// be saved.
+		String siteConfigFilePath = System.getenv("ProgramFiles(X86)") + File.separator +
+									"Spitz, Inc" + File.separator + 
+									"Atm-4" + File.separator +
+									"site.config";
+		File siteConfigFile = new File(siteConfigFilePath);
+		if (siteConfigFile.exists())
+		{
+			BufferedReader br = null;
+			try
+			{
+				br = new BufferedReader(new FileReader(siteConfigFile));
+			} catch (FileNotFoundException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			String line;
+			try
+			{
+				while ((line = br.readLine()) != null)
+				{
+					line = line.trim();
+					int equalsIndex = line.indexOf('=');
+					if (equalsIndex > 0)
+					{
+						String valueName = line.substring(0, equalsIndex).toLowerCase().trim();
+						if (valueName.equals("packagedshowdirectory"))
+						{
+							result = line.substring(equalsIndex + 1).trim();
+							break;
+						}
+					}
+				}
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			try {
+				br.close();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+		else
+			Log.inst().info("Unable to locate site.config file");
 		
 		return result;
 	}
