@@ -11,19 +11,26 @@ import java.awt.GridBagLayout;
 import java.awt.GridBagConstraints;
 import java.awt.Insets;
 import javax.swing.JButton;
+import javax.swing.JFileChooser;
+
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
+import java.io.File;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+import java.awt.event.ActionListener;
+import java.awt.event.ActionEvent;
 
 public class PresenterPanel extends JPanel
 {
 	private static final long serialVersionUID = 1L;
 	public static final int kMinDomecastIDLength = 8;
+	
 	private JTextField txtDomecastID;
 	private JButton btnUploadAssets;
 	private JLabel lblStatusText;
 	private DomecastIDSendThread domecastSendThread;
+	private JFileChooser fileChooser;
 	
 	private class DomecastIDSendThread extends Thread
 	{
@@ -115,6 +122,10 @@ public class PresenterPanel extends JPanel
 	{
 		domecastSendThread = null;
 		
+		fileChooser = new JFileChooser();
+		fileChooser.setFileFilter(new AssetFileFilter());
+		fileChooser.setDialogTitle("Select show assets file to upload");
+		
 		GridBagLayout gridBagLayout = new GridBagLayout();
 		gridBagLayout.columnWidths = new int[]{0, 0};
 		gridBagLayout.rowHeights = new int[]{0, 0, 0, 0};
@@ -171,6 +182,24 @@ public class PresenterPanel extends JPanel
 		add(txtDomecastID, gbc_textField);
 		
 		btnUploadAssets = new JButton("Upload Presentation Assets...");
+		btnUploadAssets.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0)
+			{
+				// Display modal file chooser dialog
+				ClientApplication inst = (ClientApplication)ClientApplication.inst();
+				if (inst.lastAssetsOpenFolder != null)
+					fileChooser.setCurrentDirectory(new File(inst.lastAssetsOpenFolder));
+				
+				int returnValue = fileChooser.showOpenDialog(PresenterPanel.this);
+				if (returnValue == JFileChooser.APPROVE_OPTION)
+				{
+					File theAssetFile = fileChooser.getSelectedFile();
+					inst.lastAssetsOpenFolder = theAssetFile.getParent();
+					
+					// TODO: Send this file to the server, giving progress of upload.
+				}
+			}
+		});
 		btnUploadAssets.setEnabled(false);
 		GridBagConstraints gbc_btnUploadAssets = new GridBagConstraints();
 		gbc_btnUploadAssets.insets = new Insets(0, 0, 5, 0);

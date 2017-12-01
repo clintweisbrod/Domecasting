@@ -39,6 +39,8 @@ public class ClientApplication extends ApplicationBase implements WindowListener
 	public int pfPrefs_DomeServer_TCPPort = 56895;
 	public int pfPrefs_DomeServer_TCPReplyPort = 56896;
 	public int passThruReceiveListenerPort = 56898;
+	public String lastAssetsOpenFolder = null;
+	public String lastAssetsSaveFolder = null;
 	
 	public ClientAppFrame appFrame;
 	public SNTCPPassThruServer snPassThru = null;
@@ -94,6 +96,8 @@ public class ClientApplication extends ApplicationBase implements WindowListener
 			pfPrefs_DomeServer_TCPReplyPort = getIntegerProperty(props, "pfPrefs_DomeServer_TCPReplyPort", pfPrefs_DomeServer_TCPReplyPort);
 			rbPrefs_DomeServer_TCPPort = getIntegerProperty(props, "rbPrefs_DomeServer_TCPPort", rbPrefs_DomeServer_TCPPort);
 			passThruReceiveListenerPort = getIntegerProperty(props, "passThruReceiveListenerPort", passThruReceiveListenerPort);
+			lastAssetsOpenFolder = getStringProperty(props, "lastAssetsOpenFolder", lastAssetsOpenFolder);
+			lastAssetsSaveFolder = getStringProperty(props, "lastAssetsSaveFolder", lastAssetsSaveFolder);
 		}
 	}
 	
@@ -108,6 +112,10 @@ public class ClientApplication extends ApplicationBase implements WindowListener
 		props.setProperty("pfPrefs_DomeServer_TCPReplyPort", Integer.toString(pfPrefs_DomeServer_TCPReplyPort));
 		props.setProperty("rbPrefs_DomeServer_TCPPort", Integer.toString(rbPrefs_DomeServer_TCPPort));
 		props.setProperty("passThruReceiveListenerPort", Integer.toString(passThruReceiveListenerPort));
+		if (lastAssetsOpenFolder != null)
+			props.setProperty("lastAssetsOpenFolder", lastAssetsOpenFolder);
+		if (lastAssetsSaveFolder != null)
+			props.setProperty("lastAssetsSaveFolder", lastAssetsSaveFolder);
 		
 		this.writePropertiesToFile(getPropertiesFile(kPrefsFileName), props);
 	}

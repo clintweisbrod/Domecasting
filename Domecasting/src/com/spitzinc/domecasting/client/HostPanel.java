@@ -10,8 +10,10 @@ import javax.swing.JButton;
 import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
+import java.io.File;
 import java.awt.event.ActionEvent;
 import javax.swing.JComboBox;
+import javax.swing.JFileChooser;
 
 public class HostPanel extends JPanel
 {
@@ -26,6 +28,7 @@ public class HostPanel extends JPanel
 	private JLabel lblStatusText;
 	private JComboBox<String> cmbAvailableDomecasts;
 	private JLabel lblNewLabel;
+	private JFileChooser fileChooser;
 
 	/**
 	 * Create the panel.
@@ -33,6 +36,10 @@ public class HostPanel extends JPanel
 	public HostPanel()
 	{
 		this.ignoreDomecastComboboxChanges = true;
+		
+		fileChooser = new JFileChooser();
+		fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+		fileChooser.setDialogTitle("Select folder to save downloaded assets file to");
 		
 		GridBagLayout gridBagLayout = new GridBagLayout();
 		gridBagLayout.columnWidths = new int[]{0};
@@ -72,6 +79,25 @@ public class HostPanel extends JPanel
 		add(cmbAvailableDomecasts, gbc_availableDomecasts);
 		
 		btnGetPresentationAssets = new JButton("Download Presentation Assets...");
+		btnGetPresentationAssets.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0)
+			{
+				// Display modal file chooser dialog
+				ClientApplication inst = (ClientApplication)ClientApplication.inst();
+				if (inst.lastAssetsSaveFolder != null)
+					fileChooser.setCurrentDirectory(new File(inst.lastAssetsSaveFolder));
+				
+				int returnValue = fileChooser.showOpenDialog(HostPanel.this);
+				if (returnValue == JFileChooser.APPROVE_OPTION)
+				{
+					File theAssetsFolder = fileChooser.getSelectedFile();
+					inst.lastAssetsSaveFolder = theAssetsFolder.getAbsolutePath();
+					
+					// TODO: Download the asset file and save it to this folder
+
+				}
+			}
+		});
 		btnGetPresentationAssets.setEnabled(false);
 		GridBagConstraints gbc_btnGetPresentationAssets = new GridBagConstraints();
 		gbc_btnGetPresentationAssets.insets = new Insets(0, 0, 5, 0);
