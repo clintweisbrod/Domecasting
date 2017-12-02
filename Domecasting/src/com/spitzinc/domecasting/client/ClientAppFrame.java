@@ -91,14 +91,18 @@ public class ClientAppFrame extends JFrame
 				case 0:
 				{
 					theApp.clientType = CommUtils.kHostID;
-					ClientInfoSendThread sendThread = new ClientInfoSendThread(theApp.clientType, hostPanel.getDomecastID(), null);
+					ClientInfoSendThread sendThread = new ClientInfoSendThread();
+					sendThread.setClientType(theApp.clientType);
+					sendThread.setDomecastID(hostPanel.getDomecastID());
 					sendThread.start();
 					break;
 				}
 				case 1:
 				{
 					theApp.clientType = CommUtils.kPresenterID;
-					ClientInfoSendThread sendThread = new ClientInfoSendThread(theApp.clientType, presenterPanel.getDomecastID(), null);
+					ClientInfoSendThread sendThread = new ClientInfoSendThread();
+					sendThread.setClientType(theApp.clientType);
+					sendThread.setDomecastID(presenterPanel.getDomecastID());
 					sendThread.start();
 					break;
 				}

@@ -28,7 +28,7 @@ public class ClientHeader
 	public static final String kFILE = "FILE";	// File transfer
 	
 	
-	public int messageLen;	// This is interpreted as the number of bytes to receive AFTER the header
+	public long messageLen;	// This is interpreted as the number of bytes to receive AFTER the header
 	public String messageSource;
 	public String messageType;
 	public byte[] bytes;
@@ -77,7 +77,7 @@ public class ClientHeader
 			bytes[i] = ' ';
 		
 		// message length
-		String hdrField = Integer.toUnsignedString(messageLen);
+		String hdrField = Long.toUnsignedString(messageLen);
 		System.arraycopy(hdrField.getBytes(), 0, bytes, 0, hdrField.length());
 		
 		// message source

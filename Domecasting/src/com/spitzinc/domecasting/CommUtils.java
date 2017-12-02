@@ -1,5 +1,10 @@
 package com.spitzinc.domecasting;
 
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -24,6 +29,8 @@ public class CommUtils
 	public static final String kDomecastID = "domecastID";
 	public static final String kClientType = "clientType";
 	public static final String kIsHostListening = "isHostListening";
+	public static final String kAssetFileAvailable = "assetFileAvailable";
+	public static final String kGetAssetsFile = "getAssetsFile";
 	public static final String kStatusText = "statusText";
 	
 	public static final String kNoAvailableDomecastIDs = "<none>";
@@ -90,6 +97,25 @@ public class CommUtils
 		}
 	}
 	
+	public static void readInputStreamToFile(InputStream is, File outputFile, long fileLength, byte[] buffer) throws IOException
+	{
+		DataOutputStream dos = new DataOutputStream(new FileOutputStream(outputFile));
+		
+		// Begin reading in and writing to dos
+		long bytesLeftToReceive = fileLength;
+		while (bytesLeftToReceive > 0)
+		{
+			long bytesToRead = Math.min(bytesLeftToReceive, (long)buffer.length);
+			CommUtils.readInputStream(is, buffer, 0, (int)bytesToRead);
+			dos.write(buffer, 0, (int)bytesToRead);
+			
+			bytesLeftToReceive -= bytesToRead;
+		}
+
+		// Close the DataOutputStream
+		dos.close();
+	}
+	
 	public static void writeOutputStream(OutputStream os, byte[] buffer, int offset, int len) throws IOException
 	{
 		try
@@ -102,8 +128,27 @@ public class CommUtils
 		}
 	}
 	
+	public static void writeOutputStreamFromFile(OutputStream os, File inputFile, byte[] buffer) throws IOException
+	{
+		DataInputStream dis = new DataInputStream(new FileInputStream(inputFile));
+		
+		long bytesLeftToSend = inputFile.length();
+		while (bytesLeftToSend > 0)
+		{
+			long bytesToSend = Math.min(bytesLeftToSend, (long)buffer.length);
+			int bytesRead = dis.read(buffer, 0, (int)bytesToSend);
+			if (bytesRead == -1)
+				break;
+			CommUtils.writeOutputStream(os, buffer, 0, bytesRead);
+			
+			bytesLeftToSend -= bytesRead;
+		}
+
+		dis.close();
+	}
+	
 	public static void writeHeader(OutputStream os, ClientHeader hdr,
-								   int msgLen, String msgSrc, String msgType) throws IOException
+								   long msgLen, String msgSrc, String msgType) throws IOException
 	{
 		hdr.messageLen = msgLen;
 		hdr.messageSource = msgSrc;

@@ -1,5 +1,7 @@
 package com.spitzinc.domecasting.client;
 
+import java.io.File;
+
 import com.spitzinc.domecasting.Log;
 
 /**
@@ -11,13 +13,38 @@ public class ClientInfoSendThread extends Thread
 	private Byte clientType;
 	private String domecastID;
 	private Boolean isHostListening;
-		
-	public ClientInfoSendThread(Byte clientType, String domecastID, Boolean isHostListening)
+	private File assetFile;
+	private Boolean getAssetsFile;
+	
+	public ClientInfoSendThread()
 	{
+		this.clientType = null;
+		this.domecastID = null;
+		this.isHostListening = null;
+		this.assetFile = null;
+		this.getAssetsFile = null;
+		
+		setName(getClass().getSimpleName());
+	}
+	
+	public void setClientType(Byte clientType) {
 		this.clientType = clientType;
+	}
+	
+	public void setDomecastID(String domecastID) {
 		this.domecastID = domecastID;
+	}
+	
+	public void setIsHostListening(Boolean isHostListening) {
 		this.isHostListening = isHostListening;
-		this.setName(getClass().getSimpleName());
+	}
+	
+	public void setAssetsFile(File assetFile) {
+		this.assetFile = assetFile;
+	}
+	
+	public void setGetAssetsFile(Boolean getAssetsFile) {
+		this.getAssetsFile = getAssetsFile;
 	}
 	
 	public void run()
@@ -33,6 +60,10 @@ public class ClientInfoSendThread extends Thread
 				inst.serverConnection.sendIsHostListening(isHostListening.booleanValue());
 			if (domecastID != null)
 				inst.serverConnection.sendDomecastID(domecastID);
+			if (assetFile != null)
+				inst.serverConnection.sendAssetFile(assetFile);
+			if (getAssetsFile != null)
+				inst.serverConnection.sendGetAssetsFile();
 		}
 
 		Log.inst().info("Exiting.");

@@ -193,10 +193,13 @@ public class PresenterPanel extends JPanel
 				int returnValue = fileChooser.showOpenDialog(PresenterPanel.this);
 				if (returnValue == JFileChooser.APPROVE_OPTION)
 				{
-					File theAssetFile = fileChooser.getSelectedFile();
-					inst.lastAssetsOpenFolder = theAssetFile.getParent();
+					File assetFile = fileChooser.getSelectedFile();
+					inst.lastAssetsOpenFolder = assetFile.getParent();
 					
 					// TODO: Send this file to the server, giving progress of upload.
+					ClientInfoSendThread sendThread = new ClientInfoSendThread();
+					sendThread.setAssetsFile(assetFile);
+					sendThread.start();
 				}
 			}
 		});

@@ -7,14 +7,22 @@
  */
 package com.spitzinc.domecasting.client;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
 import java.nio.ByteBuffer;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.util.Enumeration;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 
 import com.spitzinc.domecasting.BasicProcessorThread;
 import com.spitzinc.domecasting.ClientHeader;
@@ -205,6 +213,8 @@ public class ServerConnection
  						handleINFO(inHdr);
  					else if (inHdr.messageType.equals(ClientHeader.kCOMM))
  						handleCOMM(inHdr);
+ 					else if (inHdr.messageType.equals(ClientHeader.kFILE))
+ 						handleFILE(inHdr);
 				}
 			}
 			catch (IOException e)
@@ -227,11 +237,11 @@ public class ServerConnection
 		
 		private void handleINFO(ClientHeader hdr) throws IOException
 		{
-			CommUtils.readInputStream(in, infoBuffer, 0, hdr.messageLen);
-			String serverReply = new String(infoBuffer, 0, hdr.messageLen);
+			CommUtils.readInputStream(in, infoBuffer, 0, (int)hdr.messageLen);
+			String serverReply = new String(infoBuffer, 0, (int)hdr.messageLen);
 			Log.inst().debug("Received: " + serverReply);
 			String[] list = serverReply.split("=");
-			if (list[0].equals(CommUtils.kIsDomecastIDUnique))
+			if (list[0].equals(CommUtils.kIsDomecastIDUnique))				// Only received by presenter.
 			{
 				theApp.isDomecastIDUnique.set(Boolean.parseBoolean(list[1]));
 				
@@ -259,6 +269,8 @@ public class ServerConnection
 						theApp.snPassThru.notifyThreadsOfCommModeChange();
 					}
 				}
+				else if (list[0].equals(CommUtils.kAssetFileAvailable))		// Only received by host
+					theApp.assetFileAvailable.set(Boolean.parseBoolean(list[1]));
 				
 				// Notify the UI of changes
 				synchronized(theApp.appFrame.tabbedPane) {
@@ -282,12 +294,12 @@ public class ServerConnection
 			if (theQueue != null)
 			{
 				// Allocate a byte array large enough to hold the entire message
-				byte[] buffer = new byte[inHdr.messageLen];
+				byte[] buffer = new byte[(int)inHdr.messageLen];
 				
 				// Read the entire message
-				CommUtils.readInputStream(in, buffer, 0, inHdr.messageLen);
+				CommUtils.readInputStream(in, buffer, 0, (int)inHdr.messageLen);
 				
-				// Wrap the byte array in a new ByteBuffer object (I hate we have to do this)
+				// Wrap the byte array in a new ByteBuffer object (I hate that we have to do this)
 				ByteBuffer theBuffer = ByteBuffer.wrap(buffer);
 				
 				// Push the new ByteBuffer into the queue
@@ -297,6 +309,75 @@ public class ServerConnection
 					Log.inst().error(hdr.messageSource + " input queue is full! Ignoring further received communication.");
 				}
 			}
+		}
+		
+		private void handleFILE(ClientHeader hdr) throws IOException
+		{
+			// Create a DataOutputStream to write the received data to
+			File outputFile = new File(theApp.lastAssetsSaveFolder + File.separator + "assets.zip");
+			
+			// Allocate buffer to use for read/write operations
+			byte[] buffer = new byte[CommUtils.kCommBufferSize];
+
+			// Read the InputStream to specified file
+			CommUtils.readInputStreamToFile(in, outputFile, hdr.messageLen, buffer);
+			
+			// When we get here, we have a new file saved in lastAssetsSaveFolder called "assets.zip".
+			// We have to rename it to the .cue file inside the ZIP file.
+			String internalName = getAssetsFileInternalName(outputFile);
+			if (internalName != null)
+			{
+				// Rename outputFile to <internalName>.zip
+				File newFile = new File(theApp.lastAssetsSaveFolder + File.separator + internalName + ".zip");
+				if (newFile.exists())
+				{
+					// If the file exists, delete it
+					newFile.delete();
+				}
+				Path movefrom = FileSystems.getDefault().getPath(outputFile.getAbsolutePath());
+				Path target = FileSystems.getDefault().getPath(newFile.getAbsolutePath());
+				Files.move(movefrom, target, StandardCopyOption.REPLACE_EXISTING);
+			}
+		}
+		
+		private String getAssetsFileInternalName(File assetsFile)
+		{
+			String result = null;
+			
+			ZipFile zipFile = null;
+			try
+			{
+				// Attempt to find .cue file in the ZIP file
+				zipFile = new ZipFile(assetsFile);
+				Enumeration<? extends ZipEntry> entries = zipFile.entries();
+				while(entries.hasMoreElements())
+				{
+			        ZipEntry entry = entries.nextElement();
+			        String entryName = entry.getName().toLowerCase();
+			        if (entryName.endsWith(".cue"))
+			        {
+			        	String[] list = entryName.split(".");
+			        	result = list[0];
+			        	break;
+			        }
+			    }
+			}
+			catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			finally
+			{
+				if (zipFile != null)
+					try {
+						zipFile.close();
+					} catch (IOException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+			}
+			
+			return result;
 		}
 	}
 	
@@ -386,6 +467,29 @@ public class ServerConnection
 	
 	public void sendClientType(byte clientType)	{
 		sendToServer(CommUtils.kClientType + "=" + (char)clientType, ClientHeader.kINFO);
+	}
+	
+	public void sendGetAssetsFile() {
+		sendToServer(CommUtils.kGetAssetsFile + "=true", ClientHeader.kINFO);
+	}
+	
+	public void sendAssetFile(File assetFile)
+	{
+		try
+		{
+			// Allocate buffer for transfer
+			byte[] buffer = new byte[16 * 1024];
+
+			synchronized (outputStreamLock)
+			{
+				CommUtils.writeHeader(out, outHdr, assetFile.length(), ClientHeader.kDCC, ClientHeader.kFILE);
+				CommUtils.writeOutputStreamFromFile(out, assetFile, buffer);
+			}
+		}
+		catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 	
 	private void sendToServer(String serverCmd, String msgType)

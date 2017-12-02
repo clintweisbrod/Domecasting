@@ -64,6 +64,14 @@ public abstract class ApplicationBase implements WindowListener
 		context.setConfigLocation(log4jConfigFile.toURI());
 	}
 	
+	public String getProgramDataPath()
+	{
+		String path = new String(System.getenv("PROGRAMDATA"));
+		path = path.concat(File.separator).concat(kCompanyName);
+		path = path.concat(File.separator).concat(kProductName);
+		return path;
+	}
+	
 	protected String getPropertiesPath()
 	{
 		String propsFilePath = new String(System.getenv("APPDATA"));

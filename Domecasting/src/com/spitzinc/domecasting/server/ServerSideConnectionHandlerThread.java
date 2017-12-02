@@ -1,5 +1,6 @@
 package com.spitzinc.domecasting.server;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -70,6 +71,8 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 					handleINFO(inHdr);
 				else if (inHdr.messageType.equals(ClientHeader.kCOMM))
 					handleCOMM(inHdr);
+				else if (inHdr.messageType.equals(ClientHeader.kFILE))
+					handleFILE(inHdr);
 			}
 		}
 		catch (IOException e) {
@@ -78,7 +81,7 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 	
 	private void handleINFO(ClientHeader hdr) throws IOException
 	{
-		byte[] infoBytes = new byte[hdr.messageLen];
+		byte[] infoBytes = new byte[(int)hdr.messageLen];
 		CommUtils.readInputStream(in, infoBytes, 0, infoBytes.length);
 		
 		// All INFO messages are of the form "variable=value".
@@ -126,6 +129,35 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 			
 			listenerThread.sendStatusToThreads();
 		}
+		else if (list[0].equals(CommUtils.kGetAssetsFile))	// Sent only from host
+			sendAssetsFile();
+	}
+	
+	private String getAssetsFolderPath()
+	{
+		ServerApplication inst = (ServerApplication) ServerApplication.inst();
+		String result = inst.getProgramDataPath() + File.separator + domecastID + File.separator;
+		return result;
+	}
+	
+	private void handleFILE(ClientHeader hdr) throws IOException
+	{
+		// Decide where the file will be stored
+		// I think it's reasonable to create a subfolder in ProgramData to hold asset files.
+		String programDataPath = getAssetsFolderPath();
+		File programDataFolder = new File(programDataPath);
+		if (!programDataFolder.exists())
+			programDataFolder.mkdirs();
+		
+		// Create a DataOutputStream to write the received data to
+		File outputFile = new File(programDataPath + "assets.zip");
+		
+		// Read the InputStream to specified file
+		CommUtils.readInputStreamToFile(in, outputFile, hdr.messageLen, commBuffer);
+		
+		// When we get here, we have the following file saved: C:\ProgramData\Spitz, Inc\Domecasting\<domecastID>\assets.zip
+		// Notify all connected hosts that an assets file is available for download.
+		listenerThread.notifyHostsOfAvailableAssetsFile(this);
 	}
 	
 	public void sendBoolean(String name, boolean value) throws IOException
@@ -181,6 +213,21 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 		}
 	}
 	
+	private void sendAssetsFile() throws IOException
+	{
+		String programDataPath = getAssetsFolderPath();
+		
+		// Create a reference to the file
+		File inputFile = new File(programDataPath + "assets.zip");
+		
+		// Send it
+		synchronized (outputStreamLock)
+		{
+			CommUtils.writeHeader(out, outHdr, inputFile.length(), ClientHeader.kDCS, ClientHeader.kFILE);
+			CommUtils.writeOutputStreamFromFile(out, inputFile, commBuffer);
+		}
+	}
+	
 	/**
 	 * Pass the hdr (already read) and the remaining data on the InputStream to the peer connections's OutputStream.
 	 */
@@ -196,7 +243,7 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 			commBuffer = new byte[(int)(hdr.messageLen * 1.25)];	// Make new commBuffer 25% larger than what we need.
 		
 		// Read the data after the header
-		CommUtils.readInputStream(in, commBuffer, 0, hdr.messageLen);
+		CommUtils.readInputStream(in, commBuffer, 0, (int)hdr.messageLen);
 		
 		// Write to each peer
 		for (ServerSideConnectionHandlerThread peer : peerConnectionThreads)
@@ -207,7 +254,7 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 				CommUtils.writeOutputStream(peer.out, hdr.bytes, 0, ClientHeader.kHdrByteCount);
 				
 				// Write the data we've received
-				CommUtils.writeOutputStream(peer.out, commBuffer, 0, hdr.messageLen);
+				CommUtils.writeOutputStream(peer.out, commBuffer, 0, (int)hdr.messageLen);
 			}
 		}
 	}

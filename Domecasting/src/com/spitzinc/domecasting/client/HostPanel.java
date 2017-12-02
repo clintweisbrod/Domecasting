@@ -70,7 +70,8 @@ public class HostPanel extends JPanel
 					if (!ignoreDomecastComboboxChanges)
 					{
 						String domecastID = (String)event.getItem();
-						ClientInfoSendThread sendThread = new ClientInfoSendThread(null, domecastID, null);
+						ClientInfoSendThread sendThread = new ClientInfoSendThread();
+						sendThread.setDomecastID(domecastID);
 						sendThread.start();
 						
 						// Enable the button to listen to domecast
@@ -105,7 +106,9 @@ public class HostPanel extends JPanel
 					inst.lastAssetsSaveFolder = theAssetsFolder.getAbsolutePath();
 					
 					// TODO: Download the asset file and save it to this folder
-
+					ClientInfoSendThread sendThread = new ClientInfoSendThread();
+					sendThread.setGetAssetsFile(true);
+					sendThread.start();
 				}
 			}
 		});
@@ -127,7 +130,8 @@ public class HostPanel extends JPanel
 					inst.snPassThru.notifyThreadsOfCommModeChange();
 					
 					// Tell the server we're ready to be controlled by presenter
-					ClientInfoSendThread sendThread = new ClientInfoSendThread(null, null, true);
+					ClientInfoSendThread sendThread = new ClientInfoSendThread();
+					sendThread.setIsHostListening(true);
 					sendThread.start();
 					
 					// Disable controls so that only the btnPresentationControl is enabled
@@ -143,7 +147,8 @@ public class HostPanel extends JPanel
 					inst.snPassThru.notifyThreadsOfCommModeChange();
 					
 					// Tell the server we're not ready to be controlled by presenter
-					ClientInfoSendThread sendThread = new ClientInfoSendThread(null, null, false);
+					ClientInfoSendThread sendThread = new ClientInfoSendThread();
+					sendThread.setIsHostListening(false);
 					sendThread.start();
 					
 					// Enable controls we disabled
@@ -257,6 +262,10 @@ public class HostPanel extends JPanel
 			}
 		}
 		btnDomecastListen.setEnabled(enable);
+		
+		// Enable "Download Presentation Assets..." accordingly
+		ClientApplication inst = (ClientApplication) ClientApplication.inst();
+		btnGetPresentationAssets.setEnabled(inst.assetFileAvailable.get());
 	}
 	
 	public String getDomecastID()

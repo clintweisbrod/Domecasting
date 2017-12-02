@@ -51,6 +51,7 @@ public class ClientApplication extends ApplicationBase implements WindowListener
 	public AtomicBoolean isDomecastIDUnique;	// Relevant only for presenter
 	public String availableDomecasts;			// Relevant only for hosts
 	public AtomicBoolean isHostListening;		// Relevant for both host and presenter.
+	public AtomicBoolean assetFileAvailable;	// Relevant only for hosts
 	
 	public byte clientType = CommUtils.kHostID;
 	
@@ -68,6 +69,7 @@ public class ClientApplication extends ApplicationBase implements WindowListener
 		this.isConnected = new AtomicBoolean(false);
 		this.isDomecastIDUnique = new AtomicBoolean(false);
 		this.isHostListening = new AtomicBoolean(false);
+		this.assetFileAvailable = new AtomicBoolean(false);
 	
 		// Create object to manage connection with server
 		serverConnection = new ServerConnection(this, domecastingServerHostname, domecastingServerPort);

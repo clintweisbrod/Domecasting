@@ -36,6 +36,14 @@ public class ServerSideConnectionListenerThread extends TCPConnectionListenerThr
 		}
 	}
 	
+	public void notifyHostsOfAvailableAssetsFile(ServerSideConnectionHandlerThread inThread) throws IOException
+	{
+		// This is only called by a presenter thread so we will get list of connected hosts
+		ArrayList<ServerSideConnectionHandlerThread> hosts = findPeerConnectionThreads(inThread);
+		for (ServerSideConnectionHandlerThread host : hosts)
+			host.sendBoolean(CommUtils.kAssetFileAvailable, true);
+	}
+	
 	/**
 	 * Clients in host mode use a JComboBox to display all current domecasts.
 	 * This method returns a list of domecastIDs owned by presenter connections. 
