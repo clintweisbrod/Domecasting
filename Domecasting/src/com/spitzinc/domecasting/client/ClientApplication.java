@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import javax.swing.*;
@@ -52,6 +53,7 @@ public class ClientApplication extends ApplicationBase implements WindowListener
 	public String availableDomecasts;			// Relevant only for hosts
 	public AtomicBoolean isHostListening;		// Relevant for both host and presenter.
 	public AtomicBoolean assetFileAvailable;	// Relevant only for hosts
+	public AtomicInteger fileProgress;
 	
 	public byte clientType = CommUtils.kHostID;
 	
@@ -70,6 +72,7 @@ public class ClientApplication extends ApplicationBase implements WindowListener
 		this.isDomecastIDUnique = new AtomicBoolean(false);
 		this.isHostListening = new AtomicBoolean(false);
 		this.assetFileAvailable = new AtomicBoolean(false);
+		this.fileProgress = new AtomicInteger(0);
 	
 		// Create object to manage connection with server
 		serverConnection = new ServerConnection(this, domecastingServerHostname, domecastingServerPort);
@@ -132,10 +135,8 @@ public class ClientApplication extends ApplicationBase implements WindowListener
 		appFrame.setVisible(true);
 	}
 	
-	public void updateStatusText(String inStatusText)
+	public void updateUI()
 	{
-		statusText.set(inStatusText);
-
 		// Notify the UI of changes
 		synchronized(appFrame.tabbedPane) {
 			appFrame.tabbedPane.notify();
@@ -147,7 +148,8 @@ public class ClientApplication extends ApplicationBase implements WindowListener
 		Log.inst().info("Server connection lost.");
 		availableDomecasts = null;
 		assetFileAvailable.set(false);
-		updateStatusText("Spitz Domecasting server not available.");
+		statusText.set("Spitz Domecasting server not available.");
+		updateUI();
 		appFrame.resetUI();
 	}
 	

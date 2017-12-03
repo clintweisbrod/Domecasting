@@ -60,7 +60,7 @@ public class ClientAppFrame extends JFrame
 				 !theApp.availableDomecasts.equals(CommUtils.kNoAvailableDomecastIDs))
 				domecasts = theApp.availableDomecasts.split("~");
 			
-			setPanelStatus(theApp.statusText.get(), domecasts);
+			updatePanel(domecasts);
 		}
 	}
 
@@ -132,12 +132,12 @@ public class ClientAppFrame extends JFrame
 	}
 	
 	// Called by the ServerStatusThread.process() on the EDT.
-	public void setPanelStatus(String statusText, String[] domecasts)
+	public void updatePanel(String[] domecasts)
 	{
 		if (hostPanel != null)
-			hostPanel.setPanelStatus(statusText, domecasts);
+			hostPanel.updatePanel(domecasts);
 		if (presenterPanel != null)
-			presenterPanel.setPanelStatus(statusText);
+			presenterPanel.updatePanel();
 	}
 	
 	public void infoBox(String infoMessage, String titleBar)

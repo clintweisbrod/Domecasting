@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.awt.event.ActionEvent;
 import javax.swing.JComboBox;
 import javax.swing.JFileChooser;
+import javax.swing.JProgressBar;
 
 public class HostPanel extends JPanel
 {
@@ -36,6 +37,7 @@ public class HostPanel extends JPanel
 	private JComboBox<String> cmbAvailableDomecasts;
 	private JLabel lblNewLabel;
 	private JFileChooser fileChooser;
+	private JProgressBar progressBar;
 
 	/**
 	 * Create the panel.
@@ -50,9 +52,9 @@ public class HostPanel extends JPanel
 		
 		GridBagLayout gridBagLayout = new GridBagLayout();
 		gridBagLayout.columnWidths = new int[]{0};
-		gridBagLayout.rowHeights = new int[]{0, 0, 0, 0, 0, 0};
+		gridBagLayout.rowHeights = new int[]{0, 0, 0, 0, 0, 0, 0};
 		gridBagLayout.columnWeights = new double[]{1.0};
-		gridBagLayout.rowWeights = new double[]{0.0, 0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE};
+		gridBagLayout.rowWeights = new double[]{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE};
 		setLayout(gridBagLayout);
 		
 		lblNewLabel = new JLabel("Choose the domecast to listen to");
@@ -160,17 +162,29 @@ public class HostPanel extends JPanel
 				}
 			}
 		});
+		
+		progressBar = new JProgressBar();
+		progressBar.setMinimum(0);
+		progressBar.setMaximum(100);
+		progressBar.setValue(0);
+		progressBar.setVisible(false);
+		GridBagConstraints gbc_progressBar = new GridBagConstraints();
+		gbc_progressBar.fill = GridBagConstraints.HORIZONTAL;
+		gbc_progressBar.insets = new Insets(0, 5, 0, 5);
+		gbc_progressBar.gridx = 0;
+		gbc_progressBar.gridy = 3;
+		add(progressBar, gbc_progressBar);
 		GridBagConstraints gbc_btnWaitForPresentation = new GridBagConstraints();
-		gbc_btnWaitForPresentation.insets = new Insets(0, 0, 5, 0);
+		gbc_btnWaitForPresentation.insets = new Insets(5, 0, 5, 0);
 		gbc_btnWaitForPresentation.gridx = 0;
-		gbc_btnWaitForPresentation.gridy = 3;
+		gbc_btnWaitForPresentation.gridy = 4;
 		add(btnDomecastListen, gbc_btnWaitForPresentation);
 		
 		lblStatusText = new JLabel("");
 		GridBagConstraints gbc_lblStatusText = new GridBagConstraints();
 		gbc_lblStatusText.insets = new Insets(10, 0, 10, 0);
 		gbc_lblStatusText.gridx = 0;
-		gbc_lblStatusText.gridy = 4;
+		gbc_lblStatusText.gridy = 5;
 		add(lblStatusText, gbc_lblStatusText);
 
 	}
@@ -180,12 +194,24 @@ public class HostPanel extends JPanel
 		btnGetPresentationAssets.setEnabled(false);
 		btnDomecastListen.setEnabled(false);
 		cmbAvailableDomecasts.removeAllItems();
+		progressBar.setVisible(false);
 	}
 
-	public void setPanelStatus(String statusText, String[] domecasts)
+	public void updatePanel(String[] domecasts)
 	{
+		ClientApplication inst = (ClientApplication) ClientApplication.inst();
+		
 		if (lblStatusText != null)
-			lblStatusText.setText(statusText);
+			lblStatusText.setText(inst.statusText.get());
+		
+		if (progressBar != null)
+		{
+			int progressValue = inst.fileProgress.get();
+			if (progressValue == 0)
+				progressBar.setVisible(false);
+		
+			progressBar.setValue(progressValue);
+		}
 		
 		// Update the combobox with the hosts that are currently connected
 		String selectedItem = null;
@@ -264,7 +290,6 @@ public class HostPanel extends JPanel
 		btnDomecastListen.setEnabled(enable);
 		
 		// Enable "Download Presentation Assets..." accordingly
-		ClientApplication inst = (ClientApplication) ClientApplication.inst();
 		btnGetPresentationAssets.setEnabled(inst.assetFileAvailable.get());
 	}
 	

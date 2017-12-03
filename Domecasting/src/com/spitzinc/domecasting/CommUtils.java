@@ -14,11 +14,13 @@ import java.net.Socket;
 import java.net.SocketAddress;
 import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class CommUtils
 {
 	public static final int kSecurityCodeLength = 20;
 	public static final int kCommBufferSize = 120 * 1024;	// This should be enough for all SNF files
+	public static final int kFileBufferSize = 16 * 1024;
 	public static final byte kHostID = 'H';
 	public static final byte kPresenterID = 'P';
 	public static final String kAssetsFilename = "assets.zip";
@@ -98,12 +100,14 @@ public class CommUtils
 		}
 	}
 	
-	public static void readInputStreamToFile(InputStream is, File outputFile, long fileLength, byte[] buffer) throws IOException
+	public static void readInputStreamToFile(InputStream is, File outputFile, long fileLength, byte[] buffer,
+											 AtomicInteger progressValue, Object notifyThis) throws IOException
 	{
 		DataOutputStream dos = new DataOutputStream(new FileOutputStream(outputFile));
 		
 		// Begin reading in and writing to dos
 		long bytesLeftToReceive = fileLength;
+		int lastProgress = 0;
 		while (bytesLeftToReceive > 0)
 		{
 			long bytesToRead = Math.min(bytesLeftToReceive, (long)buffer.length);
@@ -111,6 +115,25 @@ public class CommUtils
 			dos.write(buffer, 0, (int)bytesToRead);
 			
 			bytesLeftToReceive -= bytesToRead;
+			
+			// Deal with providing progress
+			if ((progressValue != null) && (notifyThis != null))
+			{
+				// Compute current progress
+				int progress = (int)(100.0 * (1.0 - (double)bytesLeftToReceive / (double)fileLength));
+				
+				// Compute how much progress has been made
+				int progressChange = progress - lastProgress;
+				if (progressChange >= 5)	// If change is more than 5%, update the UI.
+				{
+					progressValue.set(progress);
+					synchronized(notifyThis) {
+						notifyThis.notify();
+					}
+					
+					lastProgress = progress;
+				}
+			}
 		}
 
 		// Close the DataOutputStream
@@ -129,11 +152,14 @@ public class CommUtils
 		}
 	}
 	
-	public static void writeOutputStreamFromFile(OutputStream os, File inputFile, byte[] buffer) throws IOException
+	public static void writeOutputStreamFromFile(OutputStream os, File inputFile, byte[] buffer,
+												 AtomicInteger progressValue, Object notifyThis) throws IOException
 	{
 		DataInputStream dis = new DataInputStream(new FileInputStream(inputFile));
 		
-		long bytesLeftToSend = inputFile.length();
+		long fileLength = inputFile.length();
+		long bytesLeftToSend = fileLength;
+		int lastProgress = 0;
 		while (bytesLeftToSend > 0)
 		{
 			long bytesToSend = Math.min(bytesLeftToSend, (long)buffer.length);
@@ -143,6 +169,25 @@ public class CommUtils
 			CommUtils.writeOutputStream(os, buffer, 0, bytesRead);
 			
 			bytesLeftToSend -= bytesRead;
+			
+			// Deal with providing progress
+			if ((progressValue != null) && (notifyThis != null))
+			{
+				// Compute current progress
+				int progress = (int)(100.0 * (1.0 - (double)bytesLeftToSend / (double)fileLength));
+				
+				// Compute how much progress has been made
+				int progressChange = progress - lastProgress;
+				if (progressChange >= 5)	// If change is more than 5%, update the UI.
+				{
+					progressValue.set(progress);
+					synchronized(notifyThis) {
+						notifyThis.notify();
+					}
+					
+					lastProgress = progress;
+				}
+			}
 		}
 
 		dis.close();

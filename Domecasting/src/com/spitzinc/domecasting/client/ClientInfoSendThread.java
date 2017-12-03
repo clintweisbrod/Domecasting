@@ -61,7 +61,7 @@ public class ClientInfoSendThread extends Thread
 			if (domecastID != null)
 				inst.serverConnection.sendDomecastID(domecastID);
 			if (assetFile != null)
-				inst.serverConnection.sendAssetFile(assetFile);
+				inst.serverConnection.sendAssetsFile(assetFile);
 			if (getAssetsFile != null)
 				inst.serverConnection.sendGetAssetsFile();
 		}

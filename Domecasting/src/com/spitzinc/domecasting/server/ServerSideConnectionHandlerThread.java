@@ -165,7 +165,7 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 		Log.inst().info("Receiving file (" + hdr.messageLen + " bytes).");
 		
 		// Read the InputStream to specified file
-		CommUtils.readInputStreamToFile(in, outputFile, hdr.messageLen, commBuffer);
+		CommUtils.readInputStreamToFile(in, outputFile, hdr.messageLen, commBuffer, null, null);
 		
 		// When we get here, we have the following file saved: C:\ProgramData\Spitz, Inc\Domecasting\<domecastID>\assets.zip
 		// Notify all connected hosts that an assets file is available for download.
@@ -237,9 +237,9 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 		synchronized (outputStreamLock)
 		{
 			CommUtils.writeHeader(out, outHdr, inputFile.length(), ClientHeader.kDCS, ClientHeader.kFILE);
-			CommUtils.writeOutputStreamFromFile(out, inputFile, commBuffer);
-			Log.inst().info("Sending complete.");
+			CommUtils.writeOutputStreamFromFile(out, inputFile, commBuffer, null, null);
 		}
+		Log.inst().info("Sending complete.");
 	}
 	
 	/**

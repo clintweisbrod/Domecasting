@@ -20,6 +20,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
+import javax.swing.JProgressBar;
 
 public class PresenterPanel extends JPanel
 {
@@ -31,6 +32,7 @@ public class PresenterPanel extends JPanel
 	private JLabel lblStatusText;
 	private DomecastIDSendThread domecastSendThread;
 	private JFileChooser fileChooser;
+	private JProgressBar progressBar;
 	
 	private class DomecastIDSendThread extends Thread
 	{
@@ -128,9 +130,9 @@ public class PresenterPanel extends JPanel
 		
 		GridBagLayout gridBagLayout = new GridBagLayout();
 		gridBagLayout.columnWidths = new int[]{0, 0};
-		gridBagLayout.rowHeights = new int[]{0, 0, 0, 0};
+		gridBagLayout.rowHeights = new int[]{0, 0, 0, 0, 0};
 		gridBagLayout.columnWeights = new double[]{0.0, Double.MIN_VALUE};
-		gridBagLayout.rowWeights = new double[]{0.0, 0.0, 0.0, Double.MIN_VALUE};
+		gridBagLayout.rowWeights = new double[]{0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE};
 		setLayout(gridBagLayout);
 		
 		JLabel lblPresentationId = new JLabel("Enter the name of your domecast:");
@@ -173,7 +175,7 @@ public class PresenterPanel extends JPanel
 			}
 		});
 		GridBagConstraints gbc_textField = new GridBagConstraints();
-		gbc_textField.insets = new Insets(10, 0, 5, 5);
+		gbc_textField.insets = new Insets(10, 0, 5, 0);
 		gbc_textField.fill = GridBagConstraints.HORIZONTAL;
 		gbc_textField.weightx = 1.0;
 		gbc_textField.anchor = GridBagConstraints.WEST;
@@ -200,6 +202,9 @@ public class PresenterPanel extends JPanel
 					ClientInfoSendThread sendThread = new ClientInfoSendThread();
 					sendThread.setAssetsFile(assetFile);
 					sendThread.start();
+
+					// Show progress bar during file upload
+					progressBar.setVisible(true);
 				}
 			}
 		});
@@ -211,12 +216,25 @@ public class PresenterPanel extends JPanel
 		gbc_btnUploadAssets.gridy = 1;
 		add(btnUploadAssets, gbc_btnUploadAssets);
 		
-		lblStatusText = new JLabel("");
+		progressBar = new JProgressBar();
+		progressBar.setMinimum(0);
+		progressBar.setMaximum(100);
+		progressBar.setValue(0);
+		progressBar.setVisible(false);
+		GridBagConstraints gbc_progressBar = new GridBagConstraints();
+		gbc_progressBar.fill = GridBagConstraints.HORIZONTAL;
+		gbc_progressBar.gridwidth = 2;
+		gbc_progressBar.insets = new Insets(0, 5, 0, 5);
+		gbc_progressBar.gridx = 0;
+		gbc_progressBar.gridy = 2;
+		add(progressBar, gbc_progressBar);
+		
+		lblStatusText = new JLabel("status text");
 		GridBagConstraints gbc_lblStatusText = new GridBagConstraints();
 		gbc_lblStatusText.gridwidth = 2;
-		gbc_lblStatusText.insets = new Insets(10, 0, 10, 0);
+		gbc_lblStatusText.insets = new Insets(10, 0, 0, 0);
 		gbc_lblStatusText.gridx = 0;
-		gbc_lblStatusText.gridy = 2;
+		gbc_lblStatusText.gridy = 3;
 		add(lblStatusText, gbc_lblStatusText);
 
 	}
@@ -225,12 +243,24 @@ public class PresenterPanel extends JPanel
 	{
 		txtDomecastID.setText("");
 		btnUploadAssets.setEnabled(false);
+		progressBar.setVisible(false);
 	}
 	
-	public void setPanelStatus(String statusText)
+	public void updatePanel()
 	{
+		ClientApplication inst = (ClientApplication) ClientApplication.inst();
+		
 		if (lblStatusText != null)
-			lblStatusText.setText(statusText);
+			lblStatusText.setText(inst.statusText.get());
+		
+		if (progressBar != null)
+		{
+			int progressValue = inst.fileProgress.get();
+			if (progressValue == 0)
+				progressBar.setVisible(false);
+		
+			progressBar.setValue(progressValue);
+		}
 	}
 	
 	public String getDomecastID() {

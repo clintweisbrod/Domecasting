@@ -106,7 +106,8 @@ public class ServerConnection
 				writeSecurityCode();
 				sendClientType(theApp.clientType);
 				
-				theApp.updateStatusText("Connection established with Spitz Domecasting server.");
+				theApp.statusText.set("Connection established with Spitz Domecasting server.");
+				theApp.updateUI();
 			}
 			catch (IOException e) {
 				e.printStackTrace();
@@ -155,7 +156,9 @@ public class ServerConnection
 			{
 				if (socket == null)
 				{
-					theApp.updateStatusText("Attempting to connect with Spitz Domecasting server...");
+					theApp.statusText.set("Attempting to connect with Spitz Domecasting server...");
+					theApp.updateUI();
+
 					Log.inst().info("Attempting server connection...");
 					socket = CommUtils.connectToHost(hostName, port);
 					if (socket != null)
@@ -273,9 +276,7 @@ public class ServerConnection
 					theApp.assetFileAvailable.set(Boolean.parseBoolean(list[1]));
 				
 				// Notify the UI of changes
-				synchronized(theApp.appFrame.tabbedPane) {
-					theApp.appFrame.tabbedPane.notify();
-				}
+				theApp.updateUI();
 			}
 		}
 
@@ -317,12 +318,16 @@ public class ServerConnection
 			File outputFile = new File(theApp.lastAssetsSaveFolder + File.separator + CommUtils.kAssetsFilename);
 			
 			// Allocate buffer to use for read/write operations
-			byte[] buffer = new byte[CommUtils.kCommBufferSize];
+			byte[] buffer = new byte[CommUtils.kFileBufferSize];
 			
 			Log.inst().info("Receiving file (" + hdr.messageLen + " bytes).");
 
 			// Read the InputStream to specified file
-			CommUtils.readInputStreamToFile(in, outputFile, hdr.messageLen, buffer);
+			CommUtils.readInputStreamToFile(in, outputFile, hdr.messageLen, buffer, theApp.fileProgress, theApp.appFrame.tabbedPane);
+			
+			// Hide the progress bar
+			theApp.fileProgress.set(0);
+			theApp.updateUI();
 			
 			// When we get here, we have a new file saved in lastAssetsSaveFolder called "assets.zip".
 			// We have to rename it to the .cue file inside the ZIP file.
@@ -472,22 +477,24 @@ public class ServerConnection
 		sendToServer(CommUtils.kGetAssetsFile + "=true", ClientHeader.kINFO);
 	}
 	
-	public void sendAssetFile(File assetFile)
-	{
-		Log.inst().info("Uploading " + assetFile.getName() + " to domecasting server...");
-		
+	public void sendAssetsFile(File assetFile)
+	{	
 		try
 		{
 			// Allocate buffer for transfer
-			byte[] buffer = new byte[16 * 1024];
+			byte[] buffer = new byte[CommUtils.kFileBufferSize];
 
+			Log.inst().info("Uploading " + assetFile.getName() + " to domecasting server...");
 			synchronized (outputStreamLock)
 			{
 				CommUtils.writeHeader(out, outHdr, assetFile.length(), ClientHeader.kDCC, ClientHeader.kFILE);
-				CommUtils.writeOutputStreamFromFile(out, assetFile, buffer);
-				
-				Log.inst().info("Upload complete.");
+				CommUtils.writeOutputStreamFromFile(out, assetFile, buffer, theApp.fileProgress, theApp.appFrame.tabbedPane);
 			}
+			Log.inst().info("Upload complete.");
+			
+			// Hide the progress bar
+			theApp.fileProgress.set(0);
+			theApp.updateUI();
 		}
 		catch (IOException e) {
 			// TODO Auto-generated catch block
