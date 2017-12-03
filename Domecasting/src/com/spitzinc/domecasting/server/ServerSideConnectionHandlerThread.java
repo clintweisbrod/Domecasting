@@ -102,9 +102,6 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 				// Send back available domecasts
 				ArrayList<String> domecasts = listenerThread.getAvailableDomecasts();
 				sendHostAvailableDomecasts(domecasts);
-				
-				// Send assets file presence
-				sendBoolean(CommUtils.kAssetFileAvailable, isAssetsFilePresent());
 			}
 		}
 		else if (list[0].equals(CommUtils.kDomecastID))		// Sent from both host and presenter
@@ -114,9 +111,18 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 			else
 				domecastID = null;
 			
-			// As a presenter, we want to notify all hosts that we're present
 			if (clientType == CommUtils.kPresenterID)
+			{
+				// As a presenter, we want to notify all hosts that we're present
 				listenerThread.notifyHostsOfAvailableDomecasts();
+			}
+			if (clientType == CommUtils.kHostID)
+			{
+				// As a host, we want to know if there is an assets file available for download
+				peerConnectionThreads = listenerThread.findPeerConnectionThreads(this);
+				if (!peerConnectionThreads.isEmpty())
+					sendBoolean(CommUtils.kAssetFileAvailable, peerConnectionThreads.get(0).isAssetsFilePresent());
+			}
 			
 			listenerThread.sendStatusToThreads();
 		}
@@ -264,7 +270,7 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 		}
 	}
 	
-	private boolean isAssetsFilePresent() {
+	public boolean isAssetsFilePresent() {
 		File assetsFile = new File(getAssetsFolderPath() + kAssetsFilename);
 		return assetsFile.exists();
 	}
@@ -294,13 +300,12 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 			String securityCode = new String(buffer, 0, CommUtils.kSecurityCodeLength);
 			String expectedSecurityCode = CommUtils.getDailySecurityCode();
 			if (!securityCode.equals(expectedSecurityCode))
-				throw new ParseException("Incorrect security code sent by client.", 0);
+				throw new ParseException("Incorrect security code (" + securityCode + ") sent by client.", 0);
 			
 			// We can now begin negotiating the client connection
 			beginHandlingClientCommands();
 		}
 		catch (IOException | ParseException e) {
-			e.printStackTrace();
 			Log.inst().error(e.getMessage());
 		}
 
