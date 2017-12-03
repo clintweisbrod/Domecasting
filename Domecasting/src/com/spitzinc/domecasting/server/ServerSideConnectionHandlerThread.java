@@ -16,6 +16,7 @@ import com.spitzinc.domecasting.TCPConnectionListenerThread;
 
 public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThread
 {
+	private static final String kAssetsFilename = "assets.zip";
 	protected ServerSideConnectionListenerThread listenerThread;
 	protected ArrayList<ServerSideConnectionHandlerThread> peerConnectionThreads;
 	public InputStream in;
@@ -95,11 +96,15 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 			// Send the client back a notice of connection
 			sendBoolean(CommUtils.kIsConnected, true);
 
-			// If we're a host connection, send back available domecasts
+			// If we're a host connection
 			if (clientType == CommUtils.kHostID)
 			{
+				// Send back available domecasts
 				ArrayList<String> domecasts = listenerThread.getAvailableDomecasts();
 				sendHostAvailableDomecasts(domecasts);
+				
+				// Send assets file presence
+				sendBoolean(CommUtils.kAssetFileAvailable, isAssetsFilePresent());
 			}
 		}
 		else if (list[0].equals(CommUtils.kDomecastID))		// Sent from both host and presenter
@@ -150,7 +155,7 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 			programDataFolder.mkdirs();
 		
 		// Create a DataOutputStream to write the received data to
-		File outputFile = new File(programDataPath + "assets.zip");
+		File outputFile = new File(programDataPath + kAssetsFilename);
 		
 		// Read the InputStream to specified file
 		CommUtils.readInputStreamToFile(in, outputFile, hdr.messageLen, commBuffer);
@@ -259,6 +264,11 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 		}
 	}
 	
+	private boolean isAssetsFilePresent() {
+		File assetsFile = new File(getAssetsFolderPath() + kAssetsFilename);
+		return assetsFile.exists();
+	}
+	
 	public void run()
 	{
 		// When a domecast client connects to a domecast server, the agreed upon protocol
@@ -327,6 +337,8 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 		buf.append("clientType=" + (char)clientType + ", ");
 		if (clientType == CommUtils.kHostID)
 			buf.append(CommUtils.kIsHostListening + Boolean.toString(isHostListening));
+		if ((clientType == CommUtils.kPresenterID) && (domecastID != null) && isAssetsFilePresent())
+			buf.append("asset file uploaded.");
 		
 		return buf.toString();
 	}
