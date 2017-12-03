@@ -16,7 +16,6 @@ import com.spitzinc.domecasting.TCPConnectionListenerThread;
 
 public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThread
 {
-	private static final String kAssetsFilename = "assets.zip";
 	protected ServerSideConnectionListenerThread listenerThread;
 	protected ArrayList<ServerSideConnectionHandlerThread> peerConnectionThreads;
 	public InputStream in;
@@ -161,7 +160,9 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 			programDataFolder.mkdirs();
 		
 		// Create a DataOutputStream to write the received data to
-		File outputFile = new File(programDataPath + kAssetsFilename);
+		File outputFile = new File(programDataPath + CommUtils.kAssetsFilename);
+		
+		Log.inst().info("Receiving file (" + hdr.messageLen + " bytes).");
 		
 		// Read the InputStream to specified file
 		CommUtils.readInputStreamToFile(in, outputFile, hdr.messageLen, commBuffer);
@@ -229,13 +230,15 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 		String programDataPath = getAssetsFolderPath();
 		
 		// Create a reference to the file
-		File inputFile = new File(programDataPath + "assets.zip");
+		File inputFile = new File(programDataPath + CommUtils.kAssetsFilename);
 		
 		// Send it
+		Log.inst().info("Sending assets file to host...");
 		synchronized (outputStreamLock)
 		{
 			CommUtils.writeHeader(out, outHdr, inputFile.length(), ClientHeader.kDCS, ClientHeader.kFILE);
 			CommUtils.writeOutputStreamFromFile(out, inputFile, commBuffer);
+			Log.inst().info("Sending complete.");
 		}
 	}
 	
@@ -271,7 +274,7 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 	}
 	
 	public boolean isAssetsFilePresent() {
-		File assetsFile = new File(getAssetsFolderPath() + kAssetsFilename);
+		File assetsFile = new File(getAssetsFolderPath() + CommUtils.kAssetsFilename);
 		return assetsFile.exists();
 	}
 	

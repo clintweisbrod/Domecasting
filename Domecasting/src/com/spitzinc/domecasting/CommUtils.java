@@ -21,6 +21,7 @@ public class CommUtils
 	public static final int kCommBufferSize = 120 * 1024;	// This should be enough for all SNF files
 	public static final byte kHostID = 'H';
 	public static final byte kPresenterID = 'P';
+	public static final String kAssetsFilename = "assets.zip";
 	
 	// Commands sent between client and server
 	public static final String kIsConnected = "isConnected";

@@ -314,10 +314,12 @@ public class ServerConnection
 		private void handleFILE(ClientHeader hdr) throws IOException
 		{
 			// Create a DataOutputStream to write the received data to
-			File outputFile = new File(theApp.lastAssetsSaveFolder + File.separator + "assets.zip");
+			File outputFile = new File(theApp.lastAssetsSaveFolder + File.separator + CommUtils.kAssetsFilename);
 			
 			// Allocate buffer to use for read/write operations
 			byte[] buffer = new byte[CommUtils.kCommBufferSize];
+			
+			Log.inst().info("Receiving file (" + hdr.messageLen + " bytes).");
 
 			// Read the InputStream to specified file
 			CommUtils.readInputStreamToFile(in, outputFile, hdr.messageLen, buffer);
@@ -329,14 +331,11 @@ public class ServerConnection
 			{
 				// Rename outputFile to <internalName>.zip
 				File newFile = new File(theApp.lastAssetsSaveFolder + File.separator + internalName + ".zip");
-				if (newFile.exists())
-				{
-					// If the file exists, delete it
-					newFile.delete();
-				}
 				Path movefrom = FileSystems.getDefault().getPath(outputFile.getAbsolutePath());
 				Path target = FileSystems.getDefault().getPath(newFile.getAbsolutePath());
 				Files.move(movefrom, target, StandardCopyOption.REPLACE_EXISTING);
+				
+				Log.inst().info("Received file: " + internalName);
 			}
 		}
 		
@@ -475,6 +474,8 @@ public class ServerConnection
 	
 	public void sendAssetFile(File assetFile)
 	{
+		Log.inst().info("Uploading " + assetFile.getName() + " to domecasting server...");
+		
 		try
 		{
 			// Allocate buffer for transfer
@@ -484,6 +485,8 @@ public class ServerConnection
 			{
 				CommUtils.writeHeader(out, outHdr, assetFile.length(), ClientHeader.kDCC, ClientHeader.kFILE);
 				CommUtils.writeOutputStreamFromFile(out, assetFile, buffer);
+				
+				Log.inst().info("Upload complete.");
 			}
 		}
 		catch (IOException e) {

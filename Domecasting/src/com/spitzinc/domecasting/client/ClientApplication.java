@@ -146,6 +146,7 @@ public class ClientApplication extends ApplicationBase implements WindowListener
 	{
 		Log.inst().info("Server connection lost.");
 		availableDomecasts = null;
+		assetFileAvailable.set(false);
 		updateStatusText("Spitz Domecasting server not available.");
 		appFrame.resetUI();
 	}
