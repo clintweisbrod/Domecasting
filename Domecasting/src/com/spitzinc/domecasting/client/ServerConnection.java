@@ -356,7 +356,7 @@ public class ServerConnection
 			        String entryName = entry.getName().toLowerCase();
 			        if (entryName.endsWith(".cue"))
 			        {
-			        	String[] list = entryName.split(".");
+			        	String[] list = entryName.split("\\.");
 			        	result = list[0];
 			        	break;
 			        }
