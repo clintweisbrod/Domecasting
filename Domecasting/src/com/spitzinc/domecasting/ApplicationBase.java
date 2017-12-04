@@ -69,6 +69,7 @@ public abstract class ApplicationBase implements WindowListener
 		String path = new String(System.getenv("PROGRAMDATA"));
 		path = path.concat(File.separator).concat(kCompanyName);
 		path = path.concat(File.separator).concat(kProductName);
+		path = path.concat(File.separator);
 		return path;
 	}
 	

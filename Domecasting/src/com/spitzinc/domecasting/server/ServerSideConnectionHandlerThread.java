@@ -8,6 +8,8 @@ import java.net.Socket;
 import java.text.ParseException;
 import java.util.ArrayList;
 
+import org.apache.commons.io.FileUtils;
+
 import com.spitzinc.domecasting.ClientHeader;
 import com.spitzinc.domecasting.CommUtils;
 import com.spitzinc.domecasting.Log;
@@ -16,18 +18,18 @@ import com.spitzinc.domecasting.TCPConnectionListenerThread;
 
 public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThread
 {
-	protected ServerSideConnectionListenerThread listenerThread;
-	protected ArrayList<ServerSideConnectionHandlerThread> peerConnectionThreads;
-	public InputStream in;
-	public OutputStream out;
-	public Object outputStreamLock;
+	private ServerSideConnectionListenerThread listenerThread;
+	private ArrayList<ServerSideConnectionHandlerThread> peerConnectionThreads;
+	private InputStream in;
+	private OutputStream out;
+	private Object outputStreamLock;
 	private ClientHeader outHdr;
 	private ClientHeader inHdr;
 	private byte[] commBuffer;
 	private String assetsFilename;
-	protected String domecastID;
-	protected byte clientType;
-	public boolean isHostListening;	// Only valid for host connections
+	private String domecastID;
+	private byte clientType;
+	private boolean isHostListening;	// Only valid for host connections
 	
 	public ServerSideConnectionHandlerThread(TCPConnectionListenerThread owner, Socket inboundSocket)
 	{
@@ -43,7 +45,7 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 		this.isHostListening = false;
 	}
 	
-	public String getDomecastID() {
+	public synchronized String getDomecastID() {
 		return domecastID;
 	}
 	
@@ -53,6 +55,10 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 	
 	public boolean isHostListening() {
 		return isHostListening;
+	}
+	
+	public String getAssetsFilename() {
+		return assetsFilename;
 	}
 	
 	private void beginHandlingClientCommands()
@@ -141,26 +147,15 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 			listenerThread.sendStatusToThreads();
 		}
 		else if (list[0].equals(CommUtils.kGetAssetsFile))	// Sent only from host
-		{
-			// The presenter thread connection should send this since it is aware of the assets file name.
-			peerConnectionThreads = listenerThread.findPeerConnectionThreads(this);
-			if (!peerConnectionThreads.isEmpty())
-				peerConnectionThreads.get(0).sendAssetsFile();
-		}
-	}
-	
-	private String getAssetsFolderPath()
-	{
-		ServerApplication inst = (ServerApplication) ServerApplication.inst();
-		String result = inst.getProgramDataPath() + File.separator + domecastID + File.separator;
-		return result;
+			sendAssetsFile();
 	}
 	
 	private void handleFILE(ClientHeader hdr) throws IOException
 	{
 		// Decide where the file will be stored
 		// I think it's reasonable to create a subfolder in ProgramData to hold asset files.
-		String programDataPath = getAssetsFolderPath();
+		ServerApplication inst = (ServerApplication) ServerApplication.inst();
+		String programDataPath = inst.getProgramDataPath() + domecastID + File.separator;
 		File programDataFolder = new File(programDataPath);
 		if (!programDataFolder.exists())
 			programDataFolder.mkdirs();
@@ -239,27 +234,37 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 	
 	private void sendAssetsFile() throws IOException
 	{
-		String programDataPath = getAssetsFolderPath();
+		ServerApplication inst = (ServerApplication) ServerApplication.inst();
+		String programDataPath = inst.getProgramDataPath() + domecastID + File.separator;
 		
-		// Create a reference to the file
-		File inputFile = new File(programDataPath + assetsFilename);
-		
-		// Send it
-		Log.inst().info("Sending assets file to host...");
-		synchronized (outputStreamLock)
+		// This method will only be called from a host thread. We need the corresponding presenter
+		// thread to get the name of the assetsFile
+		peerConnectionThreads = listenerThread.findPeerConnectionThreads(this);
+		if (!peerConnectionThreads.isEmpty())
+			assetsFilename = peerConnectionThreads.get(0).getAssetsFilename();
+
+		if (assetsFilename != null)
 		{
-			// Write the header
-			CommUtils.writeHeader(out, outHdr, inputFile.length(), ClientHeader.kDCS, ClientHeader.kFILE);
+			// Create a reference to the file
+			File inputFile = new File(programDataPath + assetsFilename);
 			
-			// See comments in ServerConnection.sendAssetsFile() regarding inclusion of filename field
-			// after normal header.
-			byte[] filenameBytes = CommUtils.getRightPaddedByteArray(assetsFilename, CommUtils.kMaxPathLen);
-			CommUtils.writeOutputStream(out, filenameBytes, 0, filenameBytes.length);
-			
-			// Write the file contents
-			CommUtils.writeOutputStreamFromFile(out, inputFile, commBuffer, null, null);
+			// Send it
+			Log.inst().info("Sending assets file to host...");
+			synchronized (outputStreamLock)
+			{
+				// Write the header
+				CommUtils.writeHeader(out, outHdr, inputFile.length(), ClientHeader.kDCS, ClientHeader.kFILE);
+				
+				// See comments in ServerConnection.sendAssetsFile() regarding inclusion of filename field
+				// after normal header.
+				byte[] filenameBytes = CommUtils.getRightPaddedByteArray(assetsFilename, CommUtils.kMaxPathLen);
+				CommUtils.writeOutputStream(out, filenameBytes, 0, filenameBytes.length);
+				
+				// Write the file contents
+				CommUtils.writeOutputStreamFromFile(out, inputFile, commBuffer, null, null);
+			}
+			Log.inst().info("Sending complete.");
 		}
-		Log.inst().info("Sending complete.");
 	}
 	
 	/**
@@ -299,7 +304,9 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 		
 		if ((clientType == CommUtils.kPresenterID) && (assetsFilename != null))
 		{
-			File assetsFile = new File(getAssetsFolderPath() + assetsFilename);
+			ServerApplication inst = (ServerApplication) ServerApplication.inst();
+			String programDataPath = inst.getProgramDataPath() + domecastID + File.separator;
+			File assetsFile = new File(programDataPath + assetsFilename);
 			result = assetsFile.exists();
 		}
 		
@@ -358,6 +365,17 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 				socket.close();
 		}
 		catch (IOException e) {
+		}
+		
+		// Clean-up the assets file if one was uploaded
+		ServerApplication inst = (ServerApplication) ServerApplication.inst();
+		String programDataPath = inst.getProgramDataPath() + domecastID;
+		File assetsFolder = new File(programDataPath);
+		try {
+			FileUtils.deleteDirectory(assetsFolder);
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
 		
 		// Notify owner this thread is dying.

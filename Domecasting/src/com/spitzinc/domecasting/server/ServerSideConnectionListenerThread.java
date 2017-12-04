@@ -44,6 +44,29 @@ public class ServerSideConnectionListenerThread extends TCPConnectionListenerThr
 			host.sendBoolean(CommUtils.kAssetFileAvailable, true);
 	}
 	
+	/*
+	 * Called by AssetsFileCleanupThread.
+	 */
+	public boolean presenterConnectionExists(String domecastID)
+	{
+		boolean result = false;
+		
+		for (TCPConnectionHandlerThread aThread : connectionHandlerThreads)
+		{
+			ServerSideConnectionHandlerThread theThread = (ServerSideConnectionHandlerThread)aThread;
+			if (theThread.getClientType() == CommUtils.kPresenterID)
+			{
+				if (theThread.getDomecastID().equals(domecastID))
+				{
+					result = true;
+					break;
+				}
+			}
+		}
+		
+		return result;
+	}
+	
 	/**
 	 * Clients in host mode use a JComboBox to display all current domecasts.
 	 * This method returns a list of domecastIDs owned by presenter connections. 

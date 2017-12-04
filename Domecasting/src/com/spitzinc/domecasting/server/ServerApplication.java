@@ -36,6 +36,7 @@ public class ServerApplication extends ApplicationBase implements WindowListener
 	
 	public ServerAppFrame appFrame;
 	public ServerSideConnectionListenerThread connectionListenerThread;
+	private AssetsFileCleanupThread fileCleanupThread;
 	
 	public ServerApplication()
 	{
@@ -54,6 +55,10 @@ public class ServerApplication extends ApplicationBase implements WindowListener
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+		
+		// Start up a thread to perform periodic assets file clean-up.
+		fileCleanupThread = new AssetsFileCleanupThread();
+		fileCleanupThread.start();
 	}
 	
 	private void readPrefs()
@@ -91,6 +96,9 @@ public class ServerApplication extends ApplicationBase implements WindowListener
 	{
 		if (connectionListenerThread != null)
 			connectionListenerThread.interrupt();
+		
+		if (fileCleanupThread != null)
+			fileCleanupThread.interrupt();
 		
 		writePrefs();
 		
