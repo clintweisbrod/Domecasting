@@ -24,6 +24,7 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 	private ClientHeader outHdr;
 	private ClientHeader inHdr;
 	private byte[] commBuffer;
+	private String assetsFilename;
 	protected String domecastID;
 	protected byte clientType;
 	public boolean isHostListening;	// Only valid for host connections
@@ -159,6 +160,12 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 		if (!programDataFolder.exists())
 			programDataFolder.mkdirs();
 		
+		// See comments in ServerConnection.sendAssetsFile() regarding inclusion of filename field
+		// after normal header.
+		byte[] filenameBytes = new byte[CommUtils.kMaxPathLen];
+		CommUtils.readInputStream(in, filenameBytes, 0, CommUtils.kMaxPathLen);
+		assetsFilename = new String(filenameBytes).trim();
+		
 		// Create a DataOutputStream to write the received data to
 		File outputFile = new File(programDataPath + CommUtils.kAssetsFilename);
 		
@@ -236,7 +243,15 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 		Log.inst().info("Sending assets file to host...");
 		synchronized (outputStreamLock)
 		{
+			// Write the header
 			CommUtils.writeHeader(out, outHdr, inputFile.length(), ClientHeader.kDCS, ClientHeader.kFILE);
+			
+			// See comments in ServerConnection.sendAssetsFile() regarding inclusion of filename field
+			// after normal header.
+			byte[] filenameBytes = CommUtils.getRightPaddedByteArray(assetsFilename, CommUtils.kMaxPathLen);
+			CommUtils.writeOutputStream(out, filenameBytes, 0, filenameBytes.length);
+			
+			// Write the file contents
 			CommUtils.writeOutputStreamFromFile(out, inputFile, commBuffer, null, null);
 		}
 		Log.inst().info("Sending complete.");
