@@ -189,13 +189,6 @@ public class CommUtils
 					lastProgress = progress;
 				}
 			}
-			
-			try {
-				Thread.sleep(125);
-			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
 		}
 
 		dis.close();
