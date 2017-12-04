@@ -340,7 +340,7 @@ public class ServerConnection
 				Path target = FileSystems.getDefault().getPath(newFile.getAbsolutePath());
 				Files.move(movefrom, target, StandardCopyOption.REPLACE_EXISTING);
 				
-				Log.inst().info("Received file: " + internalName);
+				Log.inst().info("Received file: " + newFile.getName());
 			}
 		}
 		
