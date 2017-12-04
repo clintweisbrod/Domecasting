@@ -141,7 +141,12 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 			listenerThread.sendStatusToThreads();
 		}
 		else if (list[0].equals(CommUtils.kGetAssetsFile))	// Sent only from host
-			sendAssetsFile();
+		{
+			// The presenter thread connection should send this since it is aware of the assets file name.
+			peerConnectionThreads = listenerThread.findPeerConnectionThreads(this);
+			if (!peerConnectionThreads.isEmpty())
+				peerConnectionThreads.get(0).sendAssetsFile();
+		}
 	}
 	
 	private String getAssetsFolderPath()
@@ -167,7 +172,7 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 		assetsFilename = new String(filenameBytes).trim();
 		
 		// Create a DataOutputStream to write the received data to
-		File outputFile = new File(programDataPath + CommUtils.kAssetsFilename);
+		File outputFile = new File(programDataPath + assetsFilename);
 		
 		Log.inst().info("Receiving file (" + hdr.messageLen + " bytes).");
 		
@@ -237,7 +242,7 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 		String programDataPath = getAssetsFolderPath();
 		
 		// Create a reference to the file
-		File inputFile = new File(programDataPath + CommUtils.kAssetsFilename);
+		File inputFile = new File(programDataPath + assetsFilename);
 		
 		// Send it
 		Log.inst().info("Sending assets file to host...");
@@ -288,9 +293,17 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 		}
 	}
 	
-	public boolean isAssetsFilePresent() {
-		File assetsFile = new File(getAssetsFolderPath() + CommUtils.kAssetsFilename);
-		return assetsFile.exists();
+	public boolean isAssetsFilePresent()
+	{
+		boolean result = false;
+		
+		if ((clientType == CommUtils.kPresenterID) && (assetsFilename != null))
+		{
+			File assetsFile = new File(getAssetsFolderPath() + assetsFilename);
+			result = assetsFile.exists();
+		}
+		
+		return result;
 	}
 	
 	public void run()

@@ -23,7 +23,6 @@ public class CommUtils
 	public static final int kFileBufferSize = 16 * 1024;
 	public static final byte kHostID = 'H';
 	public static final byte kPresenterID = 'P';
-	public static final String kAssetsFilename = "assets.zip";
 	public static final int kMaxPathLen = 260;
 	
 	// Commands sent between client and server
