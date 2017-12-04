@@ -182,14 +182,14 @@ public class HostPanel extends JPanel
 			}
 		});
 		GridBagConstraints gbc_btnWaitForPresentation = new GridBagConstraints();
-		gbc_btnWaitForPresentation.insets = new Insets(5, 0, 5, 0);
+		gbc_btnWaitForPresentation.insets = new Insets(5, 5, 0, 5);
 		gbc_btnWaitForPresentation.gridx = 0;
 		gbc_btnWaitForPresentation.gridy = 3;
 		add(btnDomecastListen, gbc_btnWaitForPresentation);
 		
-		lblStatusText = new JLabel("");
+		lblStatusText = new JLabel("status text");
 		GridBagConstraints gbc_lblStatusText = new GridBagConstraints();
-		gbc_lblStatusText.insets = new Insets(10, 0, 10, 0);
+		gbc_lblStatusText.insets = new Insets(5, 0, 0, 0);
 		gbc_lblStatusText.gridx = 0;
 		gbc_lblStatusText.gridy = 4;
 		add(lblStatusText, gbc_lblStatusText);
