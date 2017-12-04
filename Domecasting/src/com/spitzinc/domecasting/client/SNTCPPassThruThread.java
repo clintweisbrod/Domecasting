@@ -85,16 +85,7 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 
 		// Build a byte buffer to replace the contents of the replyPort field in a SN TCP message header
 		if (modifyReplyPort)
-		{
-			// Get string representation of integer port
-			String replyPortStr = Integer.toString(outboundNode.replyPort);
-
-			// Right-pad the string so it is exactly kSNHeaderFieldLength chars long
-			replyPortStr = String.format("%1$-" + kSNHeaderFieldLength + "s", replyPortStr);
-
-			// Convert string to bytes
-			replyPortBytes = replyPortStr.getBytes();
-		}
+			replyPortBytes = CommUtils.getRightPaddedByteArray(Integer.toString(outboundNode.replyPort), kSNHeaderFieldLength);
 		
 		this.theApp = (ClientApplication)ClientApplication.inst();
 		this.readIgnoredStreamThread = null;

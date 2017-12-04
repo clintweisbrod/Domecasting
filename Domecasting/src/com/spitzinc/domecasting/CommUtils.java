@@ -24,6 +24,7 @@ public class CommUtils
 	public static final byte kHostID = 'H';
 	public static final byte kPresenterID = 'P';
 	public static final String kAssetsFilename = "assets.zip";
+	public static final int kMaxPathLen = 260;
 	
 	// Commands sent between client and server
 	public static final String kIsConnected = "isConnected";
@@ -188,6 +189,13 @@ public class CommUtils
 					lastProgress = progress;
 				}
 			}
+			
+			try {
+				Thread.sleep(125);
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		}
 
 		dis.close();
@@ -216,5 +224,11 @@ public class CommUtils
 		while (kSecurityCodeLength > result.length())
 			result = result.concat(result);
 		return result.substring(result.length() - kSecurityCodeLength);
+	}
+	
+	public static byte[] getRightPaddedByteArray(String s, int len)
+	{
+		String paddedStr = String.format("%1$-" + len + "s", s);
+		return paddedStr.getBytes();
 	}
 }

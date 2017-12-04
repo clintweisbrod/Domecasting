@@ -13,16 +13,9 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
 import java.nio.ByteBuffer;
-import java.nio.file.FileSystems;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
-import java.util.Enumeration;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipFile;
 
 import com.spitzinc.domecasting.BasicProcessorThread;
 import com.spitzinc.domecasting.ClientHeader;
@@ -314,8 +307,14 @@ public class ServerConnection
 		
 		private void handleFILE(ClientHeader hdr) throws IOException
 		{
+			// See comments in ServerConnection.sendAssetsFile() regarding inclusion of filename field
+			// after normal header.
+			byte[] filenameBytes = new byte[CommUtils.kMaxPathLen];
+			CommUtils.readInputStream(in, filenameBytes, 0, CommUtils.kMaxPathLen);
+			String filename = new String(filenameBytes).trim();
+			
 			// Create a DataOutputStream to write the received data to
-			File outputFile = new File(theApp.lastAssetsSaveFolder + File.separator + CommUtils.kAssetsFilename);
+			File outputFile = new File(theApp.lastAssetsSaveFolder + File.separator + filename);
 			
 			// Allocate buffer to use for read/write operations
 			byte[] buffer = new byte[CommUtils.kFileBufferSize];
@@ -325,65 +324,13 @@ public class ServerConnection
 			// Read the InputStream to specified file
 			CommUtils.readInputStreamToFile(in, outputFile, hdr.messageLen, buffer, theApp.fileProgress, theApp.appFrame.tabbedPane);
 			
+			Log.inst().info("Received file: " + filename);
+			
 			// Hide the progress bar
 			theApp.fileProgress.set(0);
 			theApp.updateUI();
-			
-			// When we get here, we have a new file saved in lastAssetsSaveFolder called "assets.zip".
-			// We have to rename it to the .cue file inside the ZIP file.
-			String internalName = getAssetsFileInternalName(outputFile);
-			if (internalName != null)
-			{
-				// Rename outputFile to <internalName>.zip
-				File newFile = new File(theApp.lastAssetsSaveFolder + File.separator + internalName + ".zip");
-				Path movefrom = FileSystems.getDefault().getPath(outputFile.getAbsolutePath());
-				Path target = FileSystems.getDefault().getPath(newFile.getAbsolutePath());
-				Files.move(movefrom, target, StandardCopyOption.REPLACE_EXISTING);
-				
-				Log.inst().info("Received file: " + newFile.getName());
-			}
 		}
-		
-		private String getAssetsFileInternalName(File assetsFile)
-		{
-			String result = null;
-			
-			ZipFile zipFile = null;
-			try
-			{
-				// Attempt to find .cue file in the ZIP file
-				zipFile = new ZipFile(assetsFile);
-				Enumeration<? extends ZipEntry> entries = zipFile.entries();
-				while(entries.hasMoreElements())
-				{
-			        ZipEntry entry = entries.nextElement();
-			        String entryName = entry.getName().toLowerCase();
-			        if (entryName.endsWith(".cue"))
-			        {
-			        	String[] list = entryName.split("\\.");
-			        	result = list[0];
-			        	break;
-			        }
-			    }
-			}
-			catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-			finally
-			{
-				if (zipFile != null)
-					try {
-						zipFile.close();
-					} catch (IOException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
-			}
-			
-			return result;
-		}
-	}
+	}	
 	
 	public ServerConnection(ClientApplication theApp, String hostName, int port)
 	{
@@ -477,18 +424,28 @@ public class ServerConnection
 		sendToServer(CommUtils.kGetAssetsFile + "=true", ClientHeader.kINFO);
 	}
 	
-	public void sendAssetsFile(File assetFile)
+	public void sendAssetsFile(File assetsFile)
 	{	
 		try
 		{
 			// Allocate buffer for transfer
 			byte[] buffer = new byte[CommUtils.kFileBufferSize];
 
-			Log.inst().info("Uploading " + assetFile.getName() + " to domecasting server...");
+			Log.inst().info("Uploading " + assetsFile.getName() + " to domecasting server...");
 			synchronized (outputStreamLock)
 			{
-				CommUtils.writeHeader(out, outHdr, assetFile.length(), ClientHeader.kDCC, ClientHeader.kFILE);
-				CommUtils.writeOutputStreamFromFile(out, assetFile, buffer, theApp.fileProgress, theApp.appFrame.tabbedPane);
+				// Write the header
+				CommUtils.writeHeader(out, outHdr, assetsFile.length(), ClientHeader.kDCC, ClientHeader.kFILE);
+				
+				// Rather than reserve 260 additional characters in the header to hold a filename for transmitting
+				// assets files in rare circumstances, introducing unnecessary overhead to 99.9% of the communication
+				// between client and server, we will just write an additional 260 character field after
+				// the header.
+				byte[] filenameBytes = CommUtils.getRightPaddedByteArray(assetsFile.getName(), CommUtils.kMaxPathLen);
+				CommUtils.writeOutputStream(out, filenameBytes, 0, filenameBytes.length);
+				
+				// Write the file contents
+				CommUtils.writeOutputStreamFromFile(out, assetsFile, buffer, theApp.fileProgress, theApp.appFrame.tabbedPane);
 			}
 			Log.inst().info("Upload complete.");
 			
