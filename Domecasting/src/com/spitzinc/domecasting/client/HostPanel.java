@@ -31,7 +31,7 @@ public class HostPanel extends JPanel
 	private static final String buttonTextStopListeningToDomecast = "Stop Listening to Domecast";
 	
 	private boolean ignoreDomecastComboboxChanges;
-	private JButton btnGetPresentationAssets;
+	private JButton btnDownloadAssets;
 	private JButton btnDomecastListen;
 	private JLabel lblStatusText;
 	private JComboBox<String> cmbAvailableDomecasts;
@@ -52,9 +52,9 @@ public class HostPanel extends JPanel
 		
 		GridBagLayout gridBagLayout = new GridBagLayout();
 		gridBagLayout.columnWidths = new int[]{0};
-		gridBagLayout.rowHeights = new int[]{0, 0, 0, 0, 0, 0, 0};
+		gridBagLayout.rowHeights = new int[]{0, 0, 0, 0, 0, 0};
 		gridBagLayout.columnWeights = new double[]{1.0};
-		gridBagLayout.rowWeights = new double[]{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE};
+		gridBagLayout.rowWeights = new double[]{0.0, 0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE};
 		setLayout(gridBagLayout);
 		
 		lblNewLabel = new JLabel("Choose the domecast to listen to");
@@ -88,8 +88,8 @@ public class HostPanel extends JPanel
 		gbc_availableDomecasts.gridy = 1;
 		add(cmbAvailableDomecasts, gbc_availableDomecasts);
 		
-		btnGetPresentationAssets = new JButton("Download Presentation Assets...");
-		btnGetPresentationAssets.addActionListener(new ActionListener() {
+		btnDownloadAssets = new JButton("Download Presentation Assets...");
+		btnDownloadAssets.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0)
 			{
 				// Attempt to initialize file chooser dialog to correct folder
@@ -104,22 +104,41 @@ public class HostPanel extends JPanel
 				int returnValue = fileChooser.showOpenDialog(HostPanel.this);
 				if (returnValue == JFileChooser.APPROVE_OPTION)
 				{
+					// Allow user to choose folder where assets file will be saved to
 					File theAssetsFolder = fileChooser.getSelectedFile();
 					inst.lastAssetsSaveFolder = theAssetsFolder.getAbsolutePath();
 					
-					// TODO: Download the asset file and save it to this folder
+					// Show progress bar during file upload
+					btnDownloadAssets.setVisible(false);
+					progressBar.setString("Downloading assets file...");
+					progressBar.setVisible(true);
+					
+					// Download the asset file and save it to this folder
 					ClientInfoSendThread sendThread = new ClientInfoSendThread();
 					sendThread.setGetAssetsFile(true);
 					sendThread.start();
 				}
 			}
 		});
-		btnGetPresentationAssets.setEnabled(false);
+		btnDownloadAssets.setEnabled(false);
 		GridBagConstraints gbc_btnGetPresentationAssets = new GridBagConstraints();
-		gbc_btnGetPresentationAssets.insets = new Insets(0, 0, 5, 0);
+		gbc_btnGetPresentationAssets.insets = new Insets(0, 5, 0, 5);
 		gbc_btnGetPresentationAssets.gridx = 0;
 		gbc_btnGetPresentationAssets.gridy = 2;
-		add(btnGetPresentationAssets, gbc_btnGetPresentationAssets);
+		add(btnDownloadAssets, gbc_btnGetPresentationAssets);
+		
+		progressBar = new JProgressBar();
+		progressBar.setMinimum(0);
+		progressBar.setMaximum(100);
+		progressBar.setValue(0);
+		progressBar.setStringPainted(true);
+		progressBar.setVisible(false);
+		GridBagConstraints gbc_progressBar = new GridBagConstraints();
+		gbc_progressBar.fill = GridBagConstraints.HORIZONTAL;
+		gbc_progressBar.insets = new Insets(0, 5, 0, 5);
+		gbc_progressBar.gridx = 0;
+		gbc_progressBar.gridy = 2;
+		add(progressBar, gbc_progressBar);
 		
 		btnDomecastListen = new JButton(buttonTextListenToDomecast);
 		btnDomecastListen.setEnabled(false);
@@ -162,39 +181,28 @@ public class HostPanel extends JPanel
 				}
 			}
 		});
-		
-		progressBar = new JProgressBar();
-		progressBar.setMinimum(0);
-		progressBar.setMaximum(100);
-		progressBar.setValue(0);
-		progressBar.setVisible(false);
-		GridBagConstraints gbc_progressBar = new GridBagConstraints();
-		gbc_progressBar.fill = GridBagConstraints.HORIZONTAL;
-		gbc_progressBar.insets = new Insets(0, 5, 0, 5);
-		gbc_progressBar.gridx = 0;
-		gbc_progressBar.gridy = 3;
-		add(progressBar, gbc_progressBar);
 		GridBagConstraints gbc_btnWaitForPresentation = new GridBagConstraints();
 		gbc_btnWaitForPresentation.insets = new Insets(5, 0, 5, 0);
 		gbc_btnWaitForPresentation.gridx = 0;
-		gbc_btnWaitForPresentation.gridy = 4;
+		gbc_btnWaitForPresentation.gridy = 3;
 		add(btnDomecastListen, gbc_btnWaitForPresentation);
 		
 		lblStatusText = new JLabel("");
 		GridBagConstraints gbc_lblStatusText = new GridBagConstraints();
 		gbc_lblStatusText.insets = new Insets(10, 0, 10, 0);
 		gbc_lblStatusText.gridx = 0;
-		gbc_lblStatusText.gridy = 5;
+		gbc_lblStatusText.gridy = 4;
 		add(lblStatusText, gbc_lblStatusText);
 
 	}
 	
 	public void resetUI()
 	{
-		btnGetPresentationAssets.setEnabled(false);
-		btnDomecastListen.setEnabled(false);
 		cmbAvailableDomecasts.removeAllItems();
+		btnDownloadAssets.setEnabled(false);
 		progressBar.setVisible(false);
+		btnDownloadAssets.setVisible(true);
+		btnDomecastListen.setEnabled(false);
 	}
 
 	public void updatePanel(String[] domecasts)
@@ -208,7 +216,10 @@ public class HostPanel extends JPanel
 		{
 			int progressValue = inst.fileProgress.get();
 			if (progressValue == 0)
+			{
 				progressBar.setVisible(false);
+				btnDownloadAssets.setVisible(true);
+			}
 		
 			progressBar.setValue(progressValue);
 		}
@@ -290,7 +301,7 @@ public class HostPanel extends JPanel
 		btnDomecastListen.setEnabled(enable);
 		
 		// Enable "Download Presentation Assets..." accordingly
-		btnGetPresentationAssets.setEnabled(inst.assetFileAvailable.get());
+		btnDownloadAssets.setEnabled(inst.assetFileAvailable.get());
 	}
 	
 	public String getDomecastID()
