@@ -74,10 +74,8 @@ public class HostPanel extends JPanel
 						String domecastID = (String)event.getItem();
 						ClientInfoSendThread sendThread = new ClientInfoSendThread();
 						sendThread.setDomecastID(domecastID);
+						sendThread.setIsPeerConnected();
 						sendThread.start();
-						
-						// Enable the button to listen to domecast
-						btnDomecastListen.setEnabled(true);
 					}
 				}
 			}
@@ -283,25 +281,11 @@ public class HostPanel extends JPanel
 			ignoreDomecastComboboxChanges = false;
 		}
 
-		// Enable domecast button accordingly.
-		boolean enable = false;
-		if (selectedItem != null)
-		{
-			// If the previously selected item still exist in the list ov available domecasts, we
-			// can enable the button.
-			for (String domecast:domecasts)
-			{
-				if (domecast.equals(selectedItem))
-				{
-					enable = true;
-					break;
-				}
-			}
-		}
-		btnDomecastListen.setEnabled(enable);
+		// Enable "Listen to Domecast" button accordingly
+		btnDomecastListen.setEnabled(inst.isPeerConnected.get());
 		
-		// Enable "Download Presentation Assets..." accordingly
-		btnDownloadAssets.setEnabled(inst.assetFileAvailable.get());
+		// Enable "Download Presentation Assets..." button accordingly
+		btnDownloadAssets.setEnabled(inst.assetsFileAvailable.get());
 	}
 	
 	public String getDomecastID()

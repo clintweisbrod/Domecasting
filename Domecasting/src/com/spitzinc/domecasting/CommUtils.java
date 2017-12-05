@@ -26,13 +26,14 @@ public class CommUtils
 	public static final int kMaxPathLen = 260;
 	
 	// Commands sent between client and server
-	public static final String kIsConnected = "isConnected";
+	public static final String kIsConnectedToServer = "isConnectedToServer";
+	public static final String kIsPeerConnected = "isPeerConnected";
 	public static final String kIsDomecastIDUnique = "isDomecastIDUnique";
 	public static final String kGetAvailableDomecasts = "getAvailableDomecasts";
 	public static final String kDomecastID = "domecastID";
 	public static final String kClientType = "clientType";
 	public static final String kIsHostListening = "isHostListening";
-	public static final String kAssetFileAvailable = "assetFileAvailable";
+	public static final String kAssetsFileAvailable = "assetsFileAvailable";
 	public static final String kGetAssetsFile = "getAssetsFile";
 	public static final String kStatusText = "statusText";
 	

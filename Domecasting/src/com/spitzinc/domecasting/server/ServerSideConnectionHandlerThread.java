@@ -8,8 +8,6 @@ import java.net.Socket;
 import java.text.ParseException;
 import java.util.ArrayList;
 
-import org.apache.commons.io.FileUtils;
-
 import com.spitzinc.domecasting.ClientHeader;
 import com.spitzinc.domecasting.CommUtils;
 import com.spitzinc.domecasting.Log;
@@ -26,7 +24,6 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 	private ClientHeader outHdr;
 	private ClientHeader inHdr;
 	private byte[] commBuffer;
-	private String assetsFilename;
 	private String domecastID;
 	private byte clientType;
 	private boolean isHostListening;	// Only valid for host connections
@@ -55,10 +52,6 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 	
 	public boolean isHostListening() {
 		return isHostListening;
-	}
-	
-	public String getAssetsFilename() {
-		return assetsFilename;
 	}
 	
 	private void beginHandlingClientCommands()
@@ -100,7 +93,7 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 			clientType = (byte)list[1].charAt(0);
 			
 			// Send the client back a notice of connection
-			sendBoolean(CommUtils.kIsConnected, true);
+			sendBoolean(CommUtils.kIsConnectedToServer, true);
 
 			// If we're a host connection
 			if (clientType == CommUtils.kHostID)
@@ -109,6 +102,11 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 				ArrayList<String> domecasts = listenerThread.getAvailableDomecasts();
 				sendHostAvailableDomecasts(domecasts);
 			}
+			
+			// Notify all peers of this connection
+			peerConnectionThreads = listenerThread.findPeerConnectionThreads(this);
+			for (ServerSideConnectionHandlerThread peer : peerConnectionThreads)
+				peer.sendBoolean(CommUtils.kIsPeerConnected, true);
 		}
 		else if (list[0].equals(CommUtils.kDomecastID))		// Sent from both host and presenter
 		{
@@ -125,9 +123,7 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 			if (clientType == CommUtils.kHostID)
 			{
 				// As a host, we want to know if there is an assets file available for download
-				peerConnectionThreads = listenerThread.findPeerConnectionThreads(this);
-				if (!peerConnectionThreads.isEmpty())
-					sendBoolean(CommUtils.kAssetFileAvailable, peerConnectionThreads.get(0).isAssetsFilePresent());
+				sendBoolean(CommUtils.kAssetsFileAvailable, (getAssetsFile() != null));
 			}
 			
 			listenerThread.sendStatusToThreads();
@@ -146,7 +142,12 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 			
 			listenerThread.sendStatusToThreads();
 		}
-		else if (list[0].equals(CommUtils.kGetAssetsFile))	// Sent only from host
+		else if (list[0].equals(CommUtils.kIsPeerConnected))	// Sent from both presenter and host
+		{
+			peerConnectionThreads = listenerThread.findPeerConnectionThreads(this);
+			sendBoolean(CommUtils.kIsPeerConnected, !peerConnectionThreads.isEmpty());
+		}
+		else if (list[0].equals(CommUtils.kGetAssetsFile))		// Sent only from host
 			sendAssetsFile();
 	}
 	
@@ -164,7 +165,7 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 		// after normal header.
 		byte[] filenameBytes = new byte[CommUtils.kMaxPathLen];
 		CommUtils.readInputStream(in, filenameBytes, 0, CommUtils.kMaxPathLen);
-		assetsFilename = new String(filenameBytes).trim();
+		String assetsFilename = new String(filenameBytes).trim();
 		
 		// Create a DataOutputStream to write the received data to
 		File outputFile = new File(programDataPath + assetsFilename);
@@ -234,20 +235,10 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 	
 	private void sendAssetsFile() throws IOException
 	{
-		ServerApplication inst = (ServerApplication) ServerApplication.inst();
-		String programDataPath = inst.getProgramDataPath() + domecastID + File.separator;
-		
-		// This method will only be called from a host thread. We need the corresponding presenter
-		// thread to get the name of the assetsFile
-		peerConnectionThreads = listenerThread.findPeerConnectionThreads(this);
-		if (!peerConnectionThreads.isEmpty())
-			assetsFilename = peerConnectionThreads.get(0).getAssetsFilename();
-
-		if (assetsFilename != null)
+		// Create a reference to the file
+		File inputFile = getAssetsFile();
+		if (inputFile != null)
 		{
-			// Create a reference to the file
-			File inputFile = new File(programDataPath + assetsFilename);
-			
 			// Send it
 			Log.inst().info("Sending assets file to host...");
 			synchronized (outputStreamLock)
@@ -257,7 +248,7 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 				
 				// See comments in ServerConnection.sendAssetsFile() regarding inclusion of filename field
 				// after normal header.
-				byte[] filenameBytes = CommUtils.getRightPaddedByteArray(assetsFilename, CommUtils.kMaxPathLen);
+				byte[] filenameBytes = CommUtils.getRightPaddedByteArray(inputFile.getName(), CommUtils.kMaxPathLen);
 				CommUtils.writeOutputStream(out, filenameBytes, 0, filenameBytes.length);
 				
 				// Write the file contents
@@ -298,16 +289,23 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 		}
 	}
 	
-	public boolean isAssetsFilePresent()
+	public File getAssetsFile()
 	{
-		boolean result = false;
+		File result = null;
 		
-		if ((clientType == CommUtils.kPresenterID) && (assetsFilename != null))
+		// Look in the folder where the assets file should be if it was uploaded
+		if (domecastID != null)
 		{
 			ServerApplication inst = (ServerApplication) ServerApplication.inst();
 			String programDataPath = inst.getProgramDataPath() + domecastID + File.separator;
-			File assetsFile = new File(programDataPath + assetsFilename);
-			result = assetsFile.exists();
+			File programDataFolder = new File(programDataPath);
+			if (programDataFolder.exists())
+			{
+				// If the assets folder exists, we should find only one file
+				String[] files = programDataFolder.list();
+				if (files.length > 0)
+					result = new File(programDataPath + files[0]);
+			}
 		}
 		
 		return result;
@@ -366,18 +364,17 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 		}
 		catch (IOException e) {
 		}
-		
-		// Clean-up the assets file if one was uploaded
-		ServerApplication inst = (ServerApplication) ServerApplication.inst();
-		String programDataPath = inst.getProgramDataPath() + domecastID;
-		File assetsFolder = new File(programDataPath);
-		try {
-			FileUtils.deleteDirectory(assetsFolder);
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+
+		// Notify all peers of this connection shutting down
+		try
+		{
+			peerConnectionThreads = listenerThread.findPeerConnectionThreads(this);
+			for (ServerSideConnectionHandlerThread peer : peerConnectionThreads)
+				peer.sendBoolean(CommUtils.kIsPeerConnected, false);
 		}
-		
+		catch (IOException e) {
+		}
+					
 		// Notify owner this thread is dying.
 		owner.threadDying(this);
 
@@ -391,7 +388,7 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 		buf.append("clientType=" + (char)clientType + ", ");
 		if (clientType == CommUtils.kHostID)
 			buf.append(CommUtils.kIsHostListening + Boolean.toString(isHostListening));
-		if ((clientType == CommUtils.kPresenterID) && (domecastID != null) && isAssetsFilePresent())
+		if ((clientType == CommUtils.kPresenterID) && (domecastID != null) && (getAssetsFile() != null))
 			buf.append("asset file uploaded.");
 		
 		return buf.toString();

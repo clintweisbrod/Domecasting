@@ -74,7 +74,7 @@ public class PresenterPanel extends JPanel
 			{
 				// First make sure the supplied domecastID is unique on the server
 				ClientApplication inst = (ClientApplication)ClientApplication.inst();
-				if (inst.isConnected.get())
+				if (inst.isConnectedToServer.get())
 				{
 					// Ask server if the supplied domecastID is unique. This is not a synchronous call
 					// so we have to wait for ServerConnection.ServerInputHandlerThread to call notify().

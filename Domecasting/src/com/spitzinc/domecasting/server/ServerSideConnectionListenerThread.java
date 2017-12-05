@@ -1,5 +1,6 @@
 package com.spitzinc.domecasting.server;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.Socket;
 import java.util.ArrayList;
@@ -41,7 +42,7 @@ public class ServerSideConnectionListenerThread extends TCPConnectionListenerThr
 		// This is only called by a presenter thread so we will get list of connected hosts
 		ArrayList<ServerSideConnectionHandlerThread> hosts = findPeerConnectionThreads(inThread);
 		for (ServerSideConnectionHandlerThread host : hosts)
-			host.sendBoolean(CommUtils.kAssetFileAvailable, true);
+			host.sendBoolean(CommUtils.kAssetsFileAvailable, true);
 	}
 	
 	/*
@@ -75,6 +76,7 @@ public class ServerSideConnectionListenerThread extends TCPConnectionListenerThr
 	{
 		ArrayList<String> result = new ArrayList<String>();
 		
+		// Add all live presenter connections
 		for (TCPConnectionHandlerThread aThread : connectionHandlerThreads)
 		{
 			ServerSideConnectionHandlerThread theThread = (ServerSideConnectionHandlerThread)aThread;
@@ -84,6 +86,23 @@ public class ServerSideConnectionListenerThread extends TCPConnectionListenerThr
 				String domecastID = theThread.getDomecastID();
 				if (domecastID != null)
 					result.add(domecastID);
+			}
+		}
+		
+		// Now enumerate the folders in the ProgramData folder and add those folder names if they
+		// don't already exist in result. We do this so that hosts can download assets files without
+		// the presenter connection being present.
+		ServerApplication inst = (ServerApplication) ServerApplication.inst();
+		String programDataPath = inst.getProgramDataPath();
+		File programDataFolder = new File(programDataPath);
+		String[] names = programDataFolder.list();
+		for (String name : names)
+		{
+			File folderElement = new File(programDataPath + name);
+			if (folderElement.isDirectory())
+			{
+				if (!result.contains(name))
+					result.add(name);
 			}
 		}
 
@@ -235,7 +254,12 @@ public class ServerSideConnectionListenerThread extends TCPConnectionListenerThr
 							if (theThread1.isHostListening())
 								status = "Listening to domecast.";
 							else
-								status = "Currently not listening to domecast.";
+							{
+								if (presenterConnectionExists(theDomecastID))
+									status = "Currently not listening to domecast.";
+								else
+									status = "Presenter currently not connected.";
+							}
 						}
 					}
 				}

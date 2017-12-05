@@ -248,13 +248,13 @@ public class ServerConnection
 			}
 			else
 			{
-				if (list[0].equals(CommUtils.kStatusText))					// Received by both presenter and host
+				if (list[0].equals(CommUtils.kStatusText))						// Received by both presenter and host
 					theApp.statusText.set(list[1]);
-				else if (list[0].equals(CommUtils.kIsConnected))			// Received by both presenter and host
-					theApp.isConnected.set(Boolean.parseBoolean(list[1]));
-				else if (list[0].equals(CommUtils.kGetAvailableDomecasts))	// Only received by host
+				else if (list[0].equals(CommUtils.kIsConnectedToServer))		// Received by both presenter and host
+					theApp.isConnectedToServer.set(Boolean.parseBoolean(list[1]));
+				else if (list[0].equals(CommUtils.kGetAvailableDomecasts))		// Only received by host
 					theApp.availableDomecasts = list[1];
-				else if (list[0].equals(CommUtils.kIsHostListening))		// Only received by presenter. Host sets this locally.
+				else if (list[0].equals(CommUtils.kIsHostListening))			// Only received by presenter. Host sets this locally.
 				{
 					// Only set the value if it's different
 					boolean oldValue = theApp.isHostListening.get();
@@ -265,8 +265,10 @@ public class ServerConnection
 						theApp.snPassThru.notifyThreadsOfCommModeChange();
 					}
 				}
-				else if (list[0].equals(CommUtils.kAssetFileAvailable))		// Only received by host
-					theApp.assetFileAvailable.set(Boolean.parseBoolean(list[1]));
+				else if (list[0].equals(CommUtils.kIsPeerConnected))			// Received by both presenter and host
+					theApp.isPeerConnected.set(Boolean.parseBoolean(list[1]));
+				else if (list[0].equals(CommUtils.kAssetsFileAvailable))		// Only received by host
+					theApp.assetsFileAvailable.set(Boolean.parseBoolean(list[1]));
 				
 				// Notify the UI of changes
 				theApp.updateUI();
@@ -402,6 +404,10 @@ public class ServerConnection
 	
 	public void sendIsHostListening(boolean isHostListening) {
 		sendToServer(CommUtils.kIsHostListening + "=" + Boolean.toString(isHostListening), ClientHeader.kINFO);
+	}
+	
+	public void sendIsPeerConnected(boolean isPeerConnected) {
+		sendToServer(CommUtils.kIsPeerConnected + "=" + Boolean.toString(isPeerConnected), ClientHeader.kINFO);
 	}
 	
 	public boolean isConnected() {

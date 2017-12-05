@@ -13,6 +13,7 @@ public class ClientInfoSendThread extends Thread
 	private Byte clientType;
 	private String domecastID;
 	private Boolean isHostListening;
+	private Boolean isPeerConnected;
 	private File assetFile;
 	private Boolean getAssetsFile;
 	
@@ -21,13 +22,14 @@ public class ClientInfoSendThread extends Thread
 		this.clientType = null;
 		this.domecastID = null;
 		this.isHostListening = null;
+		this.isPeerConnected = null;
 		this.assetFile = null;
 		this.getAssetsFile = null;
 		
 		setName(getClass().getSimpleName());
 	}
 	
-	public void setClientType(Byte clientType) {
+	public void setClientType(byte clientType) {
 		this.clientType = clientType;
 	}
 	
@@ -35,15 +37,19 @@ public class ClientInfoSendThread extends Thread
 		this.domecastID = domecastID;
 	}
 	
-	public void setIsHostListening(Boolean isHostListening) {
+	public void setIsHostListening(boolean isHostListening) {
 		this.isHostListening = isHostListening;
+	}
+	
+	public void setIsPeerConnected() {
+		this.isPeerConnected = new Boolean(true);
 	}
 	
 	public void setAssetsFile(File assetFile) {
 		this.assetFile = assetFile;
 	}
 	
-	public void setGetAssetsFile(Boolean getAssetsFile) {
+	public void setGetAssetsFile(boolean getAssetsFile) {
 		this.getAssetsFile = getAssetsFile;
 	}
 	
@@ -58,6 +64,8 @@ public class ClientInfoSendThread extends Thread
 				inst.serverConnection.sendClientType(clientType.byteValue());
 			if (isHostListening != null)
 				inst.serverConnection.sendIsHostListening(isHostListening.booleanValue());
+			if (isPeerConnected != null)
+				inst.serverConnection.sendIsPeerConnected(isPeerConnected.booleanValue());
 			if (domecastID != null)
 				inst.serverConnection.sendDomecastID(domecastID);
 			if (assetFile != null)
