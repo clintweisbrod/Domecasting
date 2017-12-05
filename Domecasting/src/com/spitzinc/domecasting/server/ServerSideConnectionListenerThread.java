@@ -121,7 +121,7 @@ public class ServerSideConnectionListenerThread extends TCPConnectionListenerThr
 		String domecastID = inThread.getDomecastID();
 		if (domecastID != null)
 		{
-			// Find the one presenter with the same domecastID
+			// Find the thread(s) same domecastID and opposite client type
 			for (TCPConnectionHandlerThread aThread : connectionHandlerThreads)
 			{
 				if (aThread != inThread)
@@ -145,6 +145,31 @@ public class ServerSideConnectionListenerThread extends TCPConnectionListenerThr
 			}
 		}
 
+		return result;
+	}
+	
+	/*
+	 * If we have more than one host listening to a domecast, we can only have one of them sending back
+	 * Renderbox responses to the presenter. We simply pick the first one we find.
+	 */
+	public ServerSideConnectionHandlerThread findMasterHostConnectionThread(String domecastID)
+	{
+		if (domecastID == null)
+			return null;
+
+		ServerSideConnectionHandlerThread result = null;
+		
+		// Find the thread with same domecastID and host client type
+		for (TCPConnectionHandlerThread aThread : connectionHandlerThreads)
+		{
+			ServerSideConnectionHandlerThread otherThread = (ServerSideConnectionHandlerThread)aThread;
+			if (domecastID.equals(otherThread.getDomecastID()) && (otherThread.getClientType() == CommUtils.kHostID))
+			{
+				result = otherThread;
+				break;
+			}
+		}
+		
 		return result;
 	}
 	

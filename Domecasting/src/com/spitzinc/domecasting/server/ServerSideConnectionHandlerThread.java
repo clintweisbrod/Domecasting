@@ -266,10 +266,7 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 	 */
 	private void handleCOMM(ClientHeader hdr) throws IOException
 	{
-		// Host connections will already have peerConnectionThreads initialized.
-		// Presenter connections may have more than one peer.
-		if (clientType == CommUtils.kPresenterID)
-			peerConnectionThreads = listenerThread.findPeerConnectionThreads(this);
+		peerConnectionThreads = listenerThread.findPeerConnectionThreads(this);
 
 		// Make sure our buffer is big enough
 		if (hdr.messageLen > commBuffer.length)
@@ -277,17 +274,37 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 		
 		// Read the data after the header
 		CommUtils.readInputStream(in, commBuffer, 0, (int)hdr.messageLen);
-		
-		// Write to each peer
-		for (ServerSideConnectionHandlerThread peer : peerConnectionThreads)
+
+		if (clientType == CommUtils.kPresenterID)
 		{
-			synchronized (peer.outputStreamLock)
+			// Write to each peer
+			for (ServerSideConnectionHandlerThread peer : peerConnectionThreads)
 			{
-				// Write the header we've received
-				CommUtils.writeOutputStream(peer.out, hdr.bytes, 0, ClientHeader.kHdrByteCount);
-				
-				// Write the data we've received
-				CommUtils.writeOutputStream(peer.out, commBuffer, 0, (int)hdr.messageLen);
+				synchronized (peer.outputStreamLock)
+				{
+					// Write the header we've received
+					CommUtils.writeOutputStream(peer.out, hdr.bytes, 0, ClientHeader.kHdrByteCount);
+					
+					// Write the data we've received
+					CommUtils.writeOutputStream(peer.out, commBuffer, 0, (int)hdr.messageLen);
+				}
+			}
+		}
+		if ((clientType == CommUtils.kHostID) && !peerConnectionThreads.isEmpty())
+		{
+			ServerSideConnectionHandlerThread peer = peerConnectionThreads.get(0);
+			
+			// We only forward the packet if this thread is the "master host" thread.
+			if (this == listenerThread.findMasterHostConnectionThread(domecastID))
+			{
+				synchronized (peer.outputStreamLock)
+				{
+					// Write the header we've received
+					CommUtils.writeOutputStream(peer.out, hdr.bytes, 0, ClientHeader.kHdrByteCount);
+					
+					// Write the data we've received
+					CommUtils.writeOutputStream(peer.out, commBuffer, 0, (int)hdr.messageLen);
+				}
 			}
 		}
 	}
