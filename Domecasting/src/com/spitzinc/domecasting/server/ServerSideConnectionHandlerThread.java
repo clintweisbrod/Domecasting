@@ -102,11 +102,6 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 				ArrayList<String> domecasts = listenerThread.getAvailableDomecasts();
 				sendHostAvailableDomecasts(domecasts);
 			}
-			
-			// Notify all peers of this connection
-			peerConnectionThreads = listenerThread.findPeerConnectionThreads(this);
-			for (ServerSideConnectionHandlerThread peer : peerConnectionThreads)
-				peer.sendBoolean(CommUtils.kIsPeerConnected, true);
 		}
 		else if (list[0].equals(CommUtils.kDomecastID))		// Sent from both host and presenter
 		{
@@ -126,6 +121,14 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 				sendBoolean(CommUtils.kAssetsFileAvailable, (getAssetsFile() != null));
 			}
 			
+			// Notify all peers of this connection
+			peerConnectionThreads = listenerThread.findPeerConnectionThreads(this);
+			for (ServerSideConnectionHandlerThread peer : peerConnectionThreads)
+				peer.sendBoolean(CommUtils.kIsPeerConnected, true);
+						
+			// Notify this connection if peer(s) connected
+			sendBoolean(CommUtils.kIsPeerConnected, !peerConnectionThreads.isEmpty());
+
 			listenerThread.sendStatusToThreads();
 		}
 		else if (list[0].equals(CommUtils.kIsDomecastIDUnique))	// Sent only from presenter
