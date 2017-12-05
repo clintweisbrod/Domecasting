@@ -311,21 +311,21 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 	
 	public File getAssetsFile()
 	{
+		if (domecastID == null)
+			return null;
+			
 		File result = null;
 		
 		// Look in the folder where the assets file should be if it was uploaded
-		if (domecastID != null)
+		ServerApplication inst = (ServerApplication) ServerApplication.inst();
+		String programDataPath = inst.getProgramDataPath() + domecastID + File.separator;
+		File programDataFolder = new File(programDataPath);
+		if (programDataFolder.exists())
 		{
-			ServerApplication inst = (ServerApplication) ServerApplication.inst();
-			String programDataPath = inst.getProgramDataPath() + domecastID + File.separator;
-			File programDataFolder = new File(programDataPath);
-			if (programDataFolder.exists())
-			{
-				// If the assets folder exists, we should find only one file
-				String[] files = programDataFolder.list();
-				if (files.length > 0)
-					result = new File(programDataPath + files[0]);
-			}
+			// If the assets folder exists, we should find only one file
+			String[] files = programDataFolder.list();
+			if (files.length > 0)
+				result = new File(programDataPath + files[0]);
 		}
 		
 		return result;
@@ -408,8 +408,12 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 		buf.append("clientType=" + (char)clientType + ", ");
 		if (clientType == CommUtils.kHostID)
 			buf.append(CommUtils.kIsHostListening + Boolean.toString(isHostListening));
-		if ((clientType == CommUtils.kPresenterID) && (domecastID != null) && (getAssetsFile() != null))
-			buf.append("asset file uploaded.");
+		if (clientType == CommUtils.kPresenterID)
+		{
+			File assetsFile = getAssetsFile();
+			if (assetsFile != null)
+				buf.append("Asset file: " + assetsFile.getName());
+		}
 		
 		return buf.toString();
 	}

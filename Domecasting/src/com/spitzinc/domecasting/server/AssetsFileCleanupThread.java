@@ -34,6 +34,7 @@ public class AssetsFileCleanupThread extends BasicProcessorThread
 			long timeAtCleanup = cal.getTimeInMillis();
 			if (timeAtCleanup < timeNow)
 			{
+				// Current time is past k24HourWhenCleanupOccurs so we have to add a day
 				cal.add(Calendar.DAY_OF_MONTH, 1);
 				timeAtCleanup = cal.getTimeInMillis();
 			}
