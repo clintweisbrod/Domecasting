@@ -15,7 +15,7 @@ import com.spitzinc.domecasting.Log;
  */
 public class AssetsFileCleanupThread extends BasicProcessorThread
 {
-	private static final int k24HourTimeWhenCleanupOccurs = 0400;	// 4 am
+	private static final int k24HourTimeWhenCleanupOccurs = 400;	// 4 am. DO NOT use preceeding zero as in, "0400". JVM interprets as octal.
 	private static final int kMinimumFolderAgeHoursToDelete = 6;	// When a folder is found without an active presentation,
 																	// it must be at least this old before it is deleted.
 	public void run()
@@ -63,12 +63,15 @@ public class AssetsFileCleanupThread extends BasicProcessorThread
 				{
 					// Compute the age of the folder in hours
 					int folderAgeHours = (int)(timeNow - folderElement.lastModified()) / (1000 * 60 * 60);
+					
+					// Make sure the folder is at least kMinimumFolderAgeHoursToDelete hours old
 					if (folderAgeHours > kMinimumFolderAgeHoursToDelete)
 					{
 						// Determine if there is a live presenter connection with domecastID == name
 						if (!inst.connectionListenerThread.presenterConnectionExists(name))
 						{
-							// If there is not, remove this folder.
+							// If there is no live presenter connection, remove this folder.
+							Log.inst().info("Removing folder: " + folderElement.getAbsolutePath());
 							try {
 								FileUtils.deleteDirectory(folderElement);
 							} catch (IOException e) {
