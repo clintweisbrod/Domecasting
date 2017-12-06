@@ -35,7 +35,7 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 			{
 				try {
 					// Read the next SN header
-					int messageLength = readSNHeader(buffer);
+					long messageLength = readSNHeader(buffer);
 					
 					// Read the data
 					readSNDataToNowhere(buffer, messageLength);
@@ -250,13 +250,13 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 	private void starryNightPassThru(byte[] buffer) throws IOException
 	{
 		// Get total length of incoming message and modify the replyToPort
-		int messageLength = readSNHeader(buffer);
+		long messageLength = readSNHeader(buffer);
 
 		// Write the header to the outbound socket
 		CommUtils.writeOutputStream(out, buffer, 0, kSNHeaderLength);
 
 		// Now read/write the remainder of the message
-		int bytesLeftToReceive = messageLength - kSNHeaderLength;
+		int bytesLeftToReceive = (int)(messageLength - kSNHeaderLength);
 		while (bytesLeftToReceive > 0)
 		{
 			// Read as much of the message as our buffer will hold
@@ -270,9 +270,9 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 		}
 	}
 	
-	private int readSNHeader(byte[] buffer) throws IOException
+	private long readSNHeader(byte[] buffer) throws IOException
 	{
-		int result = 0;
+		long result = 0;
 		
 		// Read the SN header from the inbound socket
 		CommUtils.readInputStream(in, buffer, 0, kSNHeaderLength);
@@ -280,7 +280,7 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 		// Get the total length of the message that we are receiving.
 		String messageLengthStr = new String(buffer, 0, kSNHeaderFieldLength).trim();
 		try {
-			result = Integer.parseInt(messageLengthStr);
+			result = Long.parseLong(messageLengthStr);
 		} catch (NumberFormatException e) {
 			Log.inst().error("messageLengthStr: " + messageLengthStr);
 			throw new IOException(e.getMessage());
@@ -318,14 +318,18 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 			if (modifyReplyPort)
 			{
 				// If we get here, this is the thread that reads data from the local PF or ATM4.
-				// Do the usual pass-thru but also write the incoming data to the domecast server.
-				writeSNPacketToServer(buffer, dcsOut, clientAppName);
+				// Do the usual pass-thru...
+				long messageLength = readSNHeader(buffer);						// Read the SN header
+				CommUtils.writeOutputStream(out, buffer, 0, kSNHeaderLength);	// Write the SN header to the outbound socket
+				
+				// ... and also write the incoming data to the domecast server.
+				writeSNPacketToServer(buffer, dcsOut, messageLength, clientAppName);
 			}
 			else
 			{
 				// If we get here, this is the thread that, during pass-thru, reads responses from the local RB.
-				// We read this data but it will not be routed anywhere. We then route the data that is available
-				// from the domecast server to our local OutputStream.
+				// We read this data on a separate thread (ReadIgnoredInputStreamThread) but it will not be routed anywhere.
+				// Here we route the data that is available from the domecast server to our local OutputStream.
 				readSNPacketFromServer(buffer);
 			}
 		}
@@ -334,22 +338,26 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 			if (modifyReplyPort)
 			{
 				// If we get here, this is the thread that, during pass-thru, reads data from the local PF or ATM4.
-				// We read this data but it will not be routed anywhere. We then route the data that is available
-				// from the domecast server to our local OutputStream.
+				// We read this data on a separate thread (ReadIgnoredInputStreamThread) but it will not be routed anywhere.
+				// Here we route the data that is available from the domecast server to our local OutputStream.
 				readSNPacketFromServer(buffer);
 			}
 			else
 			{
 				// If we get here, this is the thread that reads data from the local RB.
-				// Do the usual pass-thru but also write the incoming data to the domecast server.
-				writeSNPacketToServer(buffer, dcsOut, clientAppName);
+				// Do the usual pass-thru...
+				long messageLength = readSNHeader(buffer);						// Read the SN header
+				CommUtils.writeOutputStream(out, buffer, 0, kSNHeaderLength);	// Write the SN header to the outbound socket
+				
+				// ... and also write the incoming data to the domecast server.
+				writeSNPacketToServer(buffer, dcsOut, messageLength, clientAppName);
 			}
 		}
 	}
 	
-	private void readSNDataToNowhere(byte[] buffer, int messageLength) throws IOException
+	private void readSNDataToNowhere(byte[] buffer, long messageLength) throws IOException
 	{
-		int bytesLeftToReceive = messageLength - kSNHeaderLength;
+		int bytesLeftToReceive = (int)(messageLength - kSNHeaderLength);
 		while (bytesLeftToReceive > 0)
 		{
 			// Read as much of the message as our buffer will hold
@@ -378,13 +386,8 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 		}
 	}
 	
-	private void writeSNPacketToServer(byte[] buffer, OutputStream dcsOut, String msgSrc) throws IOException
+	private void writeSNPacketToServer(byte[] buffer, OutputStream dcsOut, long messageLength, String msgSrc) throws IOException
 	{
-		int messageLength = readSNHeader(buffer);
-		
-		// Write the SN header to the outbound socket
-		CommUtils.writeOutputStream(out, buffer, 0, kSNHeaderLength);
-		
 		// Now we write to the domecast server OutputStream.
 		// We must write the client header, then the SN header in buffer, read the rest of the packet from the local InputStream
 		// and write it to the domecast server OutputStream while we have exclusive access to the
@@ -401,9 +404,9 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 		}
 	}
 	
-	private void readSNDataToOutputStreams(byte[] buffer, int messageLength, OutputStream serverOutputStream) throws IOException
+	private void readSNDataToOutputStreams(byte[] buffer, long messageLength, OutputStream serverOutputStream) throws IOException
 	{
-		int bytesLeftToReceive = messageLength - kSNHeaderLength;
+		int bytesLeftToReceive = (int)(messageLength - kSNHeaderLength);
 		while (bytesLeftToReceive > 0)
 		{
 			// Read as much of the message as our buffer will hold
