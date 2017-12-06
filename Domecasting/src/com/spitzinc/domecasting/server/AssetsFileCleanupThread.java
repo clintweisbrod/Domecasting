@@ -10,12 +10,14 @@ import com.spitzinc.domecasting.BasicProcessorThread;
 import com.spitzinc.domecasting.Log;
 
 /*
- * This thread wakes up once every 24 hours at k24HourWhenCleanupOccurs and removes any folders holding
+ * This thread wakes up once every 24 hours at k24HourTimeWhenCleanupOccurs and removes any folders holding
  * assets that were owned by presenter threads that no longer exist.
  */
 public class AssetsFileCleanupThread extends BasicProcessorThread
 {
-	private static final int k24HourWhenCleanupOccurs = 4;	// 4 am
+	private static final int k24HourTimeWhenCleanupOccurs = 0400;	// 4 am
+	private static final int kMinimumFolderAgeHoursToDelete = 6;	// When a folder is found without an active presentation,
+																	// it must be at least this old before it is deleted.
 	public void run()
 	{
 		ServerApplication inst = (ServerApplication) ServerApplication.inst();
@@ -25,16 +27,16 @@ public class AssetsFileCleanupThread extends BasicProcessorThread
 		// Periodically clean-up any assets files that don't have corresponding presenter thread connections
 		while (!stopped.get())
 		{
-			// Figure out how many milliseconds until k24HourWhenCleanupOccurs
+			// Figure out how many milliseconds until k24HourTimeWhenCleanupOccurs
 			Calendar cal = Calendar.getInstance();
 			long timeNow = cal.getTimeInMillis();
-			cal.set(Calendar.HOUR_OF_DAY, k24HourWhenCleanupOccurs);
-			cal.set(Calendar.MINUTE, 0);
+			cal.set(Calendar.HOUR_OF_DAY, k24HourTimeWhenCleanupOccurs / 100);
+			cal.set(Calendar.MINUTE, k24HourTimeWhenCleanupOccurs % 100);
 			cal.set(Calendar.SECOND, 0);
 			long timeAtCleanup = cal.getTimeInMillis();
 			if (timeAtCleanup < timeNow)
 			{
-				// Current time is past k24HourWhenCleanupOccurs so we have to add a day
+				// Current time is past k24HourTimeWhenCleanupOccurs so we have to add a day
 				cal.add(Calendar.DAY_OF_MONTH, 1);
 				timeAtCleanup = cal.getTimeInMillis();
 			}
@@ -59,15 +61,20 @@ public class AssetsFileCleanupThread extends BasicProcessorThread
 				File folderElement = new File(programDataPath + name);
 				if (folderElement.isDirectory())
 				{
-					// Determine if there is a live presenter connection with domecastID == name
-					if (!inst.connectionListenerThread.presenterConnectionExists(name))
+					// Compute the age of the folder in hours
+					int folderAgeHours = (int)(timeNow - folderElement.lastModified()) / (1000 * 60 * 60);
+					if (folderAgeHours > kMinimumFolderAgeHoursToDelete)
 					{
-						// If there is not, remove this folder.
-						try {
-							FileUtils.deleteDirectory(folderElement);
-						} catch (IOException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
+						// Determine if there is a live presenter connection with domecastID == name
+						if (!inst.connectionListenerThread.presenterConnectionExists(name))
+						{
+							// If there is not, remove this folder.
+							try {
+								FileUtils.deleteDirectory(folderElement);
+							} catch (IOException e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+							}
 						}
 					}
 				}
