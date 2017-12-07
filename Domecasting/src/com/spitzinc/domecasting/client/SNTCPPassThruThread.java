@@ -17,8 +17,20 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 {
 	private final static int kSNHeaderFieldLength = 10;
 	private final static int kSNHeaderLength = 120;
+	private final static int kSNHeaderPacketLengthPosition = 0;
+	private final static int kSNHeaderDataLengthPosition = 20;
 	private final static int kSNHeaderReplyPortPosition = 50;
 	private final static int kSNHeaderClientAppNamePosition = 60;
+	
+	private final static String kSetLiveCommandHdr = "          L                   0         0                                                                               ";
+	private final static String kSetLiveCommandData = "<HTML>\r\n" +
+													  "<BODY>\r\n" +
+													  "<SN_VALUE name=\"Version\" value=\"Renderbox (Win) - s740c-EW\">\r\n" +
+													  "<SN_VALUE name=\"VersionSKU\" value=\"d740c-EW\">\r\n" +
+													  "<SN_VALUE name=\"charset\" value=\"iso-8859-1\">\r\n" +
+													  "<SN_VALUE name=\"CallSetLive\" value=\"True\">\r\n" +
+													  "<SN_VALUE name=\"ValueListVersion\" value=\"2\">\r\n";
+													  
 	
 	/*
 	 * This thread is necessary to periodically read data off the connected InputStream
@@ -134,16 +146,28 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 						// If theApp.isHostListening was changed, we have to either launch or kill a thread
 						// that reads data off the InputStream that is ignored when we're routing comm through
 						// the domecast server.
+						boolean sendSetLive = false;
 						if (commModeChanged.get())
 						{
 							Log.inst().debug("Calling switchCommModes().");
 							switchCommModes(isHostListening);
+							
+							// See comments for sendSetLiveCommand()
+							if (isHostListening && !modifyReplyPort && (theApp.clientType == CommUtils.kPresenterID) &&
+								((clientAppName != null) && (clientAppName.equals(ClientHeader.kSNPF))))
+								sendSetLive = true;
+							
 							commModeChanged.set(false);
 						}
 						
 						// Perform routing of a single SN header and data.
 						if (isHostListening)
+						{
+							if (sendSetLive)
+								sendSetLiveCommand();
+
 							performDomecastRouting(buffer);
+						}
 						else
 							starryNightPassThru(buffer);
 						
@@ -251,7 +275,7 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 	{
 		// Get total length of incoming message and modify the replyToPort
 		long messageLength = readSNHeader(buffer);
-
+		
 		// Write the header to the outbound socket
 		CommUtils.writeOutputStream(out, buffer, 0, kSNHeaderLength);
 
@@ -262,7 +286,7 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 			// Read as much of the message as our buffer will hold
 			int bytesToRead = Math.min(bytesLeftToReceive, buffer.length);
 			CommUtils.readInputStream(in, buffer, 0, bytesToRead);
-	
+			
 			// Write the buffer
 			CommUtils.writeOutputStream(out, buffer, 0, bytesToRead);
 
@@ -422,4 +446,33 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 			bytesLeftToReceive -= bytesToRead;
 		}
 	}
+
+	/*
+	 * When we switch to domecast routing, the first thing the local PF should do is call
+	 * TStarryNightDoc::SetLiveCommunicationWithRB() so that the remote RB is initialized
+	 * with the local PF's prefs, location, current view, etc.
+	 */
+	private void sendSetLiveCommand() throws IOException
+	{
+		byte[] hdrBytes = kSetLiveCommandHdr.getBytes();
+		byte[] dataBytes = kSetLiveCommandData.getBytes();
+		
+		// Write rbPrefs_DomeServer_TCPPort at position kSNHeaderReplyPortPosition
+		byte[] replyPortBytes = CommUtils.getRightPaddedByteArray(Integer.toString(theApp.rbPrefs_DomeServer_TCPPort), kSNHeaderFieldLength);
+		System.arraycopy(replyPortBytes, 0, hdrBytes, kSNHeaderReplyPortPosition, replyPortBytes.length);
+		
+		// Write length of dataBytes at position kSNHeaderDataLengthPosition
+		byte[] dataLengthBytes = CommUtils.getRightPaddedByteArray(Integer.toString(dataBytes.length), kSNHeaderFieldLength);
+		System.arraycopy(dataLengthBytes, 0, hdrBytes, kSNHeaderDataLengthPosition, replyPortBytes.length);
+		
+		// Write length of entire packet (message) at position kSNHeaderPacketLengthPosition
+		byte[] packetLengthBytes = CommUtils.getRightPaddedByteArray(Integer.toString(dataBytes.length + kSNHeaderLength), kSNHeaderFieldLength);
+		System.arraycopy(packetLengthBytes, 0, hdrBytes, kSNHeaderPacketLengthPosition, replyPortBytes.length);
+		
+		Log.inst().debug("Sending Set Live command:");
+		
+		CommUtils.writeOutputStream(out, hdrBytes, 0, hdrBytes.length);
+		CommUtils.writeOutputStream(out, dataBytes, 0, dataBytes.length);
+	}
 }
+
