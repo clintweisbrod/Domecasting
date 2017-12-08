@@ -1,5 +1,14 @@
 package com.spitzinc.domecasting;
 
+/*
+ * Every "packet" of communication we send and receive from the domecast server is preceeded
+ * with a fixed-length header that details what the remaining data is. This is quite similar
+ * to how SN sends "packets" of communications between PF and RB. At present, this header is
+ * only 20 bytes so not much overhead involved.
+ * 
+ * This class contains public declarations for communication details and methods to
+ * serialize/deserialize the header info.
+ */
 public class ClientHeader
 {
 	private static final int kFieldLength_MessageLength = 10;
@@ -17,7 +26,6 @@ public class ClientHeader
 	public static final String kDCC = "DCC";	// Domecasting client
 	public static final String kDCS = "DCS";	// Domecasting server
 	public static final String kSNPF = "SNPF";	// Starrynight Preflight
-	public static final String kSNRB = "SNRB";	// Starrynight Renderbox
 	public static final String kATM4 = "ATM4";	// ATM-4
 	public static final String kTLEPF = "TLEC";	// The Layered Earth client
 	public static final String kTLERB = "TLES";	// The Layered Earth server
@@ -42,7 +50,7 @@ public class ClientHeader
 	{
 		// Every header sent to the server must be a fixed length of 25 bytes.
 		// 0-9: String representation of length of entire message. Right-padded.
-		// 10-14: Source of message. ex. "DCC", "DCS", "SNPF", "SNRB", "ATM4", "TLEC", "TLES". Right-padded.
+		// 10-14: Source of message. ex. "DCC", "DCS", "SNPF", "ATM4", "TLEC", "TLES". Right-padded.
 		// 15-19: Destination for message. Same possibilities as 10-19.
 		// 20-24: Message type: "COMM", "INFO", "FILE". Right-padded.
 		

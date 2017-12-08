@@ -13,6 +13,56 @@ import com.spitzinc.domecasting.CommUtils;
 import com.spitzinc.domecasting.Log;
 import com.spitzinc.domecasting.TCPConnectionHandlerThread;
 
+/*
+ * This thread handles the communication stream that either originates from a StarrtNight
+ * client or from StarrNight Renderbox. An instance of ClientSideConnectionListenerThread
+ * waits for a connection request. The resulting Socket from that connection request is
+ * given to this thread and an InputStream is created from it. This thread then attempts
+ * to establish a socket connection to the given TCPNode and creates an OutputStream from
+ * that Socket.
+ * 
+ * For any client of SN, there will be two of these threads since this is how SN
+ * communication works.
+ * 
+ * This thread behaves in two distinct modes: In "StarryNight pass-thru" mode, this thread will
+ * read data from it's InputStream and write it to it's OutputStream. The data is read as SN
+ * packets where the first 120 bytes consists of a header containing information on how many more
+ * bytes should be read. Within this header, a "reply-to" port is encoded that RB uses to connect
+ * back to the client with. Unfortunately, with this code running on a Preflight system, in order
+ * to intercept the connection request from RB, this reply-to port has to be modified for every SN
+ * packet that is sent from a client.
+ * 
+ * The second mode of operation; "domecast routing" mode is different depending on which of these
+ * two threads we're talking about and also whether the domecast client is running as a "host or a
+ * "presenter":
+ * 
+ * For presenters, the thread which handles data being sent to RB, continues to write it's
+ * OutputStream but also writes to the OutputStream that belongs to the domecast server connection
+ * with this client. The other thread that handles responses from the local RB instead waits for
+ * new data on the domecast server's InputStream and writes this data to it's OutputStream.
+ * 
+ * For hosts, the thread which handles data being sent to RB, waits for data on the domecast
+ * server's InputStream and writes this data to it's OutputStream. The other thread that handles
+ * responses from RB, continues to write it's OutputStream but also writes to the OutputStream
+ * that belongs to domecast server connection with the client.
+ * 
+ *  Yes, it's complicated. Try coding it all.
+ *  
+ *  While in domecast routing mode, an additional thread is needed to continue reading data off
+ *  the InputStream that effectively gets ignored. If we don't do this, the ignored InputStream
+ *  eventually gets disconnected, making it impossible to switch back to SN pass-thru mode without
+ *  detecting and re-establishing lost connections. ReadIgnoredInputStreamThread is responsible for
+ *  reading this ignored data. Care must be taken when switching back to SN pass-thru mode. This
+ *  additional thread must be stopped before the pass-thru can be resumed.
+ *  
+ *  Finally, when switching to domecast routing mode, presenter instances of this client must ask
+ *  the thread that handles responses from the local RB to send a request back to PF that causes
+ *  PF to send a "SetLiveCommunicationWithRB". This is imperative so that all remote RB instances
+ *  listening to the domecast are correctly initialized with the local PF's preferences, options,
+ *  viewing locations, etc. This request to PF must be the last thing sent to PF before switching
+ *  to domecast routing mode. The method; sendSetLiveCommand() is responsible for actually sending
+ *  the SN packet to PF to make this request.
+ */
 public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 {
 	private final static int kSNHeaderFieldLength = 10;

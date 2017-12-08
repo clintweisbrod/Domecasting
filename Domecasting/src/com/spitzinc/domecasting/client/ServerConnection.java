@@ -1,10 +1,3 @@
-/*
- * This thread establishes and maintains a socket connection with the domecasting server.
- * If the connection is lost during communication with the server via another thread, that
- * thread should call this thread's notify() method to wake it up and attempt to re-establish
- * the connection. Once the connection is re-established, this thread goes back to sleep and
- * waits for more shit to happen.
- */
 package com.spitzinc.domecasting.client;
 
 import java.io.File;
@@ -42,7 +35,8 @@ public class ServerConnection
 	 * This thread manages connection to domecast server. Once server connection is established,
 	 * InputStream and OutputStream instances are created. The OutputStream instance (out) can
 	 * be written by any thread so long as it gains a lock on outputStreamLock first.
-	 * The InputStream instance (in) is read solely by an instance of ServerInputHandlerThread.
+	 * The InputStream instance (in) is read solely by an instance of ServerInputHandlerThread 
+	 * (created by this thread).
 	 * This is necessary because ALL communication from potentially ATM4, PF, and the remote
 	 * domecasting client instance come across this InputStream and in no predictable order.
 	 */
@@ -237,7 +231,7 @@ public class ServerConnection
 			String serverReply = new String(infoBuffer, 0, (int)hdr.messageLen);
 			Log.inst().debug("Received: " + serverReply);
 			String[] list = serverReply.split("=");
-			if (list[0].equals(CommUtils.kIsDomecastIDUnique))				// Only received by presenter.
+			if (list[0].equals(CommUtils.kIsDomecastIDUnique))					// Only received by presenter.
 			{
 				theApp.isDomecastIDUnique.set(Boolean.parseBoolean(list[1]));
 				
@@ -280,10 +274,11 @@ public class ServerConnection
 			// Inspect the header to determine where the message should go.
 			// We are dealing with incoming communication from the peer connection. There are
 			// two possibilities: If we're a host, the incoming comm is from the presenter's
-			// PF or ATM4. If we're a presenter, the incoming comm is from the host's RB. In
-			// both cases, hdr.messageSource will indicate this.
-			// So, we have no choice but to create ByteBuffer instances and throw them into
-			// the appropriate LinkedBlockingQueue configured with some reasonable capacity.
+			// PF or ATM4. If we're a presenter, the incoming comm is from the host's RB and
+			// is a response intended for either PF or ATM4. In both cases, hdr.messageSource
+			// will indicate this. So, we have no choice but to create ByteBuffer instances
+			// and throw them into the appropriate LinkedBlockingQueue configured with some
+			// reasonable capacity.
 			
 			// Get the correct queue
 			LinkedBlockingQueue<ByteBuffer> theQueue = inputQueues.get(hdr.messageSource);
@@ -342,13 +337,13 @@ public class ServerConnection
 		this.outputStreamLock = new Object();
 		this.inHdr = new ClientHeader();
 		this.outHdr = new ClientHeader();
-		this.infoBuffer = new byte[1024];	// Allocate byte buffer to handle reading InputStream for INFO messages
+		this.infoBuffer = new byte[CommUtils.kInfoBufferSize];	// Allocate byte buffer to handle reading InputStream for INFO messages
 		
 		// Allocate a map to hold queues to store incoming data from server. We need a queue for each possible
 		// type of client connection supported by domecasting. For now, that is SNPF and ATM4. When we extend our
 		// domecasting solution to support TLE and and Zygote, we will need a map capacity of 4. I don't see any
 		// harm in allocating that extra space now.
-		this.inputQueues = new ConcurrentHashMap<String, LinkedBlockingQueue<ByteBuffer>>(4);
+		this.inputQueues = new ConcurrentHashMap<String, LinkedBlockingQueue<ByteBuffer>>(2);
 		this.inputQueues.put(ClientHeader.kSNPF, new LinkedBlockingQueue<ByteBuffer>(kMaxServerInputQueueSize));
 		this.inputQueues.put(ClientHeader.kATM4, new LinkedBlockingQueue<ByteBuffer>(kMaxServerInputQueueSize));
 		

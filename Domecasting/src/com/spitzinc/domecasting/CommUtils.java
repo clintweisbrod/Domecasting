@@ -16,9 +16,17 @@ import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
 import java.util.concurrent.atomic.AtomicInteger;
 
+/*
+ * This class contains a collection of low-level public static methods directly concerned with
+ * communication between domecast client and server. Some of these methods are also used for
+ * pass-thru communication between local SN clients and SN RB.
+ * 
+ * Besides this, all domecast client-server communication strings are declared here.
+ */
 public class CommUtils
 {
-	public static final int kSecurityCodeLength = 20;
+	public static final int kSecurityCodeLength = 20;		// Number of digits domecast server expects upon connection accept. 
+	public static final int kInfoBufferSize = 1024;
 	public static final int kCommBufferSize = 120 * 1024;	// This should be enough for all SNF files
 	public static final int kFileBufferSize = 16 * 1024;
 	public static final byte kHostID = 'H';
@@ -205,7 +213,7 @@ public class CommUtils
 	}
 	
 	/**
-	 * Generates a unique but predictable 10-digit security code that changes every day.
+	 * Generates a unique but predictable 20-digit security code that changes every day.
 	 */
 	public static String getDailySecurityCode()
 	{
