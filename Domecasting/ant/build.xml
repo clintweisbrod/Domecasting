@@ -1,0 +1,35 @@
+<?xml version='1.0' encoding='ISO-8859-1' standalone='yes'?>
+
+<project name="domecasting" default="jar" basedir="..">
+	<!-- set global properties for this build -->
+	<property name="src" value="${basedir}/src"/>
+	<property name="build" value="${basedir}/ant/bin"/>
+	<property name="jar" value="${basedir}/jar"/>
+	<property name="lib" value="${basedir}/lib"/>
+	<property name="build_classpath" value="${lib}/commons-io-2.5.jar:${lib}/log4j-api-2.9.1.jar:${lib}/log4j-core-2.9.1.jar"/>
+
+	<!-- Delete the ${build} and ${jar} directory trees -->
+	<target name="clean">
+		<delete dir="${build}"/>
+		<delete dir="${jar}"/>
+	</target>
+
+	<!-- Compile the java code from ${src} into ${build} -->
+	<target name="comp" description="Compile the source">
+		<mkdir dir="${build}"/>
+		<javac
+			srcdir="${src}"
+			destdir="${build}"
+			includes="com/**"
+			classpath="${build_classpath}" />
+	</target>
+	
+	<!-- Make the JAR -->
+	<target name="jar" depends="clean, comp" description="Make the JAR">
+		<mkdir dir="${jar}"/>
+		<jar jarfile="${jar}/domecasting.jar" >
+			<fileset dir="${build}"
+				includes="com/**" />
+		</jar>
+	</target>
+</project>
