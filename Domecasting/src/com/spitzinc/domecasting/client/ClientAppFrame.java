@@ -18,7 +18,7 @@ public class ClientAppFrame extends JFrame
 {
 	private static final long serialVersionUID = 1L;
 	
-	private ClientApplication theApp;
+	private final ClientApplication theApp;
 	public JTabbedPane tabbedPane;
 	public HostPanel hostPanel;
 	public PresenterPanel presenterPanel;
@@ -67,9 +67,9 @@ public class ClientAppFrame extends JFrame
 	/**
 	 * Create the frame.
 	 */
-	public ClientAppFrame(ClientApplication theApp, Dimension inPreferredSize)
+	public ClientAppFrame(ClientApplication inApp, Dimension inPreferredSize)
 	{
-		this.theApp = theApp;
+		this.theApp = inApp;
 		
 		setType(Type.NORMAL);
 		theApp.appFrame = this;
