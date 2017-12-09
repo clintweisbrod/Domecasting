@@ -1,0 +1,46 @@
+<launch4jConfig>
+  <singleInstance><mutexName>DomecastClient</mutexName></singleInstance>
+  <debug>false</debug>
+  <dontWrapJar>true</dontWrapJar>
+  <headerType>gui</headerType>
+  <jar>domecasting.jar</jar>
+  <errTitle>Spitz Domecasting Client</errTitle>
+  <cmdLine></cmdLine>
+  <chdir>.</chdir>
+  <priority>normal</priority>
+  <downloadUrl>http://java.com/download</downloadUrl>
+  <supportUrl></supportUrl>
+  <customProcName>false</customProcName>
+  <manifest></manifest>
+  <var></var>
+  <classPath>
+	<mainClass>com.spitzinc.domecasting.client.ClientApplication</mainClass>
+	<cp>.</cp>
+	<cp>domecasting.jar</cp>
+	<cp>commons-io-2.5.jar</cp>
+	<cp>log4j-api-2.9.1.jar</cp>	
+	<cp>log4j-core-2.9.1.jar</cp>
+	<cp>xulrunner15-windows.jar</cp>
+  </classPath>
+  <jre>
+    <path></path>
+	<platformBits>64</platformBits>
+    <minVersion>1.7</minVersion>
+    <maxVersion></maxVersion>
+    <jdkPreference>preferJre</jdkPreference>
+    <initialHeapPercent>100</initialHeapPercent>
+    <opt></opt>
+  </jre>
+  <versionInfo>
+    <fileVersion>1.0.0.0</fileVersion>
+	<txtFileVersion>1.0.0</txtFileVersion>
+    <fileDescription>Domecasting client by Spitz, Inc.</fileDescription>
+    <copyright>Copyright 2017, Spitz, Inc.</copyright>
+    <productVersion>1.0.0.0</productVersion>
+	<txtProductVersion>1.0.0</txtProductVersion>
+    <productName>Domecasting Client</productName>
+    <companyName>Spitz, Inc.</companyName>
+    <internalName>domecastingclient</internalName>
+    <originalFilename>client.exe</originalFilename>
+  </versionInfo>
+</launch4jConfig>
