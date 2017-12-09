@@ -1,12 +1,11 @@
-<launch4jConfig>
+<java2exeConfig>
   <singleInstance><mutexName>DomecastServer</mutexName></singleInstance>
   <debug>false</debug>
   <dontWrapJar>true</dontWrapJar>
-  <headerType>gui</headerType>
   <jar>domecasting.jar</jar>
   <errTitle>Spitz Domecasting Server</errTitle>
   <cmdLine></cmdLine>
-  <chdir>.</chdir>
+  <chdir></chdir>
   <priority>normal</priority>
   <downloadUrl>http://java.com/download</downloadUrl>
   <supportUrl></supportUrl>
@@ -20,7 +19,6 @@
 	<cp>commons-io-2.5.jar</cp>
 	<cp>log4j-api-2.9.1.jar</cp>	
 	<cp>log4j-core-2.9.1.jar</cp>
-	<cp>xulrunner15-windows.jar</cp>
   </classPath>
   <jre>
     <path></path>
@@ -43,4 +41,4 @@
     <internalName>domecastingserver</internalName>
     <originalFilename>server.exe</originalFilename>
   </versionInfo>
-</launch4jConfig>
+</java2exeConfig>
