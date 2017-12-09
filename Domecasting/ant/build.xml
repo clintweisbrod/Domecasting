@@ -18,6 +18,7 @@
 	<target name="comp" description="Compile the source">
 		<mkdir dir="${build}"/>
 		<javac
+			includeantruntime="false"
 			srcdir="${src}"
 			destdir="${build}"
 			includes="com/**"
