@@ -7,6 +7,7 @@ import java.io.OutputStream;
 import java.net.Socket;
 import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.spitzinc.domecasting.ClientHeader;
 import com.spitzinc.domecasting.CommUtils;
@@ -26,7 +27,7 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 	private byte[] commBuffer;
 	private String domecastID;
 	private byte clientType;
-	private boolean isHostListening;	// Only valid for host connections
+	private AtomicBoolean isHostListening;	// Only valid for host connections
 	
 	public ServerSideConnectionHandlerThread(TCPConnectionListenerThread owner, Socket inboundSocket)
 	{
@@ -39,7 +40,7 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 		this.commBuffer = new byte[CommUtils.kCommBufferSize];
 		this.domecastID = null;
 		this.listenerThread = (ServerSideConnectionListenerThread)owner;
-		this.isHostListening = false;
+		this.isHostListening = new AtomicBoolean(false);	// Only valid for host connections
 	}
 	
 	public synchronized String getDomecastID() {
@@ -51,7 +52,7 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 	}
 	
 	public boolean isHostListening() {
-		return isHostListening;
+		return isHostListening.get();
 	}
 	
 	private void beginHandlingClientCommands()
@@ -135,13 +136,17 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 			sendBoolean(CommUtils.kIsDomecastIDUnique, listenerThread.isDomecastIDUnique(list[1]));
 		else if (list[0].equals(CommUtils.kIsHostListening))	// Sent only from host
 		{
-			isHostListening = Boolean.parseBoolean(list[1]);
+			isHostListening.set(Boolean.parseBoolean(list[1]));
 			
-			// Notify presenter of this change
-			// Should only find one presenter 
+			// We don't want to just send back isHostListening to the presenter. This
+			// is only valid for 1:1 domecasts. In general, we want to send back a boolean
+			// to the presenter indicating if ANY hosts are listening.
+			boolean response = listenerThread.anyHostsListening(domecastID);
+			
+			// Notify presenter of this change. Should only find one presenter. 
 			peerConnectionThreads = listenerThread.findPeerConnectionThreads(this);
 			if (!peerConnectionThreads.isEmpty())
-				peerConnectionThreads.get(0).sendBoolean(CommUtils.kIsHostListening, isHostListening);
+				peerConnectionThreads.get(0).sendBoolean(CommUtils.kIsHostListening, response);
 			
 			listenerThread.sendStatusToThreads();
 		}
@@ -277,33 +282,37 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 
 		if (clientType == CommUtils.kPresenterID)
 		{
-			// Write to each peer
-			for (ServerSideConnectionHandlerThread peer : peerConnectionThreads)
+			// Write to each peer (host) thread
+			for (ServerSideConnectionHandlerThread host : peerConnectionThreads)
 			{
-				synchronized (peer.outputStreamLock)
+				// Only write to the host if it is listening
+				if (host.isHostListening())
 				{
-					// Write the header we've received
-					CommUtils.writeOutputStream(peer.out, hdr.bytes, 0, ClientHeader.kHdrByteCount);
-					
-					// Write the data we've received
-					CommUtils.writeOutputStream(peer.out, commBuffer, 0, (int)hdr.messageLen);
+					synchronized (host.outputStreamLock)
+					{
+						// Write the header we've received
+						CommUtils.writeOutputStream(host.out, hdr.bytes, 0, ClientHeader.kHdrByteCount);
+						
+						// Write the data we've received
+						CommUtils.writeOutputStream(host.out, commBuffer, 0, (int)hdr.messageLen);
+					}
 				}
 			}
 		}
 		if ((clientType == CommUtils.kHostID) && !peerConnectionThreads.isEmpty())
 		{
-			ServerSideConnectionHandlerThread peer = peerConnectionThreads.get(0);
+			ServerSideConnectionHandlerThread presenter = peerConnectionThreads.get(0);
 			
 			// We only forward the packet if this thread is the "master host" thread.
 			if (this == listenerThread.findMasterHostConnectionThread(domecastID))
 			{
-				synchronized (peer.outputStreamLock)
+				synchronized (presenter.outputStreamLock)
 				{
 					// Write the header we've received
-					CommUtils.writeOutputStream(peer.out, hdr.bytes, 0, ClientHeader.kHdrByteCount);
+					CommUtils.writeOutputStream(presenter.out, hdr.bytes, 0, ClientHeader.kHdrByteCount);
 					
 					// Write the data we've received
-					CommUtils.writeOutputStream(peer.out, commBuffer, 0, (int)hdr.messageLen);
+					CommUtils.writeOutputStream(presenter.out, commBuffer, 0, (int)hdr.messageLen);
 				}
 			}
 		}
@@ -407,7 +416,7 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 		buf.append("domecastID=" + domecastID + ", ");
 		buf.append("clientType=" + (char)clientType + ", ");
 		if (clientType == CommUtils.kHostID)
-			buf.append(CommUtils.kIsHostListening + Boolean.toString(isHostListening));
+			buf.append(CommUtils.kIsHostListening + Boolean.toString(isHostListening.get()));
 		if (clientType == CommUtils.kPresenterID)
 		{
 			File assetsFile = getAssetsFile();

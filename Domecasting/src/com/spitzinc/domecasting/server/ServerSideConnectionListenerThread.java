@@ -173,6 +173,30 @@ public class ServerSideConnectionListenerThread extends TCPConnectionListenerThr
 		return result;
 	}
 	
+	/*
+	 * Returns true if any host with given domecastID is listening to domecast.
+	 */
+	public boolean anyHostsListening(String domecastID)
+	{
+		if (domecastID == null)
+			return false;
+		
+		boolean result = false;
+		
+		for (TCPConnectionHandlerThread aThread : connectionHandlerThreads)
+		{
+			ServerSideConnectionHandlerThread otherThread = (ServerSideConnectionHandlerThread)aThread;
+			if (domecastID.equals(otherThread.getDomecastID()) && (otherThread.getClientType() == CommUtils.kHostID) &&
+				(otherThread.isHostListening()))
+			{
+				result = true;
+				break;
+			}
+		}
+		
+		return result;
+	}
+	
 	/**
 	 * Clients in presenter mode must submit a unique domecastID. This method tests the supplied
 	 * domecastID for uniqueness.
