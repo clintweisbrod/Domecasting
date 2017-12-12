@@ -2,6 +2,7 @@ package com.spitzinc.domecasting.client;
 
 import javax.swing.JPanel;
 
+import com.spitzinc.domecasting.JSwitchButton;
 import com.spitzinc.domecasting.Log;
 
 import javax.swing.JLabel;
@@ -32,7 +33,7 @@ public class HostPanel extends JPanel
 	
 	private boolean ignoreDomecastComboboxChanges;
 	private JButton btnDownloadAssets;
-	private JButton btnDomecastListen;
+	private JSwitchButton btnDomecastListen;
 	private JLabel lblStatusText;
 	private JComboBox<String> cmbAvailableDomecasts;
 	private JLabel lblNewLabel;
@@ -138,13 +139,15 @@ public class HostPanel extends JPanel
 		gbc_progressBar.gridy = 2;
 		add(progressBar, gbc_progressBar);
 		
-		btnDomecastListen = new JButton(buttonTextListenToDomecast);
+		btnDomecastListen = new JSwitchButton("On", "Off");
 		btnDomecastListen.setEnabled(false);
 		btnDomecastListen.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				ClientApplication inst = (ClientApplication) ClientApplication.inst();
 				if (!inst.isHostListening.get())
 				{
+					Log.inst().info("Listening to domecast.");
+					
 					inst.isHostListening.set(true);
 					inst.snPassThru.notifyThreadsOfCommModeChange();
 					
@@ -158,10 +161,12 @@ public class HostPanel extends JPanel
 					inst.appFrame.tabbedPane.setEnabled(false);
 					
 					// Change the button text
-					btnDomecastListen.setText(buttonTextStopListeningToDomecast);
+//					btnDomecastListen.setText(buttonTextStopListeningToDomecast);
 				}
 				else
 				{
+					Log.inst().info("Not listening to domecast.");
+					
 					inst.isHostListening.set(false);
 					inst.snPassThru.notifyThreadsOfCommModeChange();
 					
@@ -175,7 +180,7 @@ public class HostPanel extends JPanel
 					inst.appFrame.tabbedPane.setEnabled(true);
 					
 					// Change the button text
-					btnDomecastListen.setText(buttonTextListenToDomecast);
+//					btnDomecastListen.setText(buttonTextListenToDomecast);
 				}
 			}
 		});
@@ -200,6 +205,7 @@ public class HostPanel extends JPanel
 		btnDownloadAssets.setEnabled(false);
 		progressBar.setVisible(false);
 		btnDownloadAssets.setVisible(true);
+		btnDomecastListen.setSelected(false);
 		btnDomecastListen.setEnabled(false);
 	}
 
@@ -283,6 +289,7 @@ public class HostPanel extends JPanel
 
 		// Enable "Listen to Domecast" button accordingly
 		btnDomecastListen.setEnabled(inst.isPeerConnected.get());
+		btnDomecastListen.setSelected(inst.isHostListening.get());
 		
 		// Enable "Download Presentation Assets..." button accordingly
 		btnDownloadAssets.setEnabled(inst.assetsFileAvailable.get());
