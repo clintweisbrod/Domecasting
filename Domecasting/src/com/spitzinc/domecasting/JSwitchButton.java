@@ -67,12 +67,6 @@ public class JSwitchButton extends AbstractButton
 		this.buttonForegroundDisabled = defaults.getColor("Button.disabledForeground");
 		this.buttonFont = defaults.getFont("Button.font");
 		
-		this.buttonAnimationTimer = new Timer(20, new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
-                repaint();
-            }
-        });
-		
 		this.trueLabel = trueLabel;
 		this.falseLabel = falseLabel;
 		double trueLength = getFontMetrics(buttonFont).getStringBounds(trueLabel, getGraphics()).getWidth();
@@ -81,36 +75,59 @@ public class JSwitchButton extends AbstractButton
 		gap =  Math.max(5, 5 + (int)Math.abs(trueLength - falseLength)); 
 		thumbBounds  = new Dimension(max + gap * 2, 20);
 		globalWitdh =  2 * thumbBounds.width;
-		setModel( new DefaultButtonModel() );
-		setSelected( false );
-		addMouseListener( new MouseAdapter() {
+		setModel(new DefaultButtonModel());
+		setSelected(false);
+		addMouseListener(new MouseAdapter() {
 			@Override
 			public void mouseReleased(MouseEvent e)
 			{
 				if (isEnabled() && new Rectangle( getPreferredSize() ).contains( e.getPoint() ))
 				{
-					boolean wasSelected = isSelected();
-					setSelected(!wasSelected);
+					setSelected(!isSelected());
 					
 					// Notify each ActionListener
 					fireActionPerformed(new ActionEvent(JSwitchButton.this, ActionEvent.ACTION_PERFORMED, null));
-					
-					// Setup button animation boundaries and start the animation
-					if (wasSelected)
-					{
-						buttonXStart = thumbBounds.width;
-						buttonXEnd = 0;
-					}
-					else
-					{
-						buttonXStart = 0;
-						buttonXEnd = thumbBounds.width;
-					}
-					animationStart = System.currentTimeMillis();
-					buttonAnimationTimer.start();
 				}
 			}
 		});
+		
+		// Create timer for button animation
+		this.buttonAnimationTimer = new Timer(20, new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                repaint();
+            }
+        });
+	}
+	
+	@Override
+	public void setSelected(boolean b)
+	{
+		if (b == isSelected())
+			return;
+
+		if (buttonAnimationTimer != null)
+		{
+			// Setup button animation boundaries and start the animation
+			if (b)
+			{
+				buttonXStart = 0;
+				buttonXEnd = thumbBounds.width;
+			}
+			else
+			{
+				buttonXStart = thumbBounds.width;
+				buttonXEnd = 0;
+			}
+			animationStart = System.currentTimeMillis();
+			buttonAnimationTimer.start();
+		}
+		else
+		{
+			animationStart = 0;
+			repaint();
+		}
+		
+		super.setSelected(b);
 	}
 
 	@Override
@@ -196,20 +213,22 @@ public class JSwitchButton extends AbstractButton
 		if (w > 14)
 		{
 			final int size = 10;
+			final int w2 = w/2;
+			final int h2 = h/2;
 			g2.setColor(notchColor1);
-			g2.fillRect(x+w/2-size/2,y+h/2-size/2, size, size);
+			g2.fillRect(x + w2 - size/2, y + h2 - size/2, size, size);
 			g2.setColor(notchColor2);
-			g2.fillRect(x+w/2-4,h/2-4, 2, 2);
-			g2.fillRect(x+w/2-1,h/2-4, 2, 2);
-			g2.fillRect(x+w/2+2,h/2-4, 2, 2);
+			g2.fillRect(x + w2 - 4, h2 - 4, 2, 2);
+			g2.fillRect(x + w2 - 1, h2 - 4, 2, 2);
+			g2.fillRect(x + w2 + 2, h2 - 4, 2, 2);
 			g2.setColor(notchColor3);
-			g2.fillRect(x+w/2-4,h/2-2, 2, 6);
-			g2.fillRect(x+w/2-1,h/2-2, 2, 6);
-			g2.fillRect(x+w/2+2,h/2-2, 2, 6);
+			g2.fillRect(x + w2 - 4, h2 - 2, 2, 6);
+			g2.fillRect(x + w2 - 1, h2 - 2, 2, 6);
+			g2.fillRect(x + w2 + 2, h2 - 2, 2, 6);
 			g2.setColor(notchColor4);
-			g2.fillRect(x+w/2-4,h/2+2, 2, 2);
-			g2.fillRect(x+w/2-1,h/2+2, 2, 2);
-			g2.fillRect(x+w/2+2,h/2+2, 2, 2);
+			g2.fillRect(x + w2 - 4, h2 + 2, 2, 2);
+			g2.fillRect(x + w2 - 1, h2 + 2, 2, 2);
+			g2.fillRect(x + w2 + 2, h2 + 2, 2, 2);
 		}
 
 		// Draw border around button
