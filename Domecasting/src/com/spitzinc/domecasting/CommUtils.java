@@ -41,7 +41,6 @@ public class CommUtils
 	public static final String kDomecastID = "domecastID";
 	public static final String kClientType = "clientType";
 	public static final String kIsHostListening = "isHostListening";
-	public static final String kIsAnyHostListening = "isAnyHostListening";
 	public static final String kRequestFullState = "requestFullState";
 	public static final String kAssetsFileAvailable = "assetsFileAvailable";
 	public static final String kGetAssetsFile = "getAssetsFile";

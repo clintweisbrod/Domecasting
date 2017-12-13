@@ -248,14 +248,14 @@ public class ServerConnection
 					theApp.isConnectedToServer.set(Boolean.parseBoolean(list[1]));
 				else if (list[0].equals(CommUtils.kGetAvailableDomecasts))		// Only received by host
 					theApp.availableDomecasts = list[1];
-				else if (list[0].equals(CommUtils.kIsAnyHostListening))			// Only received by presenter.
+				else if (list[0].equals(CommUtils.kIsHostListening))			// Only received by presenter. Host sets locally.
 				{
 					// Only set the value if it's different
-					boolean oldValue = theApp.isAnyHostListening.get();
+					boolean oldValue = theApp.isHostListening.get();
 					boolean newValue = Boolean.parseBoolean(list[1]);
 					if (newValue != oldValue)
 					{
-						theApp.isAnyHostListening.set(Boolean.parseBoolean(list[1]));
+						theApp.isHostListening.set(Boolean.parseBoolean(list[1]));
 						theApp.snPassThru.notifyThreadsOfCommModeChange();
 					}
 				}

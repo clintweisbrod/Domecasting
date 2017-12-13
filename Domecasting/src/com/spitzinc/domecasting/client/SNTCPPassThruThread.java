@@ -118,7 +118,7 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 					e.printStackTrace();
 				}
 				
-				// Exit if host is no longer listening
+				// Exit if no hosts are listening
 				if (!theApp.isHostListening.get())
 					break;
 			}
@@ -195,7 +195,7 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 					while (!stopped.get())
 					{
 						// Depending on whether any host is listening, we perform communication differently
-						boolean isAnyHostListening = theApp.isAnyHostListening.get();
+						boolean isAnyHostListening = theApp.isHostListening.get();
 						
 						// If theApp.isAnyHostListening was changed, we have to either launch or kill a thread
 						// that reads data off the InputStream that is ignored when we're routing comm through
