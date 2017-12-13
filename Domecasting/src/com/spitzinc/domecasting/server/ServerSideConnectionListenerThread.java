@@ -11,16 +11,21 @@ import com.spitzinc.domecasting.TCPConnectionListenerThread;
 
 public class ServerSideConnectionListenerThread extends TCPConnectionListenerThread
 {
+	private long connectionCount;
+	
 	public ServerSideConnectionListenerThread(int port, int maxConcurrentSessions) throws IOException
 	{
 		super(port, maxConcurrentSessions * 2);
+		
+		this.connectionCount = 0;
 	}
 
 	@Override
 	protected void handleSocketConnection(Socket clientSocket)
 	{
 		// Launch a new thread to handle connection
-		ServerSideConnectionHandlerThread thread = new ServerSideConnectionHandlerThread(this, clientSocket);
+		connectionCount++;
+		ServerSideConnectionHandlerThread thread = new ServerSideConnectionHandlerThread(this, clientSocket, connectionCount);
 		connectionHandlerThreads.add(thread);
 		thread.start();
 	}

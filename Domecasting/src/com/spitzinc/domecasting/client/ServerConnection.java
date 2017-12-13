@@ -248,17 +248,19 @@ public class ServerConnection
 					theApp.isConnectedToServer.set(Boolean.parseBoolean(list[1]));
 				else if (list[0].equals(CommUtils.kGetAvailableDomecasts))		// Only received by host
 					theApp.availableDomecasts = list[1];
-				else if (list[0].equals(CommUtils.kIsHostListening))			// Only received by presenter. Host sets this locally.
+				else if (list[0].equals(CommUtils.kIsAnyHostListening))			// Only received by presenter.
 				{
 					// Only set the value if it's different
-					boolean oldValue = theApp.isHostListening.get();
+					boolean oldValue = theApp.isAnyHostListening.get();
 					boolean newValue = Boolean.parseBoolean(list[1]);
 					if (newValue != oldValue)
 					{
-						theApp.isHostListening.set(Boolean.parseBoolean(list[1]));
+						theApp.isAnyHostListening.set(Boolean.parseBoolean(list[1]));
 						theApp.snPassThru.notifyThreadsOfCommModeChange();
 					}
 				}
+				else if (list[0].equals(CommUtils.kRequestFullState))			// Only received by presenter.
+					theApp.requestFullState.set(list[1]);
 				else if (list[0].equals(CommUtils.kIsPeerConnected))			// Received by both presenter and host
 					theApp.isPeerConnected.set(Boolean.parseBoolean(list[1]));
 				else if (list[0].equals(CommUtils.kAssetsFileAvailable))		// Only received by host
@@ -436,7 +438,7 @@ public class ServerConnection
 			synchronized (outputStreamLock)
 			{
 				// Write the header
-				CommUtils.writeHeader(out, outHdr, assetsFile.length(), ClientHeader.kDCC, ClientHeader.kFILE);
+				CommUtils.writeHeader(out, outHdr, assetsFile.length(), ClientHeader.kDCC, "", ClientHeader.kFILE);
 				
 				// Rather than reserve 260 additional characters in the header to hold a filename for transmitting
 				// assets files in rare circumstances, introducing unnecessary overhead to 99.9% of the communication
@@ -470,7 +472,7 @@ public class ServerConnection
 			synchronized (outputStreamLock)
 			{
 				try {
-					CommUtils.writeHeader(out, outHdr, theBytes.length, ClientHeader.kDCC, msgType);
+					CommUtils.writeHeader(out, outHdr, theBytes.length, ClientHeader.kDCC, "", msgType);
 					CommUtils.writeOutputStream(out, theBytes, 0, theBytes.length);
 				} catch (IOException e) {
 					// TODO Auto-generated catch block

@@ -36,7 +36,7 @@ public class SNTCPPassThruServer
 	}
 	
 	/*
-	 * Whenever ClientApplication.isHostListening is modified, this method must be called so that
+	 * Whenever ClientApplication.isAnyHostListening is modified, this method must be called so that
 	 * the SNTCPPassThruThread instances are aware of the change.
 	 */
 	public void notifyThreadsOfCommModeChange()

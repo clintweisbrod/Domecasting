@@ -71,6 +71,7 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 	private final static int kSNHeaderDataLengthPosition = 20;
 	private final static int kSNHeaderReplyPortPosition = 50;
 	private final static int kSNHeaderClientAppNamePosition = 60;
+	private final static int kSNHeaderDomecastHostIDPosition = 70;
 	
 	private final static String kSetLiveCommandHdr = "          L                   0         0                                                                               ";
 	private final static String kSetLiveCommandData = "<HTML>\r\n" +
@@ -79,6 +80,7 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 													  "<SN_VALUE name=\"VersionSKU\" value=\"d740c-EW\">\r\n" +
 													  "<SN_VALUE name=\"charset\" value=\"iso-8859-1\">\r\n" +
 													  "<SN_VALUE name=\"CallSetLive\" value=\"True\">\r\n" +
+													  "<SN_VALUE name=\"DomecastHostID\" value=\"@DomecastHostID@\">\r\n" +
 													  "<SN_VALUE name=\"ValueListVersion\" value=\"2\">\r\n";
 													  
 	
@@ -97,7 +99,7 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 			{
 				try {
 					// Read the next SN header
-					long messageLength = readSNHeader(buffer);
+					long messageLength = readSNHeader(buffer, domecastHostID);
 					
 					// Read the data
 					readSNDataToNowhere(buffer, messageLength);
@@ -136,6 +138,7 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 	private ClientHeader outHdr;
 	private ReadIgnoredInputStreamThread readIgnoredStreamThread;
 	private AtomicBoolean commModeChanged;
+	private StringBuffer domecastHostID;
 	
 	public SNTCPPassThruThread(ClientSideConnectionListenerThread owner, Socket inboundSocket, TCPNode outboundNode)
 	{
@@ -152,6 +155,7 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 		this.theApp = (ClientApplication)ClientApplication.inst();
 		this.readIgnoredStreamThread = null;
 		this.commModeChanged = new AtomicBoolean(false);
+		this.domecastHostID = new StringBuffer();
 
 		this.setName(getClass().getSimpleName() + "_" + inboundSocket.getLocalPort() + "->" + outboundNode.port);	
 	}
@@ -190,31 +194,29 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 				{
 					while (!stopped.get())
 					{
-						// Depending on whether host is listening, we perform communication differently
-						boolean isHostListening = theApp.isHostListening.get();
+						// Depending on whether any host is listening, we perform communication differently
+						boolean isAnyHostListening = theApp.isAnyHostListening.get();
 						
-						// If theApp.isHostListening was changed, we have to either launch or kill a thread
+						// If theApp.isAnyHostListening was changed, we have to either launch or kill a thread
 						// that reads data off the InputStream that is ignored when we're routing comm through
 						// the domecast server.
-						boolean sendSetLive = false;
 						if (commModeChanged.get())
 						{
 							Log.inst().debug("Calling switchCommModes().");
-							switchCommModes(isHostListening);
-							
-							// See comments for sendSetLiveCommand()
-							if (isHostListening && !modifyReplyPort && (theApp.clientType == CommUtils.kPresenterID) &&
-								((clientAppName != null) && (clientAppName.equals(ClientHeader.kSNPF))))
-								sendSetLive = true;
+							switchCommModes(isAnyHostListening);
 							
 							commModeChanged.set(false);
 						}
 						
 						// Perform routing of a single SN header and data.
-						if (isHostListening)
+						if (isAnyHostListening)
 						{
-							if (sendSetLive)
+							// See comments for sendSetLiveCommand()
+							if (!modifyReplyPort && (theApp.clientType == CommUtils.kPresenterID) &&
+								((clientAppName != null) && (clientAppName.equals(ClientHeader.kSNPF))))
+							{
 								sendSetLiveCommand();
+							}
 
 							performDomecastRouting(buffer);
 						}
@@ -290,12 +292,12 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 		}
 	}
 	
-	private void switchCommModes(boolean isHostListening)
+	private void switchCommModes(boolean isAnyHostListening)
 	{
 		if (((theApp.clientType == CommUtils.kPresenterID) && !modifyReplyPort) ||
 			((theApp.clientType == CommUtils.kHostID) && modifyReplyPort))
 		{
-			if (isHostListening)
+			if (isAnyHostListening)
 			{
 				// Create a thread to read the InputStream we are about to ignore when we begin routing comm
 				readIgnoredStreamThread = new ReadIgnoredInputStreamThread();
@@ -324,7 +326,7 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 	private void starryNightPassThru(byte[] buffer) throws IOException
 	{
 		// Get total length of incoming message and modify the replyToPort
-		long messageLength = readSNHeader(buffer);
+		long messageLength = readSNHeader(buffer, domecastHostID);
 		
 		// Write the header to the outbound socket
 		CommUtils.writeOutputStream(out, buffer, 0, kSNHeaderLength);
@@ -344,7 +346,7 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 		}
 	}
 	
-	private long readSNHeader(byte[] buffer) throws IOException
+	private long readSNHeader(byte[] buffer, StringBuffer fullStateHostID) throws IOException
 	{
 		long result = 0;
 		
@@ -378,6 +380,10 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 			Log.inst().debug("clientAppName parsed from SN header: " + clientAppName);
 		}
 		
+		// Determine if the field beginning at kSNHeaderDomecastHostIDPosition contains something
+		if (buffer[kSNHeaderDomecastHostIDPosition] != ' ')
+			fullStateHostID.insert(0, new String(buffer, kSNHeaderDomecastHostIDPosition, kSNHeaderFieldLength).trim());
+		
 		return result;
 	}
 
@@ -393,8 +399,11 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 			{
 				// If we get here, this is the thread that reads data from the local PF or ATM4.
 				// Do the usual pass-thru...
-				long messageLength = readSNHeader(buffer);						// Read the SN header
-				CommUtils.writeOutputStream(out, buffer, 0, kSNHeaderLength);	// Write the SN header to the outbound socket
+				long messageLength = readSNHeader(buffer, domecastHostID);		// Read the SN header
+				
+				// If domecastHostID contains something, we don't want to forward the SN packet to our local RB.
+				if (domecastHostID.length() == 0)
+					CommUtils.writeOutputStream(out, buffer, 0, kSNHeaderLength);	// Write the SN header to the outbound socket
 				
 				// ... and also write the incoming data to the domecast server.
 				writeSNPacketToServer(buffer, dcsOut, messageLength, clientAppName);
@@ -420,13 +429,16 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 			{
 				// If we get here, this is the thread that reads data from the local RB.
 				// Do the usual pass-thru...
-				long messageLength = readSNHeader(buffer);						// Read the SN header
+				long messageLength = readSNHeader(buffer, domecastHostID);		// Read the SN header
 				CommUtils.writeOutputStream(out, buffer, 0, kSNHeaderLength);	// Write the SN header to the outbound socket
 				
 				// ... and also write the incoming data to the domecast server.
 				writeSNPacketToServer(buffer, dcsOut, messageLength, clientAppName);
 			}
 		}
+		
+		// Clear domecastHostID.
+		domecastHostID.setLength(0);
 	}
 	
 	private void readSNDataToNowhere(byte[] buffer, long messageLength) throws IOException
@@ -466,9 +478,10 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 		// We must write the client header, then the SN header in buffer, read the rest of the packet from the local InputStream
 		// and write it to the domecast server OutputStream while we have exclusive access to the
 		// domecast server OutputStream.
-		synchronized(theApp.serverConnection.outputStreamLock) {
+		synchronized(theApp.serverConnection.outputStreamLock)
+		{
 			// Write the client header
-			CommUtils.writeHeader(dcsOut, outHdr, messageLength, msgSrc, ClientHeader.kCOMM);
+			CommUtils.writeHeader(dcsOut, outHdr, messageLength, msgSrc, domecastHostID.toString(), ClientHeader.kCOMM);
 			
 			// Write the SN header currently in buffer
 			CommUtils.writeOutputStream(dcsOut, buffer, 0, kSNHeaderLength);
@@ -487,8 +500,9 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 			int bytesToRead = Math.min(bytesLeftToReceive, buffer.length);
 			CommUtils.readInputStream(in, buffer, 0, bytesToRead);
 	
-			// Write the buffer to the local OutputStream
-			CommUtils.writeOutputStream(out, buffer, 0, bytesToRead);
+			// If domecastHostID contains something, we don't want to forward the SN packet to our local OutputStream
+			if (domecastHostID.length() == 0)
+				CommUtils.writeOutputStream(out, buffer, 0, bytesToRead);
 			
 			// Also write the buffer to the domecast server OutputStream
 			CommUtils.writeOutputStream(serverOutputStream, buffer, 0, bytesToRead);
@@ -504,8 +518,18 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 	 */
 	private void sendSetLiveCommand() throws IOException
 	{
+		String hostConnectionID = theApp.requestFullState.get();
+		if (hostConnectionID.isEmpty())
+			return;
+
+		// Clear this value so we don't trigger more than one request
+		theApp.requestFullState.set("");
+
 		byte[] hdrBytes = kSetLiveCommandHdr.getBytes();
-		byte[] dataBytes = kSetLiveCommandData.getBytes();
+		
+		// Encode hostConnectionID in the request
+		String setLiveCommandData = kSetLiveCommandData.replaceFirst("@DomecastHostID@", hostConnectionID);
+		byte[] dataBytes = setLiveCommandData.getBytes();
 		
 		// Write rbPrefs_DomeServer_TCPPort at position kSNHeaderReplyPortPosition
 		byte[] replyPortBytes = CommUtils.getRightPaddedByteArray(Integer.toString(theApp.rbPrefs_DomeServer_TCPPort), kSNHeaderFieldLength);

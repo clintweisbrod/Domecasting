@@ -28,11 +28,13 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 	private String domecastID;
 	private byte clientType;
 	private AtomicBoolean isHostListening;	// Only valid for host connections
+	private final String connectionID; 
 	
-	public ServerSideConnectionHandlerThread(TCPConnectionListenerThread owner, Socket inboundSocket)
+	public ServerSideConnectionHandlerThread(TCPConnectionListenerThread owner, Socket inboundSocket, long connectionID)
 	{
 		super(owner, inboundSocket);
 		
+		this.connectionID = Long.toString(connectionID);
 		this.peerConnectionThreads = null;
 		this.outputStreamLock = new Object();
 		this.outHdr = new ClientHeader();
@@ -53,6 +55,10 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 	
 	public boolean isHostListening() {
 		return isHostListening.get();
+	}
+	
+	public String getConnectionID() {
+		return connectionID;
 	}
 	
 	private void beginHandlingClientCommands()
@@ -136,7 +142,16 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 			sendBoolean(CommUtils.kIsDomecastIDUnique, listenerThread.isDomecastIDUnique(list[1]));
 		else if (list[0].equals(CommUtils.kIsHostListening))	// Sent only from host
 		{
+			boolean newValue = Boolean.parseBoolean(list[1]);
+			boolean requestFullState = newValue && (isHostListening.get() != newValue); 
 			isHostListening.set(Boolean.parseBoolean(list[1]));
+			
+			// We have a problem! When we send kIsHostListening back to presenter, this
+			// will cause a call to SNTCPPassThruThread.sendSetLiveCommand() which causes
+			// the presenter's local PF to send a full state back across it's connection.
+			// Like all other COMM, this gets sent to the local RB and ALL remote RBs if
+			// their domecasting hosts are listening. We only want this host to receive
+			// the full state. We don't even want the presenter's local RB to receive it.
 			
 			// We don't want to just send back isHostListening to the presenter. This
 			// is only valid for 1:1 domecasts. In general, we want to send back a boolean
@@ -146,7 +161,14 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 			// Notify presenter of this change. Should only find one presenter. 
 			peerConnectionThreads = listenerThread.findPeerConnectionThreads(this);
 			if (!peerConnectionThreads.isEmpty())
-				peerConnectionThreads.get(0).sendBoolean(CommUtils.kIsHostListening, response);
+			{
+				peerConnectionThreads.get(0).sendBoolean(CommUtils.kIsAnyHostListening, response);
+			
+				// And ask presenter to request local PF to call SetLiveCommunicationWithRB(true) so that
+				// we are sent a full state.
+				if (requestFullState)
+					peerConnectionThreads.get(0).sendText(CommUtils.kRequestFullState, connectionID);
+			}
 			
 			listenerThread.sendStatusToThreads();
 		}
@@ -196,7 +218,7 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 		// We're performing two writes to the OutputStream. They MUST be sequential.
 		synchronized (outputStreamLock)
 		{
-			CommUtils.writeHeader(out, outHdr, replyBytes.length, ClientHeader.kDCS, ClientHeader.kINFO);
+			CommUtils.writeHeader(out, outHdr, replyBytes.length, ClientHeader.kDCS, "", ClientHeader.kINFO);
 			CommUtils.writeOutputStream(out, replyBytes, 0, replyBytes.length);
 		}
 	}
@@ -209,7 +231,7 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 		// We're performing two writes to the OutputStream. They MUST be sequential.
 		synchronized (outputStreamLock)
 		{
-			CommUtils.writeHeader(out, outHdr, replyBytes.length, ClientHeader.kDCS, ClientHeader.kINFO);
+			CommUtils.writeHeader(out, outHdr, replyBytes.length, ClientHeader.kDCS, "", ClientHeader.kINFO);
 			CommUtils.writeOutputStream(out, replyBytes, 0, replyBytes.length);
 		}
 	}
@@ -236,7 +258,7 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 		// We're performing two writes to the OutputStream. They MUST be sequential.
 		synchronized (outputStreamLock)
 		{
-			CommUtils.writeHeader(out, outHdr, replyBytes.length, ClientHeader.kDCS, ClientHeader.kINFO);
+			CommUtils.writeHeader(out, outHdr, replyBytes.length, ClientHeader.kDCS, "", ClientHeader.kINFO);
 			CommUtils.writeOutputStream(out, replyBytes, 0, replyBytes.length);
 		}
 	}
@@ -252,7 +274,7 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 			synchronized (outputStreamLock)
 			{
 				// Write the header
-				CommUtils.writeHeader(out, outHdr, inputFile.length(), ClientHeader.kDCS, ClientHeader.kFILE);
+				CommUtils.writeHeader(out, outHdr, inputFile.length(), ClientHeader.kDCS, "", ClientHeader.kFILE);
 				
 				// See comments in ServerConnection.sendAssetsFile() regarding inclusion of filename field
 				// after normal header.
@@ -282,19 +304,26 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 
 		if (clientType == CommUtils.kPresenterID)
 		{
-			// Write to each peer (host) thread
+			boolean writeToSpecificHost = !hdr.messageDestination.isEmpty();
+			
+			// Write to one or more peer (host) threads
 			for (ServerSideConnectionHandlerThread host : peerConnectionThreads)
 			{
 				// Only write to the host if it is listening
 				if (host.isHostListening())
 				{
-					synchronized (host.outputStreamLock)
+					// Only write to the host if hdr.messageDestination is not specified OR hdr.messageDestination is
+					// specified and is equal to the host's connectionID.
+					if (!writeToSpecificHost || (writeToSpecificHost && (host.getConnectionID().equals(hdr.messageDestination))))
 					{
-						// Write the header we've received
-						CommUtils.writeOutputStream(host.out, hdr.bytes, 0, ClientHeader.kHdrByteCount);
-						
-						// Write the data we've received
-						CommUtils.writeOutputStream(host.out, commBuffer, 0, (int)hdr.messageLen);
+						synchronized (host.outputStreamLock)
+						{
+							// Write the header we've received
+							CommUtils.writeOutputStream(host.out, hdr.bytes, 0, ClientHeader.kHdrByteCount);
+							
+							// Write the data we've received
+							CommUtils.writeOutputStream(host.out, commBuffer, 0, (int)hdr.messageLen);
+						}
 					}
 				}
 			}

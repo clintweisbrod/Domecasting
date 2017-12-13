@@ -53,6 +53,8 @@ public class ClientApplication extends ApplicationBase implements WindowListener
 	public AtomicBoolean isDomecastIDUnique;	// Relevant only for presenter
 	public String availableDomecasts;			// Relevant only for hosts
 	public AtomicBoolean isHostListening;		// Relevant for both host and presenter.
+	public AtomicBoolean isAnyHostListening;	// Relevant only for presenter
+	public AtomicReference<String> requestFullState;
 	public AtomicBoolean assetsFileAvailable;	// Relevant only for hosts
 	public AtomicInteger fileProgress;
 	
@@ -73,6 +75,8 @@ public class ClientApplication extends ApplicationBase implements WindowListener
 		this.isPeerConnected = new AtomicBoolean(false);
 		this.isDomecastIDUnique = new AtomicBoolean(false);
 		this.isHostListening = new AtomicBoolean(false);
+		this.isAnyHostListening = new AtomicBoolean(false);
+		this.requestFullState = new AtomicReference<String>();
 		this.assetsFileAvailable = new AtomicBoolean(false);
 		this.fileProgress = new AtomicInteger(0);
 	

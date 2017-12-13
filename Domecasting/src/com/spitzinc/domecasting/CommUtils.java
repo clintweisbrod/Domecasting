@@ -41,6 +41,8 @@ public class CommUtils
 	public static final String kDomecastID = "domecastID";
 	public static final String kClientType = "clientType";
 	public static final String kIsHostListening = "isHostListening";
+	public static final String kIsAnyHostListening = "isAnyHostListening";
+	public static final String kRequestFullState = "requestFullState";
 	public static final String kAssetsFileAvailable = "assetsFileAvailable";
 	public static final String kGetAssetsFile = "getAssetsFile";
 	public static final String kStatusText = "statusText";
@@ -203,10 +205,11 @@ public class CommUtils
 	}
 	
 	public static void writeHeader(OutputStream os, ClientHeader hdr,
-								   long msgLen, String msgSrc, String msgType) throws IOException
+								   long msgLen, String msgSrc, String msgDst, String msgType) throws IOException
 	{
 		hdr.messageLen = msgLen;
 		hdr.messageSource = msgSrc;
+		hdr.messageDestination = msgDst;
 		hdr.messageType = msgType;
 		hdr.buildHeaderBuffer();
 		writeOutputStream(os, hdr.bytes, 0, ClientHeader.kHdrByteCount);
