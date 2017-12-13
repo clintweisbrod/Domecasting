@@ -138,6 +138,9 @@ public class ClientAppFrame extends JFrame
 			hostPanel.updatePanel(domecasts);
 		if (presenterPanel != null)
 			presenterPanel.updatePanel();
+		
+		if (!theApp.isConnectedToServer.get())
+			resetUI();
 	}
 	
 	public void infoBox(String infoMessage, String titleBar)

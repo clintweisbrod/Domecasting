@@ -223,7 +223,7 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 						else
 							starryNightPassThru(buffer);
 						
-						Log.inst().debug("Handled comm.");
+//						Log.inst().debug("Handled comm.");
 					}
 				}
 				catch (IOException e1) {
