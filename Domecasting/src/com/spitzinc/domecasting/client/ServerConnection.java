@@ -8,6 +8,7 @@ import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.spitzinc.domecasting.BasicProcessorThread;
@@ -389,11 +390,14 @@ public class ServerConnection
 		if (theQueue != null)
 		{
 			try {
-				result = theQueue.take();	// This call will block until there is data in the queue.
+				result = theQueue.poll(1000, TimeUnit.MILLISECONDS);	// Wait up to a second for some data
 			} catch (InterruptedException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
+			
+			if (result == null)
+				Log.inst().debug("Queue is empty after waiting one second.");
 		}
 		
 		return result;
