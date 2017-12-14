@@ -82,8 +82,7 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 													  "<SN_VALUE name=\"CallSetLive\" value=\"True\">\r\n" +
 													  "<SN_VALUE name=\"DomecastHostID\" value=\"@DomecastHostID@\">\r\n" +
 													  "<SN_VALUE name=\"ValueListVersion\" value=\"2\">\r\n";
-													  
-	
+
 	/*
 	 * This thread is necessary to periodically read data off the connected InputStream
 	 * that is being ignored during comm routing through the domecast server. If we don't
@@ -127,12 +126,13 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 		}
 	}
 	
+	private enum ThreadType { eOutgoingToRB, eIncomingFromRB };
+	private ThreadType threadType;
 	private Socket outboundSocket = null;
 	private TCPNode outboundNode;
 	private byte[] replyPortBytes = null;
 	private String clientAppName = null;
 	private ClientApplication theApp;
-	private boolean modifyReplyPort;
 	private InputStream in;
 	private OutputStream out;
 	private ClientHeader outHdr;
@@ -143,13 +143,20 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 	public SNTCPPassThruThread(ClientSideConnectionListenerThread owner, Socket inboundSocket, TCPNode outboundNode)
 	{
 		super(owner, inboundSocket);
-
+		
 		this.outboundNode = outboundNode;
-		this.modifyReplyPort = (outboundNode.replyPort != -1);
+		
+		// The thread type is determined by whether we need to modify the reply port
+		if (outboundNode.replyPort != -1)
+			this.threadType = ThreadType.eOutgoingToRB;
+		else
+			this.threadType = ThreadType.eIncomingFromRB;
+
+		// Make a header for writing to OutputStream
 		this.outHdr = new ClientHeader();
 
 		// Build a byte buffer to replace the contents of the replyPort field in a SN TCP message header
-		if (modifyReplyPort)
+		if (this.threadType == ThreadType.eOutgoingToRB)
 			replyPortBytes = CommUtils.getRightPaddedByteArray(Integer.toString(outboundNode.replyPort), kSNHeaderFieldLength);
 		
 		this.theApp = (ClientApplication)ClientApplication.inst();
@@ -212,7 +219,7 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 						if (isAnyHostListening)
 						{
 							// See comments for sendSetLiveCommand()
-							if (!modifyReplyPort && (theApp.clientType == CommUtils.kPresenterID) &&
+							if ((threadType == ThreadType.eIncomingFromRB) && (theApp.clientType == CommUtils.kPresenterID) &&
 								((clientAppName != null) && (clientAppName.equals(ClientHeader.kSNPF))))
 							{
 								sendSetLiveCommand();
@@ -294,8 +301,8 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 	
 	private void switchCommModes(boolean isAnyHostListening)
 	{
-		if (((theApp.clientType == CommUtils.kPresenterID) && !modifyReplyPort) ||
-			((theApp.clientType == CommUtils.kHostID) && modifyReplyPort))
+		if (((theApp.clientType == CommUtils.kPresenterID) && (threadType == ThreadType.eIncomingFromRB)) ||
+			((theApp.clientType == CommUtils.kHostID) && (threadType == ThreadType.eOutgoingToRB)))
 		{
 			if (isAnyHostListening)
 			{
@@ -308,21 +315,6 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 		}
 	}
 	
-	/**
-	 * What's the deal with this method? SNTCPPassThruServer is essentially concerned with acting as a man-in-the-middle
-	 * for the TCP communication that occurs between Preflight and Renderbox. The SN communication protocol involves
-	 * Preflight establishing a TCP connection to Renderbox on a specific port. Upon establishing this connection,
-	 * Renderbox will then attempt to establish a TCP connection back to Preflight on a second port. The port that RB
-	 * uses to connect back to PF is specified (along with other info) in the first 120 bytes of each message that PF
-	 * sends to RB. As the man-in-the-middle running on the PF system, if we don't modify the port in the header before
-	 * sending the message along to RB, RB will connect directly back to PF instead of our process. So, rather than
-	 * blindly reading the bytes from the incoming socket and sending them out to the outgoing socket, we must read the
-	 * incoming data according to SN's TCP message protocol, and modify the replyToPort in each header with the port this
-	 * instance of SNTCPPassThruServer.recvListenerThread is listening on. Ya, a little complicated, but this beats
-	 * screwing with the TCP communication details in SN Preflight and Renderbox, ATM-4, SN Intercept, TLE, etc. 
-	 * @param buffer
-	 * @throws IOException 
-	 */
 	private void starryNightPassThru(byte[] buffer) throws IOException
 	{
 		// Get total length of incoming message and modify the replyToPort
@@ -363,7 +355,7 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 		}
 //		Log.inst().debug("Parsed messageLength = " + result);
 
-		if (modifyReplyPort)
+		if (threadType == ThreadType.eOutgoingToRB)
 		{
 			// Change the buffer so that the return port is set to outboundNode.replyPort
 			// The return port digits start at pos 50 in the buffer.
@@ -397,7 +389,7 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 
 		if (theApp.clientType == CommUtils.kPresenterID)
 		{
-			if (modifyReplyPort)
+			if (threadType == ThreadType.eOutgoingToRB)
 			{
 				// If we get here, this is the thread that reads data from the local PF or ATM4.
 				// Do the usual pass-thru...
@@ -420,7 +412,7 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 		}
 		else
 		{
-			if (modifyReplyPort)
+			if (threadType == ThreadType.eOutgoingToRB)
 			{
 				// If we get here, this is the thread that, during pass-thru, reads data from the local PF or ATM4.
 				// We read this data on a separate thread (ReadIgnoredInputStreamThread) but it will not be routed anywhere.
