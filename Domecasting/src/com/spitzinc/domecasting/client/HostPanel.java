@@ -28,8 +28,8 @@ public class HostPanel extends JPanel
 {
 	private static final long serialVersionUID = 1L;
 	
-	private static final String buttonTextListenToDomecast = "Listen to Domecast";
-	private static final String buttonTextStopListeningToDomecast = "Stop Listening to Domecast";
+	private static final String buttonTextListenToDomecast = "Live";
+	private static final String buttonTextStopListeningToDomecast = "Paused";
 	
 	private boolean ignoreDomecastComboboxChanges;
 	private JButton btnDownloadAssets;
@@ -139,7 +139,7 @@ public class HostPanel extends JPanel
 		gbc_progressBar.gridy = 2;
 		add(progressBar, gbc_progressBar);
 		
-		btnDomecastListen = new JSwitchButton("On", "Off");
+		btnDomecastListen = new JSwitchButton(buttonTextListenToDomecast, buttonTextStopListeningToDomecast);
 		btnDomecastListen.setEnabled(false);
 		btnDomecastListen.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
@@ -205,8 +205,12 @@ public class HostPanel extends JPanel
 		btnDownloadAssets.setEnabled(false);
 		progressBar.setVisible(false);
 		btnDownloadAssets.setVisible(true);
-		btnDomecastListen.setSelected(false);
-		btnDomecastListen.setEnabled(false);
+		
+		if (!JSwitchButton.kDebug)
+		{
+			btnDomecastListen.setSelected(false);
+			btnDomecastListen.setEnabled(false);
+		}
 	}
 
 	public void updatePanel(String[] domecasts)

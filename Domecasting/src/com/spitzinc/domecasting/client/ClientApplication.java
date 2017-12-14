@@ -14,6 +14,7 @@ import javax.swing.*;
 
 import com.spitzinc.domecasting.ApplicationBase;
 import com.spitzinc.domecasting.CommUtils;
+import com.spitzinc.domecasting.JSwitchButton;
 import com.spitzinc.domecasting.Log;
 import com.spitzinc.domecasting.SortedProperties;
 
@@ -44,9 +45,9 @@ public class ClientApplication extends ApplicationBase implements WindowListener
 	public String lastAssetsSaveFolder = null;
 	
 	public ClientAppFrame appFrame;
-	public SNTCPPassThruServer snPassThru = null;
-	
+	public SNTCPPassThruServer snPassThru;
 	public ServerConnection serverConnection;
+	
 	public AtomicReference<String> statusText;
 	public AtomicBoolean isConnectedToServer;
 	public AtomicBoolean isPeerConnected;
@@ -91,6 +92,9 @@ public class ClientApplication extends ApplicationBase implements WindowListener
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+		
+		if (JSwitchButton.kDebug)
+			this.isPeerConnected.set(true);
 	}
 	
 	private void readPrefs()

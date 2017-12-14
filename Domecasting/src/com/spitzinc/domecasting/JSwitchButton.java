@@ -30,6 +30,8 @@ import javax.swing.UIManager;
  */
 public class JSwitchButton extends AbstractButton
 {
+	public static final Boolean kDebug = false;	// Set this to true if you want the JSwitchButton initially enabled. Should normally be false.
+
 	private static final long serialVersionUID = 1L;
 	private static final double kButtonAnimationInterval = 0.125;
 
@@ -37,8 +39,9 @@ public class JSwitchButton extends AbstractButton
 	private Color buttonForeground;
 	private Color buttonForegroundDisabled;
 	private Font buttonFont;
-	private Color selectedBackgroundColor = new Color(93, 182, 223, 255);
-	private Color unselectedBackgroundColor  = new Color(160, 160, 160, 255);
+	private Font buttonFontDisabled;
+	private Color selectedBackgroundColor = new Color(170, 255, 170, 255);
+	private Color unselectedBackgroundColor  = new Color(255, 170, 170, 255);
 	private Color black  = new Color(0,0,0,255);
 		
 	private Color notchColor1 = new Color(220,220,220);
@@ -46,12 +49,10 @@ public class JSwitchButton extends AbstractButton
 	private Color notchColor3 = new Color(150,150,150);
 	private Color notchColor4 = new Color(170,170,170);
 	
-	private int gap;
-	private int globalWitdh;
+	private int globalWidth;
 	private final String trueLabel;
 	private final String falseLabel;
 	private Dimension thumbBounds;
-	private int max;
 
 	// Button animation
 	private Timer buttonAnimationTimer;
@@ -61,22 +62,34 @@ public class JSwitchButton extends AbstractButton
 
 	public JSwitchButton(String trueLabel, String falseLabel)
 	{
+		this.trueLabel = trueLabel;
+		this.falseLabel = falseLabel;
+
+		// Get UI defaults
 		UIDefaults defaults = UIManager.getDefaults();
 		this.buttonBackground = defaults.getColor("Button.background");
 		this.buttonForeground = defaults.getColor("Button.foreground");
 		this.buttonForegroundDisabled = defaults.getColor("Button.disabledForeground");
-		this.buttonFont = defaults.getFont("Button.font");
+		this.buttonFontDisabled = defaults.getFont("Button.font");
+		this.buttonFont = buttonFontDisabled.deriveFont(Font.BOLD);
 		
-		this.trueLabel = trueLabel;
-		this.falseLabel = falseLabel;
-		double trueLength = getFontMetrics(buttonFont).getStringBounds(trueLabel, getGraphics()).getWidth();
-		double falseLength = getFontMetrics(buttonFont).getStringBounds(falseLabel, getGraphics()).getWidth();
-		max = (int)Math.max(trueLength, falseLength);
-		gap =  Math.max(5, 5 + (int)Math.abs(trueLength - falseLength)); 
-		thumbBounds  = new Dimension(max + gap * 2, 20);
-		globalWitdh =  2 * thumbBounds.width;
+		// Compute sizes
+		final int kButtonBorderSpace = 5;
+		Rectangle2D textBounds = getFontMetrics(buttonFont).getStringBounds(trueLabel, getGraphics());
+		double trueLength = textBounds.getWidth();
+		textBounds = getFontMetrics(buttonFont).getStringBounds(falseLabel, getGraphics());
+		double falseLength = textBounds.getWidth();
+		int max = (int)Math.max(trueLength, falseLength);
+		int height = (int)textBounds.getHeight() + 2 * kButtonBorderSpace;
+		if (height % 2 == 1)
+			height++;
+		thumbBounds  = new Dimension(max + 2 * kButtonBorderSpace, height);
+		globalWidth =  2 * thumbBounds.width;
+		
 		setModel(new DefaultButtonModel());
 		setSelected(false);
+		
+		// Handle mouse clicks inside the control
 		addMouseListener(new MouseAdapter() {
 			@Override
 			public void mouseReleased(MouseEvent e)
@@ -132,7 +145,7 @@ public class JSwitchButton extends AbstractButton
 
 	@Override
 	public Dimension getPreferredSize() {
-		return new Dimension(globalWitdh, thumbBounds.height);
+		return new Dimension(globalWidth, thumbBounds.height);
 	}
 
 	@Override
@@ -159,12 +172,20 @@ public class JSwitchButton extends AbstractButton
 		int halfArcSize = kArcSize / 2;
 
 		// Draw the colored background of the entire component
-		g.setColor(selectedBackgroundColor);
-		g.fillRoundRect(1, 1, kArcSize, componentHeight - 2, kArcSize, kArcSize);
-		g.fillRoundRect(halfArcSize, 1, halfComponentWidth - halfArcSize, componentHeight - 2, 0, 0);
-		g.setColor(unselectedBackgroundColor);
-		g.fillRoundRect(halfComponentWidth, 1, halfComponentWidth - halfArcSize, componentHeight - 2, 0, 0);
-		g.fillRoundRect(componentWidth - kArcSize - 1, 1, kArcSize, componentHeight - 2, kArcSize, kArcSize);
+		if (isEnabled())
+		{
+			g.setColor(selectedBackgroundColor);
+			g.fillRoundRect(1, 1, kArcSize, componentHeight - 2, kArcSize, kArcSize);
+			g.fillRoundRect(halfArcSize, 1, halfComponentWidth - halfArcSize, componentHeight - 2, 0, 0);
+			g.setColor(unselectedBackgroundColor);
+			g.fillRoundRect(halfComponentWidth, 1, halfComponentWidth - halfArcSize, componentHeight - 2, 0, 0);
+			g.fillRoundRect(componentWidth - kArcSize - 1, 1, kArcSize, componentHeight - 2, kArcSize, kArcSize);
+		}
+		else
+		{
+			g.setColor(buttonBackground);
+			g.fillRoundRect(1, 1, componentWidth - 2, componentHeight - 2, kArcSize, kArcSize);
+		}
 		
 		// Draw border around component
 		if (isEnabled())
@@ -189,13 +210,23 @@ public class JSwitchButton extends AbstractButton
 		int h = thumbBounds.height;
 		
 		// Draw text
+		Color theColor = null;
+		Font theFont = null;
 		if (isEnabled())
-			g2.setColor(buttonForeground);
+		{
+			theColor = buttonForeground;
+			theFont = buttonFont;
+		}
 		else
-			g2.setColor(buttonForegroundDisabled);
+		{
+			theColor = buttonForegroundDisabled;
+			theFont = buttonFontDisabled;
+		}
+		g2.setColor(theColor);
+		g2.setFont(theFont);
+		
 		g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
-		g2.setFont(buttonFont);
-		FontMetrics fm = g2.getFontMetrics(buttonFont);
+		FontMetrics fm = g2.getFontMetrics(theFont);
 		Rectangle2D textBounds = fm.getStringBounds(trueLabel, g);
 		int stringX = 1 + (int)((w - textBounds.getWidth()) / 2.0);
 		int stringY = (int)(((h - textBounds.getHeight()) / 2.0) + textBounds.getHeight()) - 1;
@@ -218,17 +249,17 @@ public class JSwitchButton extends AbstractButton
 			g2.setColor(notchColor1);
 			g2.fillRect(x + w2 - size/2, y + h2 - size/2, size, size);
 			g2.setColor(notchColor2);
-			g2.fillRect(x + w2 - 4, h2 - 4, 2, 2);
-			g2.fillRect(x + w2 - 1, h2 - 4, 2, 2);
-			g2.fillRect(x + w2 + 2, h2 - 4, 2, 2);
+			g2.fillRect(x + w2 - 3, h2 - 4, 2, 2);
+			g2.fillRect(x + w2, h2 - 4, 2, 2);
+			g2.fillRect(x + w2 + 3, h2 - 4, 2, 2);
 			g2.setColor(notchColor3);
-			g2.fillRect(x + w2 - 4, h2 - 2, 2, 6);
-			g2.fillRect(x + w2 - 1, h2 - 2, 2, 6);
-			g2.fillRect(x + w2 + 2, h2 - 2, 2, 6);
+			g2.fillRect(x + w2 - 3, h2 - 2, 2, 6);
+			g2.fillRect(x + w2, h2 - 2, 2, 6);
+			g2.fillRect(x + w2 + 3, h2 - 2, 2, 6);
 			g2.setColor(notchColor4);
-			g2.fillRect(x + w2 - 4, h2 + 2, 2, 2);
-			g2.fillRect(x + w2 - 1, h2 + 2, 2, 2);
-			g2.fillRect(x + w2 + 2, h2 + 2, 2, 2);
+			g2.fillRect(x + w2 - 3, h2 + 2, 2, 2);
+			g2.fillRect(x + w2, h2 + 2, 2, 2);
+			g2.fillRect(x + w2 + 3, h2 + 2, 2, 2);
 		}
 
 		// Draw border around button
