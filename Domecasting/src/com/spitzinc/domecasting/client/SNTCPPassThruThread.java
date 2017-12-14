@@ -392,6 +392,8 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 		OutputStream dcsOut = theApp.getServerOutputStream();
 		if (dcsOut == null)
 			return;
+		
+		Log.inst().debug("Routing a SN Packet...");
 
 		if (theApp.clientType == CommUtils.kPresenterID)
 		{
@@ -413,7 +415,7 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 				// If we get here, this is the thread that, during pass-thru, reads responses from the local RB.
 				// We read this data on a separate thread (ReadIgnoredInputStreamThread) but it will not be routed anywhere.
 				// Here we route the data that is available from the domecast server to our local OutputStream.
-				readSNPacketFromServer(buffer);
+				routeSNPacketFromServer(buffer);
 			}
 		}
 		else
@@ -423,7 +425,7 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 				// If we get here, this is the thread that, during pass-thru, reads data from the local PF or ATM4.
 				// We read this data on a separate thread (ReadIgnoredInputStreamThread) but it will not be routed anywhere.
 				// Here we route the data that is available from the domecast server to our local OutputStream.
-				readSNPacketFromServer(buffer);
+				routeSNPacketFromServer(buffer);
 			}
 			else
 			{
@@ -436,6 +438,8 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 				writeSNPacketToServer(buffer, dcsOut, messageLength, clientAppName);
 			}
 		}
+		
+		Log.inst().debug("Finished routing a SN Packet.");
 		
 		// Clear domecastHostID.
 		domecastHostID.setLength(0);
@@ -459,7 +463,7 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 	 * of data following it. This is what theApp.serverConnection stores as ByteBuffer
 	 * instances in one of two queues.
 	 */
-	private void readSNPacketFromServer(byte[] buffer) throws IOException
+	private void routeSNPacketFromServer(byte[] buffer) throws IOException
 	{
 		// We want to read the data sent to us from the domecast server.
 		ByteBuffer nextPacket = theApp.serverConnection.getInputStreamData(clientAppName);
