@@ -305,11 +305,6 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 		if (clientType == CommUtils.kPresenterID)
 		{
 			boolean writeToSpecificHost = !hdr.messageDestination.isEmpty();
-			if (writeToSpecificHost)
-			{
-				int i = 0;
-				i++;
-			}
 			
 			// Write to one or more peer (host) threads
 			for (ServerSideConnectionHandlerThread host : peerConnectionThreads)
