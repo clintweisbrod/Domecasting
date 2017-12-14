@@ -26,6 +26,7 @@ public class PresenterPanel extends JPanel
 {
 	private static final long serialVersionUID = 1L;
 	public static final int kMinDomecastIDLength = 8;
+	private static final String kDomecastIDTooltipText = "Domecast name must be a minimum of " + kMinDomecastIDLength + " characters";
 	
 	private JTextField txtDomecastID;
 	private JButton btnUploadAssets;
@@ -144,6 +145,7 @@ public class PresenterPanel extends JPanel
 		add(lblPresentationId, gbc_lblPresentationId);
 		
 		txtDomecastID = new JTextField();
+		txtDomecastID.setToolTipText(kDomecastIDTooltipText);
 		txtDomecastID.addKeyListener(new KeyAdapter() {
 			@Override
 			public void keyReleased(KeyEvent arg0) {

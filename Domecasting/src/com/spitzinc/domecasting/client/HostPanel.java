@@ -28,8 +28,9 @@ public class HostPanel extends JPanel
 {
 	private static final long serialVersionUID = 1L;
 	
-	private static final String buttonTextListenToDomecast = "Live";
-	private static final String buttonTextStopListeningToDomecast = "Paused";
+	private static final String kDomecastListenTrueText = "Live";
+	private static final String kDomecastListenFalseText = "Paused";
+	private static final String kDomecastListenButtonToolTip = "Allow remote presenter to control your system";
 	
 	private boolean ignoreDomecastComboboxChanges;
 	private JButton btnDownloadAssets;
@@ -66,6 +67,7 @@ public class HostPanel extends JPanel
 		add(lblNewLabel, gbc_lblNewLabel);
 		
 		cmbAvailableDomecasts = new JComboBox<String>();
+		cmbAvailableDomecasts.setToolTipText("List of currently available domecasts");
 		cmbAvailableDomecasts.addItemListener(new ItemListener() {
 			public void itemStateChanged(ItemEvent event) {
 				if (event.getStateChange() == ItemEvent.SELECTED)
@@ -139,7 +141,8 @@ public class HostPanel extends JPanel
 		gbc_progressBar.gridy = 2;
 		add(progressBar, gbc_progressBar);
 		
-		btnDomecastListen = new JSwitchButton(buttonTextListenToDomecast, buttonTextStopListeningToDomecast);
+		btnDomecastListen = new JSwitchButton(kDomecastListenTrueText, kDomecastListenFalseText);
+		btnDomecastListen.setToolTipText(kDomecastListenButtonToolTip);
 		btnDomecastListen.setEnabled(false);
 		btnDomecastListen.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
