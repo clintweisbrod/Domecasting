@@ -33,6 +33,7 @@ public class ServerApplication extends ApplicationBase implements WindowListener
 	protected static final String kPrefsFileName = "server.properties";
 	public int domecastingServerPort = 80;
 	public int maxConcurrentSessions = 5;
+	public String log4jLevel = "info";
 	
 	public ServerAppFrame appFrame;
 	public ServerSideConnectionListenerThread connectionListenerThread;
@@ -40,12 +41,16 @@ public class ServerApplication extends ApplicationBase implements WindowListener
 	
 	public ServerApplication()
 	{
+		// Read preferences
+		System.out.println("Reading preferences...");
+		readPrefs();
+
 		// Configure logger
+		System.out.println("Configuring log4j...");
 		configureLog4j("src/com/spitzinc/domecasting/server");
+		setLog4jLevel(log4jLevel);
 		
 		Log.inst().info("Starting instance of " + getClass().getSimpleName());
-		
-		readPrefs();
 		
 		// Start up thread to listen for incoming connections on port 80
 		try {
@@ -68,6 +73,7 @@ public class ServerApplication extends ApplicationBase implements WindowListener
 		{
 			domecastingServerPort = getIntegerProperty(props, "domecastingServerPort", domecastingServerPort);
 			maxConcurrentSessions = getIntegerProperty(props, "maxConcurrentSessions", maxConcurrentSessions);
+			log4jLevel = getStringProperty(props, "log4jLevel", log4jLevel);
 		}
 	}
 	
@@ -77,6 +83,7 @@ public class ServerApplication extends ApplicationBase implements WindowListener
 		
 		props.setProperty("domecastingServerPort", Integer.toString(domecastingServerPort));
 		props.setProperty("maxConcurrentSessions", Integer.toString(maxConcurrentSessions));
+		props.setProperty("log4jLevel", log4jLevel);
 		
 		this.writePropertiesToFile(getPropertiesFile(kPrefsFileName), props);
 	}

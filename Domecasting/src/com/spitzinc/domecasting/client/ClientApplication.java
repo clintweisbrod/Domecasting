@@ -43,6 +43,7 @@ public class ClientApplication extends ApplicationBase implements WindowListener
 	public int passThruReceiveListenerPort = 56898;
 	public String lastAssetsOpenFolder = null;
 	public String lastAssetsSaveFolder = null;
+	public String log4jLevel = "info";
 	
 	public ClientAppFrame appFrame;
 	public SNTCPPassThruServer snPassThru;
@@ -62,13 +63,17 @@ public class ClientApplication extends ApplicationBase implements WindowListener
 	
 	public ClientApplication()
 	{
+		// Read preferences
+		System.out.println("Reading preferences...");
+		readPrefs();
+
 		// Configure logger
+		System.out.println("Configuring log4j...");
 		configureLog4j("src/com/spitzinc/domecasting/client");
+		setLog4jLevel(log4jLevel);
 		
 		Log.inst().info("Starting instance of " + getClass().getSimpleName());
 		
-		readPrefs();
-
 		// Status from server
 		this.statusText = new AtomicReference<String>();
 		this.isConnectedToServer = new AtomicBoolean(false);
@@ -111,6 +116,7 @@ public class ClientApplication extends ApplicationBase implements WindowListener
 			passThruReceiveListenerPort = getIntegerProperty(props, "passThruReceiveListenerPort", passThruReceiveListenerPort);
 			lastAssetsOpenFolder = getStringProperty(props, "lastAssetsOpenFolder", lastAssetsOpenFolder);
 			lastAssetsSaveFolder = getStringProperty(props, "lastAssetsSaveFolder", lastAssetsSaveFolder);
+			log4jLevel = getStringProperty(props, "log4jLevel", log4jLevel);
 		}
 	}
 	
@@ -129,6 +135,7 @@ public class ClientApplication extends ApplicationBase implements WindowListener
 			props.setProperty("lastAssetsOpenFolder", lastAssetsOpenFolder);
 		if (lastAssetsSaveFolder != null)
 			props.setProperty("lastAssetsSaveFolder", lastAssetsSaveFolder);
+		props.setProperty("log4jLevel", log4jLevel);
 		
 		this.writePropertiesToFile(getPropertiesFile(kPrefsFileName), props);
 	}

@@ -13,8 +13,11 @@ import javax.swing.JFrame;
 import javax.swing.UIManager;
 import javax.swing.UnsupportedLookAndFeelException;
 
+import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.core.LoggerContext;
+import org.apache.logging.log4j.core.config.Configuration;
+import org.apache.logging.log4j.core.config.LoggerConfig;
 
 import java.util.Properties;
 
@@ -62,6 +65,47 @@ public abstract class ApplicationBase implements WindowListener
 		File log4jConfigFile = new File(configPath + File.separatorChar + "log4j2.xml");
 		LoggerContext context = (org.apache.logging.log4j.core.LoggerContext)LogManager.getContext(false);
 		context.setConfigLocation(log4jConfigFile.toURI());
+	}
+	
+	protected void setLog4jLevel(String logLevel)
+	{
+		if (logLevel == null)
+			return;
+
+		Level level = getLog4jLevelFromString(logLevel);
+		if (level != null)
+		{
+			LoggerContext context = (org.apache.logging.log4j.core.LoggerContext)LogManager.getContext(false);
+			Configuration config = context.getConfiguration();
+			LoggerConfig loggerConfig = config.getLoggerConfig(LogManager.ROOT_LOGGER_NAME);
+			loggerConfig.setLevel(level);
+			context.updateLoggers();
+		}
+	}
+	
+	private Level getLog4jLevelFromString(String s)
+	{
+		Level result = null;
+		
+		s = s.toLowerCase();
+		if (s.equals("all"))
+			result = Level.ALL;
+		else if (s.equals("trace"))
+			result = Level.TRACE;
+		else if (s.equals("debug"))
+			result = Level.DEBUG;
+		else if (s.equals("info"))
+			result = Level.INFO;
+		else if (s.equals("warn"))
+			result = Level.WARN;
+		else if (s.equals("error"))
+			result = Level.ERROR;
+		else if (s.equals("fatal"))
+			result = Level.FATAL;
+		else if (s.equals("off"))
+			result = Level.OFF;
+		
+		return result;
 	}
 	
 	public String getProgramDataPath()
