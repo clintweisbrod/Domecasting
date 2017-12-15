@@ -65,15 +65,15 @@ public class CommUtils
 		}
 		catch (UnknownHostException e) {
 			result = null;
-			Log.inst().info("Unknown host: " + hostName);
+			Log.inst().error("Unknown host: " + hostName);
 		}
 		catch (SocketTimeoutException e) {
 			result = null;
-			Log.inst().info("Connect timeout.");
+			Log.inst().error("Connect timeout.");
 		}
 		catch (IOException e) {
 			result = null;
-			Log.inst().info("Connect failed.");
+			Log.inst().error("Connect failed.");
 		}
 		
 		return result;
@@ -89,17 +89,18 @@ public class CommUtils
 			{
 				int bytesRead = is.read(buffer, offset + totalBytesRead, bytesLeftToRead);
 				if (bytesRead == -1)
-					throw new IOException("Connection lost.");
-//				Log.inst().info(caller + ": Read " + bytesRead + " bytes from socket.");
+					throw new IOException("Socket closed");
+				Log.inst().trace("Read " + bytesRead + " bytes from socket.");
 				bytesLeftToRead -= bytesRead;
 				totalBytesRead += bytesRead;
 			}
 			
 		} catch (IOException e) {
+			Log.inst().error("IOException reading InputStream: " + e.getMessage());
 			throw new IOException(e.getMessage());
 		} catch (IndexOutOfBoundsException e) {
 			Log.inst().error("IndexOutOfBoundsException reading InputStream" +
-					". buffer.length=" + buffer.length +
+					": buffer.length=" + buffer.length +
 					", offset=" + offset +
 					", len=" + len +
 					", totalBytesRead=" + totalBytesRead +
@@ -155,7 +156,7 @@ public class CommUtils
 		try
 		{
 			os.write(buffer, offset, len);
-//			Log.inst().info(caller + ": Wrote " + len + " bytes to socket.");
+			Log.inst().trace("Wrote " + len + " bytes to socket.");
 		}
 		catch (IOException | IndexOutOfBoundsException | NullPointerException e) {
 			throw new IOException(e.getMessage());

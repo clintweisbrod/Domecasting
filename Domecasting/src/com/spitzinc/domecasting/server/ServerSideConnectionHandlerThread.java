@@ -63,6 +63,8 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 	
 	private void beginHandlingClientCommands()
 	{
+		Log.inst().trace("beginHandlingClientCommands()");
+		
 		// This is the "main loop" of server connection.
 		try
 		{
@@ -83,17 +85,20 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 			}
 		}
 		catch (IOException e) {
+			e.printStackTrace();
 		}
 	}
 	
 	private void handleINFO(ClientHeader hdr) throws IOException
 	{
+		Log.inst().trace("handleINFO()");
+		
 		byte[] infoBytes = new byte[(int)hdr.messageLen];
 		CommUtils.readInputStream(in, infoBytes, 0, infoBytes.length);
 		
 		// All INFO messages are of the form "variable=value".
 		String msg = new String(infoBytes);
-		Log.inst().debug("Received: " + msg);
+		Log.inst().debug("handleINFO(): Received: " + msg);
 		String[] list = msg.split("=");
 		if (list[0].equals(CommUtils.kClientType))			// Sent from both host and presenter
 		{
@@ -183,6 +188,8 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 	
 	private void handleFILE(ClientHeader hdr) throws IOException
 	{
+		Log.inst().trace("handleFILE()");
+		
 		// Decide where the file will be stored
 		// I think it's reasonable to create a subfolder in ProgramData to hold asset files.
 		ServerApplication inst = (ServerApplication) ServerApplication.inst();
@@ -213,6 +220,7 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 	public void sendBoolean(String name, boolean value) throws IOException
 	{
 		String reply = name + "=" + Boolean.toString(value);
+		Log.inst().trace("sendBoolean(): " + reply);
 		byte[] replyBytes = reply.getBytes();
 		
 		// We're performing two writes to the OutputStream. They MUST be sequential.
@@ -226,6 +234,7 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 	public void sendText(String name, String value) throws IOException
 	{
 		String reply = name + "=" + value;
+		Log.inst().trace("sendText(): " + reply);
 		byte[] replyBytes = reply.getBytes();
 		
 		// We're performing two writes to the OutputStream. They MUST be sequential.
@@ -252,6 +261,8 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 			}
 			reply = buf.toString();
 		}
+		
+		Log.inst().trace("sendHostAvailableDomecasts(): " + reply);
 		
 		byte[] replyBytes = reply.getBytes();
 		
@@ -293,11 +304,16 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 	 */
 	private void handleCOMM(ClientHeader hdr) throws IOException
 	{
+		Log.inst().trace("handleComm()");
+		
 		peerConnectionThreads = listenerThread.findPeerConnectionThreads(this);
 
 		// Make sure our buffer is big enough
 		if (hdr.messageLen > commBuffer.length)
+		{
+			Log.inst().info("handleCOMM(): Message length is " + hdr.messageLen + ". Reallocating commBuffer.");
 			commBuffer = new byte[(int)(hdr.messageLen * 1.25)];	// Make new commBuffer 25% larger than what we need.
+		}
 		
 		// Read the data after the header
 		CommUtils.readInputStream(in, commBuffer, 0, (int)hdr.messageLen);
@@ -391,6 +407,7 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 			CommUtils.readInputStream(in, buffer, 0, CommUtils.kSecurityCodeLength);
 			
 			// Verify the sent security code matches what we expect
+			Log.inst().trace("Verifying security code sent from client...");
 			String securityCode = new String(buffer, 0, CommUtils.kSecurityCodeLength);
 			String expectedSecurityCode = CommUtils.getDailySecurityCode();
 			if (!securityCode.equals(expectedSecurityCode))

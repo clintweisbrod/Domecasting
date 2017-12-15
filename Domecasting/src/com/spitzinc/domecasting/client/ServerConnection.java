@@ -61,6 +61,8 @@ public class ServerConnection
 		
 		private void writeSecurityCode() throws IOException
 		{
+			Log.inst().trace("writeSecurityCode()");
+			
 			// Allocate byte buffer for security code
 			byte[] buffer = new byte[CommUtils.kSecurityCodeLength];
 			
@@ -76,6 +78,8 @@ public class ServerConnection
 		
 		private void handleConnectionEstablished()
 		{
+			Log.inst().trace("handleConnectionEstablished()");
+			
 			disconnected.set(false);
 			Log.inst().info("Server connection established.");
 			
@@ -104,6 +108,8 @@ public class ServerConnection
 		
 		private void handleConnectionLost()
 		{
+			Log.inst().trace("handleConnectionLost()");
+
 			// If we get here, the server connection has been lost.
 			theApp.handleServerDisconnect();
 			
@@ -127,7 +133,6 @@ public class ServerConnection
 				try {
 					socket.close();
 				} catch (IOException e1) {
-					// TODO Auto-generated catch block
 					e1.printStackTrace();
 				}
 				
@@ -215,7 +220,6 @@ public class ServerConnection
 					connectThread.disconnected.set(true);
 					socket.close();
 				} catch (IOException e1) {
-					// TODO Auto-generated catch block
 					e1.printStackTrace();
 				}
 				synchronized(connectThread) {
@@ -228,9 +232,11 @@ public class ServerConnection
 		
 		private void handleINFO(ClientHeader hdr) throws IOException
 		{
+			Log.inst().trace("handleINFO()");
+			
 			CommUtils.readInputStream(in, infoBuffer, 0, (int)hdr.messageLen);
 			String serverReply = new String(infoBuffer, 0, (int)hdr.messageLen);
-			Log.inst().debug("Received: " + serverReply);
+			Log.inst().debug("handleInfo(): Received: " + serverReply);
 			String[] list = serverReply.split("=");
 			if (list[0].equals(CommUtils.kIsDomecastIDUnique))					// Only received by presenter.
 			{
@@ -283,6 +289,8 @@ public class ServerConnection
 			// and throw them into the appropriate LinkedBlockingQueue configured with some
 			// reasonable capacity.
 			
+			Log.inst().trace("handleCOMM()");
+			
 			// Get the correct queue
 			LinkedBlockingQueue<ByteBuffer> theQueue = inputQueues.get(hdr.messageSource);
 			if (theQueue != null)
@@ -297,16 +305,19 @@ public class ServerConnection
 				ByteBuffer theBuffer = ByteBuffer.wrap(buffer);
 				
 				// Push the new ByteBuffer into the queue
+				Log.inst().debug("Placing new ByteBuffer from server into " + hdr.messageSource + " queue.");
 				if (!theQueue.offer(theBuffer))
 				{
 					// If we get here, the queue is already filled with kMaxServerInputQueueSize items
-					Log.inst().error(hdr.messageSource + " input queue is full! Ignoring further received communication.");
+					Log.inst().error(hdr.messageSource + " queue is full! Ignoring further received communication.");
 				}
 			}
 		}
 		
 		private void handleFILE(ClientHeader hdr) throws IOException
 		{
+			Log.inst().trace("handleFILE()");
+
 			// See comments in ServerConnection.sendAssetsFile() regarding inclusion of filename field
 			// after normal header.
 			byte[] filenameBytes = new byte[CommUtils.kMaxPathLen];
@@ -366,7 +377,6 @@ public class ServerConnection
 			try {
 				connectThread.join();
 			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 		}
@@ -461,13 +471,14 @@ public class ServerConnection
 			theApp.updateUI();
 		}
 		catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
 	
 	private void sendToServer(String serverCmd, String msgType)
 	{
+		Log.inst().trace("sendToServer(): " + serverCmd + ", " + msgType);
+		
 		if ((socket != null) && socket.isConnected())
 		{
 			byte[] theBytes = serverCmd.getBytes();
@@ -479,7 +490,6 @@ public class ServerConnection
 					CommUtils.writeHeader(out, outHdr, theBytes.length, ClientHeader.kDCC, "", msgType);
 					CommUtils.writeOutputStream(out, theBytes, 0, theBytes.length);
 				} catch (IOException e) {
-					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
 			}

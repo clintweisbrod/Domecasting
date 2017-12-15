@@ -93,20 +93,22 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 		private static final int kReadIntervalMilliseconds = 500; 
 		public void run()
 		{
-			byte[] buffer = new byte[16 * 1024];
+			byte[] buffer = new byte[CommUtils.kFileBufferSize];
 			while (!getStopped())
 			{
-				try {
+				try
+				{
 					// Read the next SN header
 					long messageLength = readSNHeader(buffer, domecastHostID);
 					
 					// Read the data
 					readSNDataToNowhere(buffer, messageLength);
-					
-					Log.inst().info("Read " + messageLength + " bytes.");
-				} catch (IOException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
+				}
+				catch (IOException e)
+				{
+					Log.inst().info(e.getMessage());
+					if (!e.getMessage().equals("Socket closed"))
+						e.printStackTrace();
 				}
 				
 				// Sleep for a bit
@@ -222,6 +224,7 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 							if ((threadType == ThreadType.eIncomingFromRB) && (theApp.clientType == CommUtils.kPresenterID) &&
 								((clientAppName != null) && (clientAppName.equals(ClientHeader.kSNPF))))
 							{
+								// In most cases, this call is a no-op.
 								sendSetLiveCommand();
 							}
 
@@ -230,13 +233,15 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 						else
 							starryNightPassThru(buffer);
 						
-//						Log.inst().debug("Handled comm.");
+						Log.inst().trace("Handled comm.");
 					}
 				}
-				catch (IOException e1) {
-					// TODO Auto-generated catch block
+				catch (IOException e1)
+				{
 					stopped.set(true);
-					e1.printStackTrace();
+					Log.inst().info(e1.getMessage());
+					if (!e1.getMessage().equals("Socket closed"))
+						e1.printStackTrace();
 				}
 			}
 
@@ -317,6 +322,8 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 	
 	private void starryNightPassThru(byte[] buffer) throws IOException
 	{
+		Log.inst().trace("starryNightPassThru()");
+		
 		// Get total length of incoming message and modify the replyToPort
 		long messageLength = readSNHeader(buffer, domecastHostID);
 		
@@ -340,6 +347,8 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 	
 	private long readSNHeader(byte[] buffer, StringBuffer fullStateHostID) throws IOException
 	{
+		Log.inst().trace("readSNHeader()");
+
 		long result = 0;
 		
 		// Read the SN header from the inbound socket
@@ -384,6 +393,8 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 		OutputStream dcsOut = theApp.getServerOutputStream();
 		if (dcsOut == null)
 			return;
+		
+		Log.inst().trace("performDomecastRouting()");
 		
 		Log.inst().debug("Routing a SN Packet...");
 
@@ -439,6 +450,8 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 	
 	private void readSNDataToNowhere(byte[] buffer, long messageLength) throws IOException
 	{
+		Log.inst().trace("readSNDataToNowhere()");
+		
 		int bytesLeftToReceive = (int)(messageLength - kSNHeaderLength);
 		while (bytesLeftToReceive > 0)
 		{
@@ -457,6 +470,8 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 	 */
 	private void routeSNPacketFromServer(byte[] buffer) throws IOException
 	{
+		Log.inst().trace("routeSNPacketFromServer()");
+		
 		// We want to read the data sent to us from the domecast server.
 		ByteBuffer nextPacket = theApp.serverConnection.getInputStreamData(clientAppName);
 		if (nextPacket != null)
@@ -470,6 +485,8 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 	
 	private void writeSNPacketToServer(byte[] buffer, OutputStream dcsOut, long messageLength, String msgSrc) throws IOException
 	{
+		Log.inst().trace("writeSNPacketToServer()");
+
 		// Now we write to the domecast server OutputStream.
 		// We must write the client header, then the SN header in buffer, read the rest of the packet from the local InputStream
 		// and write it to the domecast server OutputStream while we have exclusive access to the
@@ -489,6 +506,8 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 	
 	private void readSNDataToOutputStreams(byte[] buffer, long messageLength, OutputStream serverOutputStream) throws IOException
 	{
+		Log.inst().trace("readSNDataToOutputStreams()");
+		
 		int bytesLeftToReceive = (int)(messageLength - kSNHeaderLength);
 		while (bytesLeftToReceive > 0)
 		{
@@ -517,6 +536,8 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 		String hostConnectionID = theApp.requestFullState.get();
 		if (hostConnectionID.isEmpty())
 			return;
+		
+		Log.inst().trace("sendSetLiveCommand()");
 
 		// Clear this value so we don't trigger more than one request
 		theApp.requestFullState.set("");
