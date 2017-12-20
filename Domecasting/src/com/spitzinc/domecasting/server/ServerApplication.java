@@ -47,7 +47,7 @@ public class ServerApplication extends ApplicationBase implements WindowListener
 
 		// Configure logger
 		System.out.println("Configuring log4j...");
-		configureLog4j("src/com/spitzinc/domecasting/server");
+		configureLog4j("com/spitzinc/domecasting/server");
 		setLog4jLevel(log4jLevel);
 		
 		Log.inst().info("Starting instance of " + getClass().getSimpleName());

@@ -25,8 +25,14 @@
 			classpath="${build_classpath}" />
 	</target>
 	
+	<!-- Compile the log4j2.xml files from ${src} into ${build} so that they are included in JAR -->
+	<target name="copyXMLs">
+		<copy file="${src}/com/spitzinc/domecasting/client/log4j2.xml" todir="${build}/com/spitzinc/domecasting/client"/>
+		<copy file="${src}/com/spitzinc/domecasting/server/log4j2.xml" todir="${build}/com/spitzinc/domecasting/server"/>
+	</target>
+	
 	<!-- Make the JAR -->
-	<target name="jar" depends="clean, comp" description="Make the JAR">
+	<target name="jar" depends="clean, comp, copyXMLs" description="Make the JAR">
 		<mkdir dir="${jar}"/>
 		<jar jarfile="${jar}/domecasting.jar" >
 			<fileset dir="${build}"

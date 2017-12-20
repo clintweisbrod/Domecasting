@@ -62,9 +62,7 @@ public abstract class ApplicationBase implements WindowListener
 		// write log file to same place.
 		String propsPath = getPropertiesPath();
 		System.setProperty("log4j.logpath", propsPath);
-		File log4jConfigFile = new File(configPath + File.separatorChar + "log4j2.xml");
-		LoggerContext context = (org.apache.logging.log4j.core.LoggerContext)LogManager.getContext(false);
-		context.setConfigLocation(log4jConfigFile.toURI());
+		System.setProperty("log4j.configurationFile", configPath + "/log4j2.xml");
 	}
 	
 	protected void setLog4jLevel(String logLevel)
