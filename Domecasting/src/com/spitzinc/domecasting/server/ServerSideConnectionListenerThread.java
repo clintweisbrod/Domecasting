@@ -101,13 +101,16 @@ public class ServerSideConnectionListenerThread extends TCPConnectionListenerThr
 		String programDataPath = inst.getProgramDataPath();
 		File programDataFolder = new File(programDataPath);
 		String[] names = programDataFolder.list();
-		for (String name : names)
+		if (names != null)
 		{
-			File folderElement = new File(programDataPath + name);
-			if (folderElement.isDirectory())
+			for (String name : names)
 			{
-				if (!result.contains(name))
-					result.add(name);
+				File folderElement = new File(programDataPath + name);
+				if (folderElement.isDirectory())
+				{
+					if (!result.contains(name))
+						result.add(name);
+				}
 			}
 		}
 
