@@ -15,7 +15,7 @@ public class SNTCPPassThruServer
 		ClientApplication inst = (ClientApplication) ClientApplication.inst();
 		
 		sendListenerThread = new ClientSideConnectionListenerThread(sendListenerPort,
-																	new TCPNode("localhost", inst.rbPrefs_DomeServer_TCPPort, recvListenerPort),
+																	new TCPNode(inst.renderboxHostname, inst.rbPrefs_DomeServer_TCPPort, recvListenerPort),
 																	maxClientConnections);
 		recvListenerThread = new ClientSideConnectionListenerThread(recvListenerPort,
 																	new TCPNode("localhost", inst.pfPrefs_DomeServer_TCPReplyPort),

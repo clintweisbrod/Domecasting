@@ -35,6 +35,7 @@ public class ClientApplication extends ApplicationBase implements WindowListener
 	protected static final String kPrefsFileName = "client.properties";
 	public String domecastingServerHostname = "localhost";
 	public int domecastingServerPort = 80;
+	public String renderboxHostname = "localhost";
 	public int maxClientConnections = 5;
 	public int rbPrefs_DomeServer_TCPPort = 56897;	// For typical two-machine setup, this should be the usual 56895.
 													// For testing on a single machine, needs to be 56897.
@@ -85,7 +86,7 @@ public class ClientApplication extends ApplicationBase implements WindowListener
 		this.fileProgress = new AtomicInteger(0);
 	
 		// Create object to manage connection with server
-		serverConnection = new ServerConnection(this, domecastingServerHostname, domecastingServerPort);
+//		serverConnection = new ServerConnection(this, domecastingServerHostname, domecastingServerPort);
 		
 		// Start threads to handle pass-thru of local SN comm. Both presenter and host modes
 		// of the client require these connections to be established.
@@ -109,6 +110,7 @@ public class ClientApplication extends ApplicationBase implements WindowListener
 		{
 			domecastingServerHostname = getStringProperty(props, "domecastingServerHostname", domecastingServerHostname);
 			domecastingServerPort = getIntegerProperty(props, "domecastingServerPort", domecastingServerPort);
+			renderboxHostname = getStringProperty(props, "renderboxHostname", renderboxHostname);
 			maxClientConnections = getIntegerProperty(props, "maxClientConnections", maxClientConnections);
 			pfPrefs_DomeServer_TCPPort = getIntegerProperty(props, "pfPrefs_DomeServer_TCPPort", pfPrefs_DomeServer_TCPPort);
 			pfPrefs_DomeServer_TCPReplyPort = getIntegerProperty(props, "pfPrefs_DomeServer_TCPReplyPort", pfPrefs_DomeServer_TCPReplyPort);
@@ -126,6 +128,7 @@ public class ClientApplication extends ApplicationBase implements WindowListener
 		
 		props.setProperty("domecastingServerHostname", domecastingServerHostname);
 		props.setProperty("domecastingServerPort", Integer.toString(domecastingServerPort));
+		props.setProperty("renderboxHostname", renderboxHostname);
 		props.setProperty("maxClientConnections", Integer.toString(maxClientConnections));
 		props.setProperty("pfPrefs_DomeServer_TCPPort", Integer.toString(pfPrefs_DomeServer_TCPPort));
 		props.setProperty("pfPrefs_DomeServer_TCPReplyPort", Integer.toString(pfPrefs_DomeServer_TCPReplyPort));
@@ -184,7 +187,8 @@ public class ClientApplication extends ApplicationBase implements WindowListener
 		appFrame.stopUpdateThread();
 
 		// Force the server connection threads to finish
-		serverConnection.shutdown();
+		if (serverConnection != null)
+			serverConnection.shutdown();
 		
 		if (snPassThru != null)
 			snPassThru.stop();
