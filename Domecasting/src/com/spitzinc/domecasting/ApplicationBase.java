@@ -63,6 +63,11 @@ public abstract class ApplicationBase implements WindowListener
 		String propsPath = getPropertiesPath();
 		System.setProperty("log4j.logpath", propsPath);
 		System.setProperty("log4j.configurationFile", configPath + "/log4j2.xml");
+		
+		// By default, log4j2 caches a thread's name the first time a logging event is called.
+		// SNTCPPassThruThread changes it's name after it's established what outbound port to use.
+		// This is a performance hit but hopefully not significant.
+		System.setProperty("AsyncLogger.ThreadNameStrategy", "UNCACHED");
 	}
 	
 	protected void setLog4jLevel(String logLevel)
