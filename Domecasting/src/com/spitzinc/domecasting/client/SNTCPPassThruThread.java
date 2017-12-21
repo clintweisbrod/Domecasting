@@ -132,6 +132,7 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 	private ThreadType threadType;
 	private Socket outboundSocket = null;
 	private TCPNode outboundNode;
+	private int inboundPort;	// Only used for re-setting thread name
 	private byte[] replyPortBytes = null;
 	private String clientAppName = null;
 	private ClientApplication theApp;
@@ -165,8 +166,13 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 		this.readIgnoredStreamThread = null;
 		this.commModeChanged = new AtomicBoolean(false);
 		this.domecastHostID = new StringBuffer();
+		this.inboundPort = inboundSocket.getLocalPort();
 
-		this.setName(getClass().getSimpleName() + "_" + inboundSocket.getLocalPort() + "->" + outboundNode.port);	
+		// Set thread name
+		if (threadType == ThreadType.eOutgoingToRB)
+			this.setName(getClass().getSimpleName() + "_" + inboundPort + "->" + outboundNode.port);
+		else
+			this.setName(getClass().getSimpleName() + "_" + inboundPort + "->" + "unknown");
 	}
 	
 	public void setCommModeChanged()
@@ -177,85 +183,75 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 	
 	public void run()
 	{
-		// Attempt to connect to outbound host
-		Log.inst().info("Attempting to establish outbound connection.");
-		outboundSocket = CommUtils.connectToHost(outboundNode.hostname, outboundNode.port);
-		if (outboundSocket != null)
+		try	{
+			in = socket.getInputStream();
+		}
+		catch (IOException e) {
+			e.printStackTrace();
+		}
+
+		if (in != null)
 		{
-			Log.inst().info("Outbound connection established.");
+			// Allocate byte buffer to handle comm
+			byte[] buffer = new byte[CommUtils.kCommBufferSize];
 
+			// Begin reading data from inbound stream and writing it to outbound stream in chunks of SN comm.
 			try
 			{
-				in = socket.getInputStream();
-				out = outboundSocket.getOutputStream();
-			}
-			catch (IOException e) {
-				e.printStackTrace();
-			}
-
-			if ((in != null) && (out != null))
-			{
-				// Allocate byte buffer to handle comm
-				byte[] buffer = new byte[CommUtils.kCommBufferSize];
-
-				// Begin reading data from inbound stream and writing it to outbound stream in chunks of SN comm.
-				try
+				while (!stopped.get())
 				{
-					while (!stopped.get())
+					// Depending on whether any host is listening, we perform communication differently
+					boolean isAnyHostListening = theApp.isHostListening.get();
+					
+					// If theApp.isAnyHostListening was changed, we have to either launch or kill a thread
+					// that reads data off the InputStream that is ignored when we're routing comm through
+					// the domecast server.
+					if (commModeChanged.get())
 					{
-						// Depending on whether any host is listening, we perform communication differently
-						boolean isAnyHostListening = theApp.isHostListening.get();
+						Log.inst().debug("Calling switchCommModes().");
+						switchCommModes(isAnyHostListening);
 						
-						// If theApp.isAnyHostListening was changed, we have to either launch or kill a thread
-						// that reads data off the InputStream that is ignored when we're routing comm through
-						// the domecast server.
-						if (commModeChanged.get())
-						{
-							Log.inst().debug("Calling switchCommModes().");
-							switchCommModes(isAnyHostListening);
-							
-							commModeChanged.set(false);
-						}
-						
-						// Perform routing of a single SN header and data.
-						if (isAnyHostListening)
-						{
-							// See comments for sendSetLiveCommand()
-							if ((threadType == ThreadType.eIncomingFromRB) && (theApp.clientType == CommUtils.kPresenterID) &&
-								((clientAppName != null) && (clientAppName.equals(ClientHeader.kSNPF))))
-							{
-								// In most cases, this call is a no-op.
-								sendSetLiveCommand();
-							}
-
-							performDomecastRouting(buffer);
-						}
-						else
-							starryNightPassThru(buffer);
-						
-						Log.inst().trace("Handled comm.");
+						commModeChanged.set(false);
 					}
-				}
-				catch (IOException e1)
-				{
-					stopped.set(true);
-					Log.inst().info(e1.getMessage());
-					if (!e1.getMessage().equals("Socket closed"))
-						e1.printStackTrace();
-				}
-			}
+					
+					// Perform routing of a single SN header and data.
+					if (isAnyHostListening)
+					{
+						// See comments for sendSetLiveCommand()
+						if ((threadType == ThreadType.eIncomingFromRB) && (theApp.clientType == CommUtils.kPresenterID) &&
+							((clientAppName != null) && (clientAppName.equals(ClientHeader.kSNPF))))
+						{
+							// In most cases, this call is a no-op.
+							sendSetLiveCommand();
+						}
 
-			// Close streams
-			Log.inst().info("Shutting down connection streams.");
-			try
+						performDomecastRouting(buffer);
+					}
+					else
+						starryNightPassThru(buffer);
+					
+					Log.inst().trace("Handled comm.");
+				}
+			}
+			catch (IOException e1)
 			{
-				if (out != null)
-					out.close();
-				if (in != null)
-					in.close();
+				stopped.set(true);
+				Log.inst().info(e1.getMessage());
+				if (!e1.getMessage().equals("Socket closed"))
+					e1.printStackTrace();
 			}
-			catch (IOException e) {
-			}
+		}
+
+		// Close streams
+		Log.inst().info("Shutting down connection streams.");
+		try
+		{
+			if (out != null)
+				out.close();
+			if (in != null)
+				in.close();
+		}
+		catch (IOException e) {
 		}
 
 		// Close sockets
@@ -362,23 +358,25 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 			Log.inst().error("messageLengthStr: " + messageLengthStr);
 			throw new IOException(e.getMessage());
 		}
-//		Log.inst().debug("Parsed messageLength = " + result);
-
-		if (threadType == ThreadType.eOutgoingToRB)
-		{
-			// Change the buffer so that the return port is set to outboundNode.replyPort
-			// The return port digits start at pos 50 in the buffer.
-			if (replyPortBytes != null)
-				System.arraycopy(replyPortBytes, 0, buffer, kSNHeaderReplyPortPosition, replyPortBytes.length);
-		}
+		Log.inst().trace("Parsed messageLength = " + result);
 		
-		// Obtain the clientAppName from the header
 		if (clientAppName == null)
 		{
-			byte[] hdrCopy = new byte[kSNHeaderFieldLength];
-			System.arraycopy(buffer, kSNHeaderClientAppNamePosition, hdrCopy, 0, hdrCopy.length);
-			clientAppName = new String(hdrCopy).trim();
-			Log.inst().debug("clientAppName parsed from SN header: " + clientAppName);
+			// Obtain the clientAppName from the header
+			parseClientAppName(buffer);
+		
+			// Establish outbound connection
+			if (!clientAppName.isEmpty())
+				establishOutboundConnection(buffer);
+			else
+				Log.inst().error("Client connection has not specified clientAppName in the SN header!");
+		}
+
+		// If this is the outgoing thread, change the buffer so that the reply port is set to outboundNode.replyPort
+		if (threadType == ThreadType.eOutgoingToRB)
+		{
+			if (replyPortBytes != null)
+				System.arraycopy(replyPortBytes, 0, buffer, kSNHeaderReplyPortPosition, replyPortBytes.length);
 		}
 		
 		// Determine if the field beginning at kSNHeaderDomecastHostIDPosition contains something
@@ -386,6 +384,64 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 			fullStateHostID.insert(0, new String(buffer, kSNHeaderDomecastHostIDPosition, kSNHeaderFieldLength).trim());
 		
 		return result;
+	}
+	
+	private void parseClientAppName(byte[] buffer)
+	{
+		byte[] hdrCopy = new byte[kSNHeaderFieldLength];
+		System.arraycopy(buffer, kSNHeaderClientAppNamePosition, hdrCopy, 0, hdrCopy.length);
+		clientAppName = new String(hdrCopy).trim();
+		Log.inst().debug("clientAppName parsed from SN header: " + clientAppName);
+	}
+	
+	private void establishOutboundConnection(byte[] buffer) throws IOException
+	{
+		// Determine the replyPort that is encoded in the header 
+		if (threadType == ThreadType.eOutgoingToRB)
+		{
+			// Parse the replyPort from the header
+			String replyPortStr = new String(buffer, kSNHeaderReplyPortPosition, kSNHeaderFieldLength).trim();
+			int replyPort = 0;
+			try {
+				replyPort = Integer.parseInt(replyPortStr);
+			} catch (NumberFormatException e) {
+				Log.inst().error("replyPortStr: " + replyPortStr);
+				throw new IOException(e.getMessage());
+			}
+			
+			// Let the snPassThru server know about the reply port
+			if (replyPort > 0)
+				theApp.snPassThru.mapClientAppNameToOutgoingPort(clientAppName, replyPort);
+			else
+				Log.inst().error("Client connection has not specified a reply port in the SN header!");
+		}
+		
+		// Determine the correct outbound port to connect on
+		int outboundPort = 0;
+		if (threadType == ThreadType.eOutgoingToRB)
+			outboundPort = outboundNode.port;
+		else
+		{
+			outboundPort = theApp.snPassThru.getOutgoingPortFromClientAppName(clientAppName);
+			Log.inst().info("Outbound port " + outboundPort + " obtained from " + clientAppName + ".");
+			setName(getClass().getSimpleName() + "_" + inboundPort + "->" + outboundPort);
+		}
+
+		// Attempt to connect to outbound host
+		Log.inst().info("Attempting to establish outbound connection.");
+		outboundSocket = CommUtils.connectToHost(outboundNode.hostname, outboundPort);
+		if (outboundSocket != null)
+		{
+			Log.inst().info("Outbound connection established.");
+			try	{
+				out = outboundSocket.getOutputStream();
+			}
+			catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+		else
+			this.setStopped();
 	}
 
 	private void performDomecastRouting(byte[] buffer) throws IOException

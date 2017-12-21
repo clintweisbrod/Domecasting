@@ -40,7 +40,6 @@ public class ClientApplication extends ApplicationBase implements WindowListener
 	public int rbPrefs_DomeServer_TCPPort = 56897;	// For typical two-machine setup, this should be the usual 56895.
 													// For testing on a single machine, needs to be 56897.
 	public int pfPrefs_DomeServer_TCPPort = 56895;
-	public int pfPrefs_DomeServer_TCPReplyPort = 56896;
 	public int passThruReceiveListenerPort = 56898;
 	public String lastAssetsOpenFolder = null;
 	public String lastAssetsSaveFolder = null;
@@ -86,7 +85,7 @@ public class ClientApplication extends ApplicationBase implements WindowListener
 		this.fileProgress = new AtomicInteger(0);
 	
 		// Create object to manage connection with server
-//		serverConnection = new ServerConnection(this, domecastingServerHostname, domecastingServerPort);
+		serverConnection = new ServerConnection(this, domecastingServerHostname, domecastingServerPort);
 		
 		// Start threads to handle pass-thru of local SN comm. Both presenter and host modes
 		// of the client require these connections to be established.
@@ -113,7 +112,6 @@ public class ClientApplication extends ApplicationBase implements WindowListener
 			renderboxHostname = getStringProperty(props, "renderboxHostname", renderboxHostname);
 			maxClientConnections = getIntegerProperty(props, "maxClientConnections", maxClientConnections);
 			pfPrefs_DomeServer_TCPPort = getIntegerProperty(props, "pfPrefs_DomeServer_TCPPort", pfPrefs_DomeServer_TCPPort);
-			pfPrefs_DomeServer_TCPReplyPort = getIntegerProperty(props, "pfPrefs_DomeServer_TCPReplyPort", pfPrefs_DomeServer_TCPReplyPort);
 			rbPrefs_DomeServer_TCPPort = getIntegerProperty(props, "rbPrefs_DomeServer_TCPPort", rbPrefs_DomeServer_TCPPort);
 			passThruReceiveListenerPort = getIntegerProperty(props, "passThruReceiveListenerPort", passThruReceiveListenerPort);
 			lastAssetsOpenFolder = getStringProperty(props, "lastAssetsOpenFolder", lastAssetsOpenFolder);
@@ -131,7 +129,6 @@ public class ClientApplication extends ApplicationBase implements WindowListener
 		props.setProperty("renderboxHostname", renderboxHostname);
 		props.setProperty("maxClientConnections", Integer.toString(maxClientConnections));
 		props.setProperty("pfPrefs_DomeServer_TCPPort", Integer.toString(pfPrefs_DomeServer_TCPPort));
-		props.setProperty("pfPrefs_DomeServer_TCPReplyPort", Integer.toString(pfPrefs_DomeServer_TCPReplyPort));
 		props.setProperty("rbPrefs_DomeServer_TCPPort", Integer.toString(rbPrefs_DomeServer_TCPPort));
 		props.setProperty("passThruReceiveListenerPort", Integer.toString(passThruReceiveListenerPort));
 		if (lastAssetsOpenFolder != null)
