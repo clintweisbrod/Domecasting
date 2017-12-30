@@ -312,6 +312,8 @@ public class ServerConnection
 					Log.inst().error(hdr.messageSource + " queue is full! Ignoring further received communication.");
 				}
 			}
+			else
+				Log.inst().error("Input queue not found. Unexpected message source: " + hdr.messageSource);
 		}
 		
 		private void handleFILE(ClientHeader hdr) throws IOException
@@ -355,8 +357,7 @@ public class ServerConnection
 		
 		// Allocate a map to hold queues to store incoming data from server. We need a queue for each possible
 		// type of client connection supported by domecasting. For now, that is SNPF and ATM4. When we extend our
-		// domecasting solution to support TLE and and Zygote, we will need a map capacity of 4. I don't see any
-		// harm in allocating that extra space now.
+		// domecasting solution to support TLE and and Zygote, we will need a map capacity of 4.
 		this.inputQueues = new ConcurrentHashMap<String, LinkedBlockingQueue<ByteBuffer>>(2);
 		this.inputQueues.put(ClientHeader.kSNPF, new LinkedBlockingQueue<ByteBuffer>(kMaxServerInputQueueSize));
 		this.inputQueues.put(ClientHeader.kATM4, new LinkedBlockingQueue<ByteBuffer>(kMaxServerInputQueueSize));
