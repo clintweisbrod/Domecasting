@@ -55,24 +55,24 @@ public class ClientInfoSendThread extends Thread
 	
 	public void run()
 	{
+		ClientApplication inst = (ClientApplication) ClientApplication.inst();
+		if (inst.serverConnection == null)
+			return;
+
 		Log.inst().info("Starting.");
 		
-		ClientApplication inst = (ClientApplication) ClientApplication.inst();
-		if (inst.serverConnection != null)
-		{
-			if (clientType != null)
-				inst.serverConnection.sendClientType(clientType.byteValue());
-			if (isHostListening != null)
-				inst.serverConnection.sendIsHostListening(isHostListening.booleanValue());
-			if (isPeerConnected != null)
-				inst.serverConnection.sendIsPeerConnected(isPeerConnected.booleanValue());
-			if (domecastID != null)
-				inst.serverConnection.sendDomecastID(domecastID);
-			if (assetFile != null)
-				inst.serverConnection.sendAssetsFile(assetFile);
-			if (getAssetsFile != null)
-				inst.serverConnection.sendGetAssetsFile();
-		}
+		if (clientType != null)
+			inst.serverConnection.sendClientType(clientType.byteValue());
+		if (isHostListening != null)
+			inst.serverConnection.sendIsHostListening(isHostListening.booleanValue());
+		if (isPeerConnected != null)
+			inst.serverConnection.sendIsPeerConnected(isPeerConnected.booleanValue());
+		if (domecastID != null)
+			inst.serverConnection.sendDomecastID(domecastID);
+		if (assetFile != null)
+			inst.serverConnection.sendAssetsFile(assetFile);
+		if (getAssetsFile != null)
+			inst.serverConnection.sendGetAssetsFile();
 
 		Log.inst().info("Exiting.");
 	}
