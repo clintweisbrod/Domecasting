@@ -420,26 +420,18 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 			Log.inst().error(e.getMessage());
 		}
 
-		// Close stream
+		// Close streams. This will also close the socket.
 		Log.inst().info("Shutting down connection stream.");
 		try
 		{
 			if (in != null)
 				in.close();
+			if (out != null)
+				out.close();
 		}
 		catch (IOException e) {
 		}
 		
-		// Close socket
-		Log.inst().info("Closing socket.");
-		try
-		{
-			if (socket != null)
-				socket.close();
-		}
-		catch (IOException e) {
-		}
-
 		// Notify all peers of this connection shutting down
 		try
 		{
