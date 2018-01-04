@@ -83,6 +83,7 @@ public abstract class ApplicationBase implements WindowListener
 			LoggerConfig loggerConfig = config.getLoggerConfig(LogManager.ROOT_LOGGER_NAME);
 			loggerConfig.setLevel(level);
 			context.updateLoggers();
+			context.close();
 		}
 	}
 	
