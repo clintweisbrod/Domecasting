@@ -65,8 +65,11 @@ public abstract class ApplicationBase implements WindowListener
 		System.setProperty("log4j.configurationFile", configPath + "/log4j2.xml");
 		
 		// By default, log4j2 caches a thread's name the first time a logging event is called.
-		// SNTCPPassThruThread changes it's name after it's established what outbound port to use.
-		// This is a performance hit but hopefully not significant.
+		// SNTCPPassThruThread.establishOutboundConnection() changes it's thread name after it
+		// has established what outbound port to use. Setting the log4j ThreadNameStrategy is 
+		// a performance hit but hopefully not significant. In the meantime, I've filed a Jira
+		// report with the log4j2 Apache project, suggesting the addition of a new method in
+		// org.apache.logging.log4j.Logger called something like refreshCachedThreadName().
 		System.setProperty("AsyncLogger.ThreadNameStrategy", "UNCACHED");
 	}
 	

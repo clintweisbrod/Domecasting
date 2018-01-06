@@ -423,8 +423,8 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 		else
 		{
 			outboundPort = theApp.snPassThru.getOutgoingPortFromClientAppName(clientAppName);
-			Log.inst().info("Outbound port " + outboundPort + " obtained from " + clientAppName + ".");
 			setName(getClass().getSimpleName() + "_" + inboundPort + "->" + outboundPort);
+			Log.inst().info("Outbound port " + outboundPort + " obtained from " + clientAppName + ".");
 		}
 
 		// Attempt to connect to outbound host
