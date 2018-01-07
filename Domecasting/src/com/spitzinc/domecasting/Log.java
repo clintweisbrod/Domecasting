@@ -12,9 +12,17 @@ public class Log
 	protected Log() {
 		logger = LogManager.getLogger(Logger.class.getName());
 	}
-	public static Logger inst() {
+	
+	public static Logger inst()
+	{
 		if (instance == null)
-			instance = new Log();
+		{
+			synchronized(Log.class)
+			{
+				if (instance == null)
+					instance = new Log();
+			}
+		}
 		return instance.logger;
 	}
 }
