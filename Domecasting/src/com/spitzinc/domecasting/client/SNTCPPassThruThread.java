@@ -198,10 +198,11 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 			// Begin reading data from inbound stream and writing it to outbound stream in chunks of SN comm.
 			try
 			{
+				boolean isAnyHostListening;
 				while (!stopped.get())
 				{
 					// Depending on whether any host is listening, we perform communication differently
-					boolean isAnyHostListening = theApp.isHostListening.get();
+					isAnyHostListening = theApp.isHostListening.get();
 					
 					// If theApp.isAnyHostListening was changed, we have to either launch or kill a thread
 					// that reads data off the InputStream that is ignored when we're routing comm through
@@ -327,11 +328,12 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 		CommUtils.writeOutputStream(out, buffer, 0, kSNHeaderLength);
 
 		// Now read/write the remainder of the message
+		int bytesToRead;
 		int bytesLeftToReceive = (int)(messageLength - kSNHeaderLength);
 		while (bytesLeftToReceive > 0)
 		{
 			// Read as much of the message as our buffer will hold
-			int bytesToRead = Math.min(bytesLeftToReceive, buffer.length);
+			bytesToRead = Math.min(bytesLeftToReceive, buffer.length);
 			CommUtils.readInputStream(in, buffer, 0, bytesToRead);
 			
 			// Write the buffer
