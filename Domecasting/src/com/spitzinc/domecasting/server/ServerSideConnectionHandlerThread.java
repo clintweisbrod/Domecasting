@@ -17,7 +17,7 @@ import com.spitzinc.domecasting.TCPConnectionListenerThread;
 
 public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThread
 {
-	private ServerSideConnectionListenerThread listenerThread;
+	private ServerSideConnectionListenerThread owner;
 	private ArrayList<ServerSideConnectionHandlerThread> peerConnectionThreads;
 	private InputStream in;
 	private OutputStream out;
@@ -30,10 +30,11 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 	private AtomicBoolean isHostListening;	// Only valid for host connections
 	private final String connectionID; 
 	
-	public ServerSideConnectionHandlerThread(TCPConnectionListenerThread owner, Socket inboundSocket, long connectionID)
+	public ServerSideConnectionHandlerThread(ServerSideConnectionListenerThread owner, Socket inboundSocket, long connectionID)
 	{
-		super(owner, inboundSocket);
+		super(inboundSocket);
 		
+		this.owner = owner;
 		this.connectionID = Long.toString(connectionID);
 		this.peerConnectionThreads = null;
 		this.outputStreamLock = new Object();
@@ -41,7 +42,6 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 		this.inHdr = new ClientHeader();
 		this.commBuffer = new byte[CommUtils.kCommBufferSize];
 		this.domecastID = null;
-		this.listenerThread = (ServerSideConnectionListenerThread)owner;
 		this.isHostListening = new AtomicBoolean(false);	// Only valid for host connections
 	}
 	
@@ -111,7 +111,7 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 			if (clientType == CommUtils.kHostID)
 			{
 				// Send back available domecasts
-				ArrayList<String> domecasts = listenerThread.getAvailableDomecasts();
+				ArrayList<String> domecasts = owner.getAvailableDomecasts();
 				sendHostAvailableDomecasts(domecasts);
 			}
 		}
@@ -125,7 +125,7 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 			if (clientType == CommUtils.kPresenterID)
 			{
 				// As a presenter, we want to notify all hosts that we're present
-				listenerThread.notifyHostsOfAvailableDomecasts();
+				owner.notifyHostsOfAvailableDomecasts();
 			}
 			if (clientType == CommUtils.kHostID)
 			{
@@ -134,17 +134,17 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 			}
 			
 			// Notify all peers of this connection
-			peerConnectionThreads = listenerThread.findPeerConnectionThreads(this);
+			peerConnectionThreads = owner.findPeerConnectionThreads(this);
 			for (ServerSideConnectionHandlerThread peer : peerConnectionThreads)
 				peer.sendBoolean(CommUtils.kIsPeerConnected, true);
 						
 			// Notify this connection if peer(s) connected
 			sendBoolean(CommUtils.kIsPeerConnected, !peerConnectionThreads.isEmpty());
 
-			listenerThread.sendStatusToThreads();
+			owner.sendStatusToThreads();
 		}
 		else if (list[0].equals(CommUtils.kIsDomecastIDUnique))	// Sent only from presenter
-			sendBoolean(CommUtils.kIsDomecastIDUnique, listenerThread.isDomecastIDUnique(list[1]));
+			sendBoolean(CommUtils.kIsDomecastIDUnique, owner.isDomecastIDUnique(list[1]));
 		else if (list[0].equals(CommUtils.kIsHostListening))	// Sent only from host
 		{
 			boolean newValue = Boolean.parseBoolean(list[1]);
@@ -161,10 +161,10 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 			// We don't want to just send back isHostListening to the presenter. This
 			// is only valid for 1:1 domecasts. In general, we want to send back a boolean
 			// to the presenter indicating if ANY hosts are listening.
-			boolean response = listenerThread.anyHostsListening(domecastID);
+			boolean response = owner.anyHostsListening(domecastID);
 			
 			// Notify presenter of this change. Should only find one presenter. 
-			peerConnectionThreads = listenerThread.findPeerConnectionThreads(this);
+			peerConnectionThreads = owner.findPeerConnectionThreads(this);
 			if (!peerConnectionThreads.isEmpty())
 			{
 				peerConnectionThreads.get(0).sendBoolean(CommUtils.kIsHostListening, response);
@@ -175,11 +175,11 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 					peerConnectionThreads.get(0).sendText(CommUtils.kRequestFullState, connectionID);
 			}
 			
-			listenerThread.sendStatusToThreads();
+			owner.sendStatusToThreads();
 		}
 		else if (list[0].equals(CommUtils.kIsPeerConnected))	// Sent from both presenter and host
 		{
-			peerConnectionThreads = listenerThread.findPeerConnectionThreads(this);
+			peerConnectionThreads = owner.findPeerConnectionThreads(this);
 			sendBoolean(CommUtils.kIsPeerConnected, !peerConnectionThreads.isEmpty());
 		}
 		else if (list[0].equals(CommUtils.kGetAssetsFile))		// Sent only from host
@@ -214,7 +214,7 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 		
 		// When we get here, we have the following file saved: C:\ProgramData\Spitz, Inc\Domecasting\<domecastID>\assets.zip
 		// Notify all connected hosts that an assets file is available for download.
-		listenerThread.notifyHostsOfAvailableAssetsFile(this);
+		owner.notifyHostsOfAvailableAssetsFile(this);
 	}
 	
 	public void sendBoolean(String name, boolean value) throws IOException
@@ -306,7 +306,7 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 	{
 		Log.inst().trace("handleComm()");
 		
-		peerConnectionThreads = listenerThread.findPeerConnectionThreads(this);
+		peerConnectionThreads = owner.findPeerConnectionThreads(this);
 
 		// Make sure our buffer is big enough
 		if (hdr.messageLen > commBuffer.length)
@@ -349,7 +349,7 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 			ServerSideConnectionHandlerThread presenter = peerConnectionThreads.get(0);
 			
 			// We only forward the packet if this thread is the "master host" thread.
-			if (this == listenerThread.findMasterHostConnectionThread(domecastID))
+			if (this == owner.findMasterHostConnectionThread(domecastID))
 			{
 				synchronized (presenter.outputStreamLock)
 				{
@@ -435,7 +435,7 @@ public class ServerSideConnectionHandlerThread extends TCPConnectionHandlerThrea
 		// Notify all peers of this connection shutting down
 		try
 		{
-			peerConnectionThreads = listenerThread.findPeerConnectionThreads(this);
+			peerConnectionThreads = owner.findPeerConnectionThreads(this);
 			for (ServerSideConnectionHandlerThread peer : peerConnectionThreads)
 				peer.sendBoolean(CommUtils.kIsPeerConnected, false);
 		}

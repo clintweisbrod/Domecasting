@@ -6,6 +6,7 @@ import java.io.OutputStream;
 import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import com.spitzinc.domecasting.BasicProcessorThread;
 import com.spitzinc.domecasting.ClientHeader;
@@ -82,6 +83,11 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 													  "<SN_VALUE name=\"CallSetLive\" value=\"True\">\r\n" +
 													  "<SN_VALUE name=\"DomecastHostID\" value=\"@DomecastHostID@\">\r\n" +
 													  "<SN_VALUE name=\"ValueListVersion\" value=\"2\">\r\n";
+	
+	private static AtomicInteger threadSequenceNumber;
+	static {
+		threadSequenceNumber = new AtomicInteger(0);
+	}
 
 	/*
 	 * This thread is necessary to periodically read data off the connected InputStream
@@ -129,6 +135,8 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 	}
 	
 	private enum ThreadType { eOutgoingToRB, eIncomingFromRB };
+	private SNTCPPassThruThread siblingThread = null;	// Under normal circumstances, there are always pairs of SNTCPPassThruThread instances.
+	private ClientSideConnectionListenerThread owner;
 	private ThreadType threadType;
 	private Socket outboundSocket = null;
 	private TCPNode outboundNode;
@@ -143,36 +151,63 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 	private AtomicBoolean commModeChanged;
 	private StringBuffer domecastHostID;
 	
-	public SNTCPPassThruThread(ClientSideConnectionListenerThread owner, Socket inboundSocket, TCPNode outboundNode)
+	public SNTCPPassThruThread(ClientSideConnectionListenerThread owner, Socket inboundSocket, TCPNode outboundNode, boolean outgoingToRB)
 	{
-		super(owner, inboundSocket);
+		super(inboundSocket);
 		
+		this.owner = owner;
 		this.outboundNode = outboundNode;
 		
 		// The thread type is determined by whether we need to modify the reply port
-		if (outboundNode.replyPort != -1)
+		if (outgoingToRB)
 			this.threadType = ThreadType.eOutgoingToRB;
 		else
 			this.threadType = ThreadType.eIncomingFromRB;
 
 		// Make a header for writing to OutputStream
 		this.outHdr = new ClientHeader();
-
-		// Build a byte buffer to replace the contents of the replyPort field in a SN TCP message header
-		if (this.threadType == ThreadType.eOutgoingToRB)
-			replyPortBytes = CommUtils.getRightPaddedByteArray(Integer.toString(outboundNode.replyPort), kSNHeaderFieldLength);
 		
 		this.theApp = (ClientApplication)ClientApplication.inst();
 		this.readIgnoredStreamThread = null;
 		this.commModeChanged = new AtomicBoolean(false);
 		this.domecastHostID = new StringBuffer();
 		this.inboundPort = inboundSocket.getLocalPort();
+		
+		SNTCPPassThruThread.threadSequenceNumber.incrementAndGet();
 
 		// Set thread name
+		setThreadName();
+	}
+	
+	private void setThreadName()
+	{
+		int outboundPort = 0;
 		if (threadType == ThreadType.eOutgoingToRB)
-			this.setName(getClass().getSimpleName() + "_" + inboundPort + "->" + outboundNode.port);
+			outboundPort = outboundNode.port;
 		else
-			this.setName(getClass().getSimpleName() + "_" + inboundPort + "->" + "unknown");
+			outboundPort = theApp.snPassThru.getOutgoingPortFromClientAppName(clientAppName);
+		
+		String outboundPortStr;
+		if (outboundPort > 0)
+			outboundPortStr = Integer.toString(outboundPort);
+		else
+			outboundPortStr = "unknown";
+
+		String clientStr;
+		if (clientAppName != null)
+			clientStr = clientAppName;
+		else
+			clientStr = "unknown";
+		
+		this.setName(getClass().getSimpleName() + "_" + inboundPort + "->" + outboundPortStr + "_" + clientStr + "_" + SNTCPPassThruThread.threadSequenceNumber.get());
+	}
+	
+	public void setSiblingThread(SNTCPPassThruThread siblingThread) {
+		this.siblingThread = siblingThread;
+	}
+	
+	public SNTCPPassThruThread getSiblingThread() {
+		return siblingThread;
 	}
 	
 	public void setCommModeChanged()
@@ -237,9 +272,9 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 			catch (IOException e1)
 			{
 				stopped.set(true);
-				Log.inst().info(e1.getMessage());
-				if (!e1.getMessage().equals("Socket closed"))
-					e1.printStackTrace();
+				Log.inst().error(e1.getMessage());
+//				if (!e1.getMessage().equals("Socket closed"))
+//					e1.printStackTrace();
 			}
 		}
 
@@ -269,6 +304,19 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 		
 		// Stop the thread that might be reading InputStream
 		stopReadIgnoredStreamThread();
+		
+		// Shutdown the sibling thread too because pass-thru depends on both threads negotiating their connection.
+		if (siblingThread != null)
+		{
+			Log.inst().info("Stopping sibling thread.");
+			
+			// Before we ask the sibling thread to shutdown, we must set the sibling thread's sibling thread to null,
+			// otherwise, the sibling thread will attempt to shutdown this thread - which is already happening.
+			siblingThread.setSiblingThread(null);
+
+			// Ask the sibling thread to shutdown
+			siblingThread.interrupt();
+		}
 		
 		// Notify owner this thread is dying.
 		owner.threadDying(this);
@@ -370,8 +418,6 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 			// Establish outbound connection
 			if (!clientAppName.isEmpty())
 				establishOutboundConnection(buffer);
-			else
-				Log.inst().error("Client connection has not specified clientAppName in the SN header!");
 		}
 
 		// If this is the outgoing thread, change the buffer so that the reply port is set to outboundNode.replyPort
@@ -390,20 +436,29 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 	
 	private void parseClientAppName(byte[] buffer)
 	{
+		Log.inst().trace("parseClientAppName()");
+		
 		byte[] hdrCopy = new byte[kSNHeaderFieldLength];
-		System.arraycopy(buffer, kSNHeaderClientAppNamePosition, hdrCopy, 0, hdrCopy.length);
+		System.arraycopy(buffer, kSNHeaderClientAppNamePosition, hdrCopy, 0, kSNHeaderFieldLength);
 		clientAppName = new String(hdrCopy).trim();
-		Log.inst().debug("clientAppName parsed from SN header: " + clientAppName);
+		
+		setThreadName();
+		
+		// At present, we only expect SN Preflight or ATM-4 to connect.
+		if (!clientAppName.equals(ClientHeader.kSNPF) && !clientAppName.equals(ClientHeader.kATM4))
+			Log.inst().error("Unknown clientAppName parsed: " + clientAppName);
 	}
 	
 	private void establishOutboundConnection(byte[] buffer) throws IOException
 	{
-		// Determine the replyPort that is encoded in the header 
+		Log.inst().trace("establishOutboundConnection()");
+		
+		// Determine the replyPort that is encoded in the header
+		int replyPort = 0;
 		if (threadType == ThreadType.eOutgoingToRB)
 		{
 			// Parse the replyPort from the header
 			String replyPortStr = new String(buffer, kSNHeaderReplyPortPosition, kSNHeaderFieldLength).trim();
-			int replyPort = 0;
 			try {
 				replyPort = Integer.parseInt(replyPortStr);
 			} catch (NumberFormatException e) {
@@ -413,7 +468,7 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 			
 			// Let the snPassThru server know about the reply port
 			if (replyPort > 0)
-				theApp.snPassThru.mapClientAppNameToOutgoingPort(clientAppName, replyPort);
+				theApp.snPassThru.mapClientAppNameToOutgoingPort(clientAppName, replyPort); 
 			else
 				Log.inst().error("Client connection has not specified a reply port in the SN header!");
 		}
@@ -423,11 +478,7 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 		if (threadType == ThreadType.eOutgoingToRB)
 			outboundPort = outboundNode.port;
 		else
-		{
 			outboundPort = theApp.snPassThru.getOutgoingPortFromClientAppName(clientAppName);
-			setName(getClass().getSimpleName() + "_" + inboundPort + "->" + outboundPort);
-			Log.inst().info("Outbound port " + outboundPort + " obtained from " + clientAppName + ".");
-		}
 
 		// Attempt to connect to outbound host
 		Log.inst().info("Attempting to establish outbound connection.");
@@ -435,15 +486,26 @@ public class SNTCPPassThruThread extends TCPConnectionHandlerThread
 		if (outboundSocket != null)
 		{
 			Log.inst().info("Outbound connection established.");
-			try	{
-				out = outboundSocket.getOutputStream();
-			}
-			catch (IOException e) {
-				e.printStackTrace();
+			out = outboundSocket.getOutputStream();
+			
+			// Start a new thread to listen for replies in response to the comm going out on this new connection
+			if ((this.threadType == ThreadType.eOutgoingToRB) && (replyPort > 0))
+			{
+				// Compute recvListenerPort
+				// If replyPort is 56896, recvListenerPort will be 56894.
+				// If replyPort is 56897, recvListenerPort will be 56893.
+				// etc.
+				int recvListenerPort = 56895 - (replyPort - 56895);
+				
+				// Build a byte buffer to replace the contents of the replyPort field in a SN TCP message header
+				replyPortBytes = CommUtils.getRightPaddedByteArray(Integer.toString(recvListenerPort), kSNHeaderFieldLength);
+				
+				// Start new recv listener thread
+				theApp.snPassThru.addRecvListenerThread(recvListenerPort, this);
 			}
 		}
 		else
-			this.setStopped();
+			throw new IOException("Failed to connect to " + outboundNode.hostname + " on port " + outboundPort);
 	}
 
 	private void performDomecastRouting(byte[] buffer) throws IOException

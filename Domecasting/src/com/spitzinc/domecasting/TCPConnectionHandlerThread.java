@@ -6,11 +6,9 @@ import java.net.Socket;
 public class TCPConnectionHandlerThread extends BasicProcessorThread
 {
 	protected Socket socket;
-	protected TCPConnectionListenerThread owner;
 	
-	public TCPConnectionHandlerThread(TCPConnectionListenerThread owner, Socket socket)
+	public TCPConnectionHandlerThread(Socket socket)
 	{
-		this.owner = owner;
 		this.socket = socket;
 	}
 	

@@ -118,7 +118,7 @@ public abstract class TCPConnectionListenerThread extends Thread
 					if (connectionHandlerThreads.size() < maxConnections)
 						handleSocketConnection(clientSocket);
 					else
-						Log.inst().info("Maximum of " + maxConnections + " connections reached.");
+						Log.inst().info("Maximum of " + maxConnections + " connection(s) reached.");
 				}
 			}
 		}

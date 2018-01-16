@@ -43,10 +43,9 @@ public class ClientApplication extends ApplicationBase implements WindowListener
 	public int domecastingServerPort = 80;
 	public String renderboxHostname = "localhost";
 	public int maxClientConnections = 5;
-	public int rbPrefs_DomeServer_TCPPort = 56897;	// For typical two-machine setup, this should be the usual 56895.
-													// For testing on a single machine, needs to be 56897.
+	public int rbPrefs_DomeServer_TCPPort = 56895;	// For typical two-machine setup, this should be the usual 56895.
+													// For testing on a single machine, needs to be 56899.
 	public int pfPrefs_DomeServer_TCPPort = 56895;	// This is read from Preflight Prefs.txt
-	public int passThruReceiveListenerPort = 56898;
 	public String lastAssetsOpenFolder = null;
 	public String lastAssetsSaveFolder = null;
 	public String log4jLevel = "info";
@@ -96,7 +95,7 @@ public class ClientApplication extends ApplicationBase implements WindowListener
 		// of the client require these connections to be established.
 		try
 		{
-			snPassThru = new SNTCPPassThruServer(pfPrefs_DomeServer_TCPPort, passThruReceiveListenerPort, maxClientConnections);
+			snPassThru = new SNTCPPassThruServer(pfPrefs_DomeServer_TCPPort, maxClientConnections);
 			snPassThru.start();
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
@@ -119,7 +118,6 @@ public class ClientApplication extends ApplicationBase implements WindowListener
 			renderboxHostname = getStringProperty(props, "renderboxHostname", renderboxHostname);
 			maxClientConnections = getIntegerProperty(props, "maxClientConnections", maxClientConnections);
 			rbPrefs_DomeServer_TCPPort = getIntegerProperty(props, "rbPrefs_DomeServer_TCPPort", rbPrefs_DomeServer_TCPPort);
-			passThruReceiveListenerPort = getIntegerProperty(props, "passThruReceiveListenerPort", passThruReceiveListenerPort);
 			lastAssetsOpenFolder = getStringProperty(props, "lastAssetsOpenFolder", lastAssetsOpenFolder);
 			lastAssetsSaveFolder = getStringProperty(props, "lastAssetsSaveFolder", lastAssetsSaveFolder);
 			log4jLevel = getStringProperty(props, "log4jLevel", log4jLevel);
@@ -156,7 +154,6 @@ public class ClientApplication extends ApplicationBase implements WindowListener
 		props.setProperty("renderboxHostname", renderboxHostname);
 		props.setProperty("maxClientConnections", Integer.toString(maxClientConnections));
 		props.setProperty("rbPrefs_DomeServer_TCPPort", Integer.toString(rbPrefs_DomeServer_TCPPort));
-		props.setProperty("passThruReceiveListenerPort", Integer.toString(passThruReceiveListenerPort));
 		if (lastAssetsOpenFolder != null)
 			props.setProperty("lastAssetsOpenFolder", lastAssetsOpenFolder);
 		if (lastAssetsSaveFolder != null)
