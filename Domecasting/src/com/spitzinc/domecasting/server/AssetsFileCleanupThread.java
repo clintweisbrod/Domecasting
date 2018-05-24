@@ -3,6 +3,7 @@ package com.spitzinc.domecasting.server;
 import java.io.File;
 import java.io.IOException;
 import java.util.Calendar;
+import java.util.Date;
 
 import org.apache.commons.io.FileUtils;
 
@@ -41,9 +42,10 @@ public class AssetsFileCleanupThread extends BasicProcessorThread
 				timeAtCleanup = cal.getTimeInMillis();
 			}
 			long millisecondsToWait = timeAtCleanup - timeNow;
+			Date cleanupTime = cal.getTime();
 			
 			// Sleep the computed milliseconds
-			Log.inst().info("Sleeping for " + (millisecondsToWait / 60000) + " minutes...");
+			Log.inst().info("Sleeping for " + (millisecondsToWait / 60000) + " minutes (until " + cleanupTime.toString() + ").");
 			try {
 				sleep(millisecondsToWait);
 			} catch (InterruptedException e) {

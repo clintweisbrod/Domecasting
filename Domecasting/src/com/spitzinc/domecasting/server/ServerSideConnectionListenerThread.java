@@ -340,6 +340,9 @@ public class ServerSideConnectionListenerThread extends TCPConnectionListenerThr
 			buf.append('\n');
 		}
 		
-		theApp.appFrame.textArea.setText(buf.toString());
+		if (buf.length() > 0)
+			theApp.appFrame.textArea.setText(buf.toString());
+		else
+			theApp.appFrame.textArea.setText("Waiting for client connections...");
 	}
 }
